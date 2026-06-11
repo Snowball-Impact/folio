@@ -12,6 +12,7 @@ class Settings:
     supabase_url: str
     supabase_anon_key: str
     app_url: str
+    cookie_password: str
 
     @property
     def is_supabase_configured(self) -> bool:
@@ -28,4 +29,5 @@ def get_settings() -> Settings:
         supabase_url=os.getenv("SUPABASE_URL", "").strip(),
         supabase_anon_key=os.getenv("SUPABASE_ANON_KEY", "").strip(),
         app_url=os.getenv("APP_URL", "http://localhost:8501").strip(),
+        cookie_password=os.getenv("COOKIE_PASSWORD", "folio-local-dev-cookie-password").strip(),
     )

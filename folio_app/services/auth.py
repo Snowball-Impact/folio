@@ -13,6 +13,7 @@ from folio_app.services.supabase_client import get_supabase_client
 SESSION_USER_KEY = "folio_user"
 SESSION_TOKEN_KEY = "folio_access_token"
 SESSION_REFRESH_TOKEN_KEY = "folio_refresh_token"
+SESSION_CLEAR_BROWSER_AUTH_KEY = "folio_clear_browser_auth"
 
 
 @dataclass(frozen=True)
@@ -128,6 +129,42 @@ def sign_out() -> None:
     st.session_state.pop(SESSION_TOKEN_KEY, None)
     st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
     st.session_state.pop(SESSION_USER_KEY, None)
+    st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
+
+
+def restore_session(access_token: str, refresh_token: str) -> AuthResult:
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        response = client.auth.set_session(access_token, refresh_token)
+        if response.user is None or response.session is None:
+            return AuthResult(False, "저장된 로그인 정보를 복원하지 못했습니다. 다시 로그인하세요.")
+
+        _save_auth_session(response.session, response.user.model_dump())
+
+        metadata = response.user.user_metadata or {}
+        ensure_profile(
+            response.user.id,
+            response.user.email or "",
+            metadata.get("name", ""),
+            metadata.get("organization", ""),
+        )
+        return AuthResult(True, "로그인 상태를 복원했습니다.")
+    except Exception as exc:
+        return AuthResult(False, _friendly_auth_error("로그인 복원", exc))
+
+
+def get_auth_tokens() -> tuple[str | None, str | None]:
+    return (
+        st.session_state.get(SESSION_TOKEN_KEY),
+        st.session_state.get(SESSION_REFRESH_TOKEN_KEY),
+    )
+
+
+def should_clear_browser_auth() -> bool:
+    return bool(st.session_state.pop(SESSION_CLEAR_BROWSER_AUTH_KEY, False))
 
 
 def _save_auth_session(session: Any, user: dict[str, Any]) -> None:
@@ -150,5 +187,7 @@ def _friendly_auth_error(action: str, exc: Exception) -> str:
         return "이메일 인증이 아직 완료되지 않았습니다. 인증 메일을 확인하세요."
     if "invalid login credentials" in normalized:
         return "이메일 또는 비밀번호를 확인하세요."
+    if "refresh token" in normalized:
+        return "저장된 로그인 정보가 만료되었습니다. 다시 로그인하세요."
 
     return f"{action}에 실패했습니다. 잠시 후 다시 시도하세요. ({message})"

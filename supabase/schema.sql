@@ -44,6 +44,22 @@ create index if not exists projects_category_idx on public.projects(category);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists likes_user_id_idx on public.likes(user_id);
 
+create or replace function public.increment_project_view_count(project_id_input uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+    update public.projects
+    set
+        view_count = view_count + 1,
+        updated_at = now()
+    where id = project_id_input
+      and is_public = true;
+end;
+$$;
+
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
