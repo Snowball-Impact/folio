@@ -1,4 +1,5 @@
 import html
+import re
 
 import streamlit as st
 
@@ -26,7 +27,7 @@ PROJECT_BODY_TEMPLATE = """<h2>문제 정의</h2>
 
 
 def render_project_body_editor(key: str, value: str) -> str:
-    st.caption("본문의 네 섹션 제목은 유지하면 프로젝트 상세 화면에 깔끔하게 나뉘어 표시됩니다.")
+    st.caption("자유롭게 작성하세요. 섹션 제목을 유지하면 상세 화면에서 내용이 더 깔끔하게 나뉩니다.")
     st_quill = _get_quill_editor()
     if st_quill is not None:
         body = st_quill(
@@ -45,7 +46,7 @@ def render_project_body_editor(key: str, value: str) -> str:
         value=_html_to_markdownish(value),
         height=420,
         key=key,
-        help="Markdown 서식을 사용할 수 있습니다. ## 문제 정의, ## 핵심 인사이트 섹션은 필수입니다.",
+        help="Markdown 서식을 사용할 수 있습니다. 섹션 제목은 선택 사항입니다.",
     )
     with st.expander("본문 미리보기"):
         st.markdown(body or "_입력한 본문이 여기에 표시됩니다._")
@@ -140,6 +141,13 @@ def _clean_rich_text_section(value: str) -> str:
     return cleaned
 
 
+def _plain_body_text(value: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", value or "")
+    for heading in ["문제 정의", "사용 데이터", "분석 과정", "핵심 인사이트"]:
+        text = text.replace(heading, " ")
+    return " ".join(html.unescape(text).split())
+
+
 def _format_body_value(value: str | None) -> str:
     if not value:
         return "<p></p>"
@@ -152,10 +160,7 @@ def _format_body_value(value: str | None) -> str:
 
 
 def _strip_html(value: str) -> str:
-    text = value
-    for token in ["<p>", "</p>", "<br>", "<br/>", "<br />", "<strong>", "</strong>", "<em>", "</em>"]:
-        text = text.replace(token, " ")
-    return html.unescape(text)
+    return " ".join(html.unescape(re.sub(r"<[^>]+>", " ", value or "")).split())
 
 
 def _html_to_markdownish(value: str) -> str:
@@ -175,10 +180,8 @@ def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], li
     missing = []
     if not form_data["title"].strip():
         missing.append("프로젝트명")
-    if not parsed_body["problem"].strip():
-        missing.append("문제 정의")
-    if not parsed_body["insights"].strip():
-        missing.append("핵심 인사이트")
+    if not _project_body_has_content(form_data["project_body"], parsed_body):
+        missing.append("프로젝트 본문")
 
     url_error = _validate_optional_urls(
         form_data["power_bi_url"],
@@ -189,10 +192,9 @@ def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], li
     return parsed_body, missing, url_error
 
 
-def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str], category: str) -> dict:
+def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]) -> dict:
     return {
         "title": form_data["title"],
-        "category": category,
         "one_liner": form_data["one_liner"],
         "problem": parsed_body["problem"],
         "dataset": parsed_body["dataset"],
@@ -205,6 +207,12 @@ def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]
         "ai_summary": form_data["ai_summary"],
         "tags": form_data["tags"],
     }
+
+
+def _project_body_has_content(body: str, parsed_body: dict[str, str]) -> bool:
+    parsed_text = " ".join(_plain_body_text(value) for value in parsed_body.values())
+    raw_text = _plain_body_text(body)
+    return bool(parsed_text.strip() or raw_text.strip())
 
 
 def render_project_form(
@@ -239,39 +247,45 @@ def render_project_form(
             "태그",
             value=tags,
             placeholder="공공데이터, PowerBI, 취업",
+            help="#은 자동으로 제거되고 쉼표 기준으로 최대 10개까지 저장됩니다.",
             key=f"{key_prefix}_tags",
         )
+        preview_tags = _normalize_tag_preview(tags_input)
+        if preview_tags:
+            tag_preview = " ".join(f"`#{tag}`" for tag in preview_tags)
+            st.caption(f"저장될 태그: {tag_preview}")
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
     with right:
-        st.markdown("### 링크 및 요약")
-        power_bi_url_input = st.text_input(
-            "Power BI Embed URL",
-            value=power_bi_url,
-            help="Power BI에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
-            key=f"{key_prefix}_power_bi_url",
-        )
-        report_url_input = st.text_input(
-            "보고서 URL",
-            value=report_url,
-            key=f"{key_prefix}_report_url",
-        )
-        github_url_input = st.text_input(
-            "GitHub URL",
-            value=github_url,
-            key=f"{key_prefix}_github_url",
-        )
-        thumbnail_url_input = st.text_input(
-            "썸네일 URL",
-            value=thumbnail_url,
-            key=f"{key_prefix}_thumbnail_url",
-        )
-        ai_summary_input = st.text_area(
-            "AI 요약",
-            value=ai_summary,
-            height=110,
-            key=f"{key_prefix}_ai_summary",
-        )
+        with st.expander("링크 및 요약", expanded=False):
+            st.caption("대시보드, 보고서, GitHub, 썸네일, 요약은 선택 입력입니다.")
+            power_bi_url_input = st.text_input(
+                "Power BI Embed URL",
+                value=power_bi_url,
+                help="Power BI에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
+                key=f"{key_prefix}_power_bi_url",
+            )
+            report_url_input = st.text_input(
+                "보고서 URL",
+                value=report_url,
+                key=f"{key_prefix}_report_url",
+            )
+            github_url_input = st.text_input(
+                "GitHub URL",
+                value=github_url,
+                key=f"{key_prefix}_github_url",
+            )
+            thumbnail_url_input = st.text_input(
+                "썸네일 URL",
+                value=thumbnail_url,
+                key=f"{key_prefix}_thumbnail_url",
+            )
+            ai_summary_input = st.text_area(
+                "AI 요약",
+                value=ai_summary,
+                height=110,
+                key=f"{key_prefix}_ai_summary",
+            )
 
     submitted = st.button(submit_label, use_container_width=True, key=f"{key_prefix}_submit")
     return (
@@ -310,3 +324,12 @@ def _validate_optional_urls(
     if invalid_fields:
         return f"{', '.join(invalid_fields)}은 http:// 또는 https://로 시작해야 합니다."
     return None
+
+
+def _normalize_tag_preview(value: str) -> list[str]:
+    tags = []
+    for tag in value.replace("#", "").split(","):
+        normalized = tag.strip()
+        if normalized and normalized not in tags:
+            tags.append(normalized)
+    return tags[:10]

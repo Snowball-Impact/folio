@@ -8,7 +8,7 @@ from folio_app.services.auth import get_current_user
 def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
     options = list(_navigation_options())
-    selected = initial_page if initial_page in options else "Home"
+    selected = initial_page if initial_page in _routable_pages() else "Home"
     labels = [_page_label(option) for option in options]
 
     nav_links = "".join(
@@ -53,9 +53,21 @@ def _navigation_options() -> list[str]:
         "Home",
         "Gallery",
         "Login",
-        "Sign Up",
         "About",
     ]
+
+
+def _routable_pages() -> set[str]:
+    return {
+        "Home",
+        "Gallery",
+        "Login",
+        "Sign Up",
+        "About",
+        "Submit",
+        "My Portfolio",
+        "Profile",
+    }
 
 
 def _page_label(page: str) -> str:
@@ -72,13 +84,11 @@ def _page_label(page: str) -> str:
 
 
 def render_hero(eyebrow: str, title: str, body: str) -> None:
-    safe_eyebrow = html.escape(eyebrow)
     safe_title = html.escape(title)
     safe_body = html.escape(body)
     st.markdown(
         f"""
         <section class="folio-hero">
-            <div class="folio-eyebrow">{safe_eyebrow}</div>
             <h1>{safe_title}</h1>
             <p class="folio-muted">{safe_body}</p>
         </section>

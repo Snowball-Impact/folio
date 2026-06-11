@@ -24,7 +24,12 @@ def render_tag_chips(tags: list[str]) -> str:
     return f"<div class='folio-tags'>{chips}</div>"
 
 
-def render_project_card_html(project: dict, compact: bool = False, fallback_text: str = "") -> str:
+def render_project_card_html(
+    project: dict,
+    compact: bool = False,
+    fallback_text: str = "",
+    href: str | None = None,
+) -> str:
     title = html.escape(project.get("title") or "Untitled")
     one_liner = html.escape(project.get("one_liner") or fallback_text or project.get("insights") or "")
     if not one_liner:
@@ -40,7 +45,7 @@ def render_project_card_html(project: dict, compact: bool = False, fallback_text
             thumbnail_html = "<div class='folio-home-thumb folio-home-thumb-fallback'>FOLIO</div>"
 
     card_class = "folio-home-card folio-home-card-compact" if compact else "folio-home-card"
-    return f"""
+    card_html = f"""
     <div class="{card_class}">
         {thumbnail_html}
         <h3>{title}</h3>
@@ -49,9 +54,17 @@ def render_project_card_html(project: dict, compact: bool = False, fallback_text
         <div class="folio-home-metrics">조회 {project.get('view_count', 0)} · 좋아요 {project.get('like_count', 0)}</div>
     </div>
     """
+    if not href:
+        return card_html
+
+    return f"""
+    <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
+        {card_html}
+    </a>
+    """
 
 
-def render_gallery_card_html(project: dict) -> str:
+def render_gallery_card_html(project: dict, href: str | None = None) -> str:
     author = project.get("author") or {}
     thumbnail_url = project.get("thumbnail_url")
     title = html.escape(project.get("title") or "Untitled")
@@ -67,17 +80,29 @@ def render_gallery_card_html(project: dict) -> str:
         else "FOLIO"
     )
 
-    return f"""
+    card_html = f"""
     <div class="folio-gallery-card">
         <div class="folio-thumbnail">
             {image_html}
         </div>
-        <div>
-            <h3>{title}</h3>
-            <p>{one_liner}</p>
-            <p class="folio-muted">작성자: {author_name}</p>
-            {tags_html}
-            <div class="folio-detail-meta">조회 {project.get('view_count', 0)} · 좋아요 {project.get('like_count', 0)}</div>
+        <div class="folio-gallery-content">
+            <div>
+                <h3>{title}</h3>
+                <p>{one_liner}</p>
+                <p class="folio-muted">작성자: {author_name}</p>
+            </div>
+            <div class="folio-gallery-footer">
+                {tags_html}
+                <div class="folio-detail-meta">조회 {project.get('view_count', 0)} · 좋아요 {project.get('like_count', 0)}</div>
+            </div>
         </div>
     </div>
+    """
+    if not href:
+        return card_html
+
+    return f"""
+    <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
+        {card_html}
+    </a>
     """

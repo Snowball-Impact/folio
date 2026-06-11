@@ -1,7 +1,3 @@
-import html
-import re
-from urllib.parse import urlparse
-
 import streamlit as st
 
 from folio_app.components.ui import plain_text, render_project_card_html, render_tag_chips
@@ -13,8 +9,11 @@ def render() -> None:
         """
         <section class="folio-home-hero">
             <div class="folio-home-copy">
-                <h1>발표로 끝나지 않는<br>프로젝트</h1>
-                <p>데이터 분석 프로젝트를 포트폴리오 자산으로 축적하고 공유하는 플랫폼, FOLIO</p>
+                <h1>
+                    <span>AI 시대에도</span>
+                    <span>휴먼 인사이트는 자산이다.</span>
+                </h1>
+                <p>데이터 분석 프로젝트를 포트폴리오로 축적하고 공유하세요.</p>
             </div>
             <div class="folio-hero-preview">
                 <div class="folio-preview-window"></div>
@@ -71,10 +70,6 @@ def _render_project_section(title: str, projects: list[dict], card_style: str) -
     for col, project in zip(cols, projects):
         with col:
             _render_home_card(project, compact=card_style == "compact")
-            if st.button("보기", key=f"home_open_{card_style}_{project['id']}"):
-                st.query_params["page"] = "Gallery"
-                st.query_params["project_id"] = project["id"]
-                st.rerun()
 
 
 def _render_home_card(project: dict, compact: bool = False) -> None:
@@ -82,5 +77,6 @@ def _render_home_card(project: dict, compact: bool = False) -> None:
         project,
         compact=compact,
         fallback_text=plain_text(project.get("insights")) or "",
+        href=f"?page=Gallery&project_id={project['id']}",
     )
     st.markdown(html_content, unsafe_allow_html=True)

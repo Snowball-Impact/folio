@@ -14,7 +14,6 @@ create table if not exists public.projects (
     id uuid primary key default gen_random_uuid(),
     author_id uuid not null references public.profiles(id) on delete cascade,
     title text not null,
-    category text not null,
     one_liner text,
     problem text not null,
     dataset text,
@@ -40,7 +39,6 @@ create table if not exists public.likes (
 );
 
 create index if not exists projects_author_id_idx on public.projects(author_id);
-create index if not exists projects_category_idx on public.projects(category);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists likes_user_id_idx on public.likes(user_id);
 

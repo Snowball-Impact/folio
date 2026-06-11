@@ -13,7 +13,6 @@ from folio_app.components.project_form import (
 from folio_app.services.auth import get_current_user
 from folio_app.services.profiles import get_profile
 from folio_app.services.projects import (
-    CATEGORIES,
     count_author_stats,
     create_project,
     delete_project,
@@ -61,7 +60,7 @@ def render_submit() -> None:
 
     result = create_project(
         user["id"],
-        build_project_payload(form_data, parsed_body, CATEGORIES[0]),
+        build_project_payload(form_data, parsed_body),
     )
 
     if result.ok:
@@ -205,7 +204,7 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
     result = update_project(
         project["id"],
         author_id,
-        build_project_payload(form_data, parsed_body, project.get("category") or CATEGORIES[0]),
+        build_project_payload(form_data, parsed_body),
     )
 
     if result.ok:

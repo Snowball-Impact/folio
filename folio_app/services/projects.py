@@ -6,10 +6,7 @@ from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlparse
 
-from folio_app.services.supabase_client import get_supabase_client
-
-
-CATEGORIES = ["Data Analytics", "Power BI", "Public Data", "ML", "Visualization"]
+from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
 
 
 @dataclass(frozen=True)
@@ -82,26 +79,16 @@ def list_public_projects(
     search: str = "",
     tag: str = "전체",
     sort: str = "최신순",
-    category: str = "전체",
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     client = get_supabase_client()
     if client is None:
         return []
 
-    query = client.table("projects").select("*").eq("is_public", True)
+    response = _execute_public_read(lambda: _build_public_projects_query(client, search, tag, sort, limit).execute())
+    if response is None:
+        return []
 
-    if category and category != "전체":
-        query = query.eq("category", category)
-
-    if sort == "조회수순":
-        query = query.order("view_count", desc=True)
-    elif sort == "좋아요순":
-        query = query.order("like_count", desc=True)
-    else:
-        query = query.order("created_at", desc=True)
-
-    response = query.limit(max(limit, 100)).execute()
     projects = response.data or []
     if search:
         projects = [
@@ -111,7 +98,21 @@ def list_public_projects(
     if tag and tag != "전체":
         projects = [project for project in projects if tag in (project.get("tags") or [])]
 
-    return _attach_related_data(projects, sort=sort)
+    projects = _attach_related_data(projects, sort=sort)
+    return projects[:limit]
+
+
+def _build_public_projects_query(client, search: str, tag: str, sort: str, limit: int):
+    query = client.table("projects").select("*").eq("is_public", True)
+
+    if sort == "조회수순":
+        query = query.order("view_count", desc=True)
+    else:
+        query = query.order("created_at", desc=True)
+
+    needs_local_filtering = bool(search.strip()) or (tag and tag != "전체") or sort == "좋아요순"
+    fetch_limit = max(limit, 250) if needs_local_filtering else limit
+    return query.limit(max(fetch_limit, 1))
 
 
 def list_popular_tags(limit: int = 8) -> list[str]:
@@ -119,12 +120,29 @@ def list_popular_tags(limit: int = 8) -> list[str]:
     if client is None:
         return []
 
-    response = client.table("projects").select("tags").eq("is_public", True).execute()
+    response = _execute_public_read(
+        lambda: client.table("projects").select("tags").eq("is_public", True).execute()
+    )
+    if response is None:
+        return []
+
     counter: Counter[str] = Counter()
     for project in response.data or []:
         counter.update(project.get("tags") or [])
 
     return [tag for tag, _ in counter.most_common(limit)]
+
+
+def _execute_public_read(operation):
+    try:
+        return operation()
+    except Exception as exc:
+        if recover_from_expired_jwt(exc):
+            try:
+                return operation()
+            except Exception:
+                return None
+        raise
 
 
 def list_projects_by_author(author_id: str) -> list[dict[str, Any]]:
@@ -147,7 +165,12 @@ def get_project(project_id: str) -> dict[str, Any] | None:
     if client is None:
         return None
 
-    response = client.table("projects").select("*").eq("id", project_id).single().execute()
+    response = _execute_public_read(
+        lambda: client.table("projects").select("*").eq("id", project_id).single().execute()
+    )
+    if response is None:
+        return None
+
     projects = _attach_related_data([response.data] if response.data else [])
     return projects[0] if projects else None
 
@@ -164,6 +187,50 @@ def increment_view_count(project_id: str) -> None:
         return
 
 
+def is_project_liked(project_id: str, user_id: str | None) -> bool:
+    client = get_supabase_client()
+    if client is None or not user_id:
+        return False
+
+    response = _execute_public_read(
+        lambda: (
+            client.table("likes")
+            .select("project_id")
+            .eq("project_id", project_id)
+            .eq("user_id", user_id)
+            .limit(1)
+            .execute()
+        )
+    )
+    if response is None:
+        return False
+
+    return bool(response.data)
+
+
+def set_project_liked(project_id: str, user_id: str, liked: bool) -> ProjectResult:
+    client = get_supabase_client()
+    if client is None:
+        return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        if liked:
+            client.table("likes").insert(
+                {
+                    "project_id": project_id,
+                    "user_id": user_id,
+                }
+            ).execute()
+            return ProjectResult(True, "좋아요를 눌렀습니다.", project_id)
+
+        client.table("likes").delete().eq("project_id", project_id).eq("user_id", user_id).execute()
+        return ProjectResult(True, "좋아요를 취소했습니다.", project_id)
+    except Exception as exc:
+        if liked and "duplicate" in str(exc).lower():
+            return ProjectResult(True, "이미 좋아요를 누른 프로젝트입니다.", project_id)
+        return ProjectResult(False, f"좋아요 처리에 실패했습니다. ({exc})", project_id)
+
+
 def count_author_stats(author_id: str) -> dict[str, int]:
     projects = list_projects_by_author(author_id)
     return {
@@ -175,7 +242,6 @@ def count_author_stats(author_id: str) -> dict[str, int]:
 def _clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
     return {
         "title": payload.get("title", "").strip(),
-        "category": payload.get("category", CATEGORIES[0]),
         "one_liner": payload.get("one_liner", "").strip() or None,
         "problem": payload.get("problem", "").strip(),
         "dataset": payload.get("dataset", "").strip() or None,
@@ -276,12 +342,18 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
     author_ids = sorted({project["author_id"] for project in projects if project.get("author_id")})
     profiles_by_id: dict[str, dict[str, Any]] = {}
     if author_ids:
-        profiles = client.table("profiles").select("id, name, organization").in_("id", author_ids).execute()
-        profiles_by_id = {profile["id"]: profile for profile in profiles.data or []}
+        profiles = _execute_public_read(
+            lambda: client.table("profiles").select("id, name, organization").in_("id", author_ids).execute()
+        )
+        if profiles is None:
+            profiles_by_id = {}
+        else:
+            profiles_by_id = {profile["id"]: profile for profile in profiles.data or []}
 
+    like_counts = _count_likes_by_project([project["id"] for project in projects if project.get("id")])
     for project in projects:
         project["author"] = profiles_by_id.get(project.get("author_id"), {})
-        project["like_count"] = _count_likes(project["id"])
+        project["like_count"] = like_counts.get(project["id"], 0)
 
     if sort == "좋아요순":
         projects.sort(key=lambda project: project.get("like_count", 0), reverse=True)
@@ -289,15 +361,25 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
     return projects
 
 
-def _count_likes(project_id: str) -> int:
+def _count_likes_by_project(project_ids: list[str]) -> dict[str, int]:
     client = get_supabase_client()
-    if client is None:
-        return 0
+    if client is None or not project_ids:
+        return {}
 
-    response = (
-        client.table("likes")
-        .select("project_id", count="exact")
-        .eq("project_id", project_id)
-        .execute()
+    response = _execute_public_read(
+        lambda: (
+            client.table("likes")
+            .select("project_id")
+            .in_("project_id", project_ids)
+            .execute()
+        )
     )
-    return response.count or 0
+    if response is None:
+        return {}
+
+    counter: Counter[str] = Counter()
+    for like in response.data or []:
+        project_id = like.get("project_id")
+        if project_id:
+            counter[project_id] += 1
+    return dict(counter)

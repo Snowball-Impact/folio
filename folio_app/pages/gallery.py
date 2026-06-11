@@ -1,14 +1,12 @@
 from __future__ import annotations
 
 import html
-import re
-from urllib.parse import urlparse
 
 import streamlit as st
 import streamlit.components.v1 as components
 
 from folio_app.components.layout import render_hero
-from folio_app.components.ui import render_gallery_card_html, render_tag_chips
+from folio_app.components.ui import is_http_url, render_gallery_card_html, render_tag_chips
 from folio_app.services.projects import (
     get_project,
     increment_view_count,
@@ -37,13 +35,23 @@ def render() -> None:
     left, right = st.columns([2, 1])
     with left:
         popular_tags = list_popular_tags()
+        tag_options = ["전체", *popular_tags]
+        initial_tag = st.query_params.get("tag", "전체")
+        if initial_tag not in tag_options:
+            initial_tag = "전체"
         selected_tag = st.pills(
-            "자주 사용되는 태그",
-            ["전체", *popular_tags],
-            default="전체",
+            "태그 필터",
+            tag_options,
+            default=initial_tag,
         ) or "전체"
     with right:
         sort = st.selectbox("정렬", ["최신순", "조회수순", "좋아요순"])
+
+    if search or selected_tag != "전체":
+        if st.button("검색/태그 필터 초기화", use_container_width=True):
+            st.query_params.clear()
+            st.query_params["page"] = "Gallery"
+            st.rerun()
 
     projects = list_public_projects(
         search=search,
@@ -60,12 +68,8 @@ def render() -> None:
 
 
 def _render_project_card(project: dict) -> None:
-    body = render_gallery_card_html(project)
+    body = render_gallery_card_html(project, href=f"?page=Gallery&project_id={project['id']}")
     st.markdown(body, unsafe_allow_html=True)
-    if st.button("상세 보기", key=f"open_{project['id']}", use_container_width=True):
-        st.query_params["page"] = "Gallery"
-        st.query_params["project_id"] = project["id"]
-        st.rerun()
 
 
 def _render_detail(project_id: str) -> None:
@@ -82,40 +86,34 @@ def _render_detail(project_id: str) -> None:
             st.rerun()
         return
 
-    if st.button("← 갤러리로 돌아가기"):
-        _clear_detail_query()
-        st.rerun()
-
     author = project.get("author") or {}
     created_at = project.get("created_at") or ""
-    category = project.get("category") or ""
     author_name = author.get("name") or "작성자"
 
-    render_hero(
-        "Project",
-        project.get("title") or "Untitled",
-        f"{author_name} · {created_at[:10] if created_at else '등록일 없음'}",
-    )
-
-    like_state_key = f"liked_{project_id}"
-    liked = st.session_state.get(like_state_key, False)
     like_count = project.get("like_count", 0) or 0
-    if liked:
-        like_count += 1
 
     st.markdown(
         f"""
-        <div class="folio-detail-header">
-            <div class="folio-detail-meta">
-                <span>{html.escape(category)}</span>
-                <span>조회 {project.get("view_count", 0)}</span>
-                <span>좋아요 {like_count}</span>
+        <section class="folio-hero folio-detail-hero">
+            <div>
+                <h1>{html.escape(project.get("title") or "Untitled")}</h1>
+                <p class="folio-muted">{html.escape(author_name)} · {created_at[:10] if created_at else '등록일 없음'}</p>
             </div>
-            {render_tag_chips(project.get("tags") or [])}
-        </div>
+            <div class="folio-detail-hero-meta">
+                {render_tag_chips(project.get("tags") or [])}
+                <div class="folio-detail-meta">
+                    <span>조회 {project.get("view_count", 0)}</span>
+                    <span>좋아요 {like_count}</span>
+                </div>
+            </div>
+        </section>
         """,
         unsafe_allow_html=True,
     )
+
+    has_report = is_http_url(project.get("report_url"))
+    has_github = is_http_url(project.get("github_url"))
+    power_bi_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
 
     content_col, side_col = st.columns([1.75, 1])
     with content_col:
@@ -129,42 +127,58 @@ def _render_detail(project_id: str) -> None:
         _render_section("핵심 인사이트", project.get("insights"))
 
     with side_col:
-        if _is_http_url(project.get("thumbnail_url")):
-            st.image(project["thumbnail_url"], use_container_width=True)
-
-        if st.button("좋아요" if not liked else "좋아요 취소", key=f"like_button_{project_id}", use_container_width=True):
-            st.session_state[like_state_key] = not liked
-            st.experimental_rerun()
-
-        power_bi_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
         if power_bi_url:
-            st.markdown("### Power BI 대시보드")
+            st.markdown("### 대시보드")
             components.html(
                 f"""
-                <iframe
-                    title="Power BI report"
-                    width="100%"
-                    height="420"
-                    src="{html.escape(power_bi_url, quote=True)}"
-                    frameborder="0"
-                    allowFullScreen="true">
-                </iframe>
+                <style>
+                    html,
+                    body {{
+                        margin: 0;
+                        overflow: hidden;
+                        padding: 0;
+                    }}
+                    .folio-dashboard-frame {{
+                        aspect-ratio: 16 / 12;
+                        position: relative;
+                        width: 100%;
+                    }}
+                    .folio-dashboard-iframe {{
+                        border: 0;
+                        height: 100%;
+                        inset: 0;
+                        position: absolute;
+                        width: 100%;
+                    }}
+                </style>
+                <div class="folio-dashboard-frame">
+                    <iframe
+                        title="Embedded dashboard"
+                        src="{html.escape(power_bi_url, quote=True)}"
+                        frameborder="0"
+                        allowFullScreen="true"
+                        class="folio-dashboard-iframe">
+                    </iframe>
+                </div>
                 """,
-                height=440,
+                height=340,
             )
         elif project.get("power_bi_url"):
             st.warning("Power BI 임베드 주소를 확인하세요. iframe 코드 또는 https URL의 src 값이 필요합니다.")
 
-        has_report = _is_http_url(project.get("report_url"))
-        has_github = _is_http_url(project.get("github_url"))
         if has_report or has_github:
+            st.markdown('<div class="folio-attachment-links">', unsafe_allow_html=True)
             st.markdown("### 첨부 파일 및 링크")
             if has_report:
                 st.link_button("보고서 보기", project["report_url"], use_container_width=True)
             if has_github:
                 st.link_button("GitHub 보기", project["github_url"], use_container_width=True)
-        elif not power_bi_url and not _is_http_url(project.get("thumbnail_url")):
-            st.info("등록된 대시보드나 외부 링크가 없습니다.")
+            st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        '<a class="folio-back-link folio-back-link-bottom" href="?page=Gallery" target="_self">← 목록으로 돌아가기</a>',
+        unsafe_allow_html=True,
+    )
 
 
 def _render_section(title: str, body: str | None) -> None:

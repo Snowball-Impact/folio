@@ -93,12 +93,6 @@ def _handle_logout_query() -> None:
 
 
 def main() -> None:
-    st.set_page_config(
-        page_title="FOLIO",
-        page_icon="F",
-        layout="wide",
-        initial_sidebar_state="collapsed",
-    )
     apply_global_styles()
 
     settings = get_settings()
