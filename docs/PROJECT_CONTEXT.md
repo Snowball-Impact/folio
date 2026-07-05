@@ -155,7 +155,7 @@ with st.container(border=False, key="folio_header"):
               └─ 실패: 쿠키 삭제, restore_failed=1 표시
 ```
 
-- `get_current_user()`: `session_state["supabase_user"]` 반환. 없으면 None.
+- `get_current_user()`: `session_state["folio_user"]` 반환. 없으면 None.
 - 로그아웃: `?logout=1` 쿼리 → `sign_out()` → 쿠키 삭제 → 홈 이동.
 - Supabase client는 `st.cache_resource` 전역 공유가 아니라 Streamlit 세션별로 생성해 Auth 상태가 사용자 간 섞이지 않게 한다.
 - 로그아웃 시 토큰과 함께 세션의 Supabase client도 폐기한다.
@@ -219,3 +219,27 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - 사용자 프로젝트 본문은 저장 시와 표시 시 `sanitize_project_html()`로 정제.
 - 캡처 확인은 UI/UX 작업 시만. 확인 후 `artifacts/` 이미지 정리.
 - 캡처 스크립트: `tools/capture_streamlit_scroll.py` (의존: selenium, Pillow → `requirements-dev.txt`).
+
+---
+
+## 다음 작업 우선순위
+
+현재 MVP 핵심 기능과 단위 테스트는 구현되어 있다. 새 기능을 늘리기 전에 아래 순서로 배포 안정성을 높인다.
+
+1. **실제 Supabase 통합 검증**
+   - 테스트 계정 2개로 회원가입, 이메일 인증, 로그인 유지, 온보딩을 확인한다.
+   - 프로젝트 공개/비공개 RLS와 작성자 전용 수정·삭제를 확인한다.
+   - 조회수 RPC, 같은 세션의 중복 조회 방지, 좋아요 추가·취소·정렬을 확인한다.
+2. **오류 처리와 운영 진단 보강**
+   - 데이터가 없는 상태와 Supabase 조회 실패 상태를 화면에서 구분한다.
+   - 현재 조용히 무시하는 조회수 RPC 실패를 진단할 수 있게 한다.
+   - 주요 조회 화면에 재시도 흐름을 제공한다.
+3. **라이트 테마 재설계**
+   - 색상 토큰과 전역 배경부터 정리한 뒤 Home, 카드, 상세, 인증/관리 화면 순으로 적용한다.
+   - UI 변경 후 PC·모바일 스크롤 캡처로 확인한다.
+4. **프로젝트 작성 초안 보호**
+   - 신규 등록과 수정 내용을 구분해 `session_state`에 임시 보존한다.
+   - 등록·수정 완료 또는 명시적 취소 시 초안을 제거한다.
+5. **테스트와 문서 보강**
+   - CRUD, 좋아요, 조회수 실패, 쿠키 복구, 비공개 접근 흐름의 테스트를 추가한다.
+   - 기능 변경 시 이 문서와 관련 체크리스트를 함께 갱신한다.
