@@ -7,7 +7,7 @@ import streamlit as st
 
 from folio_app.config import get_settings
 from folio_app.services.profiles import ensure_profile, profile_exists_for_email
-from folio_app.services.supabase_client import get_supabase_client
+from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
 
 
 SESSION_USER_KEY = "folio_user"
@@ -85,12 +85,16 @@ def sign_in(email: str, password: str) -> AuthResult:
         _save_auth_session(response.session, response.user.model_dump())
 
         metadata = response.user.user_metadata or {}
-        ensure_profile(
-            response.user.id,
-            response.user.email or email,
-            metadata.get("name", ""),
-            metadata.get("organization", ""),
-        )
+        try:
+            ensure_profile(
+                response.user.id,
+                response.user.email or email,
+                metadata.get("name", ""),
+                metadata.get("organization", ""),
+            )
+        except Exception:
+            # Login has already succeeded. Profile repair can be retried elsewhere.
+            pass
         return AuthResult(True, "로그인되었습니다.")
     except Exception as exc:
         return AuthResult(False, _friendly_auth_error("로그인", exc))
@@ -130,6 +134,7 @@ def sign_out() -> None:
     st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
     st.session_state.pop(SESSION_USER_KEY, None)
     st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
+    clear_supabase_client()
 
 
 def restore_session(access_token: str, refresh_token: str) -> AuthResult:
@@ -189,5 +194,12 @@ def _friendly_auth_error(action: str, exc: Exception) -> str:
         return "이메일 또는 비밀번호를 확인하세요."
     if "refresh token" in normalized:
         return "저장된 로그인 정보가 만료되었습니다. 다시 로그인하세요."
+    if (
+        "getaddrinfo failed" in normalized
+        or "connecterror" in normalized
+        or "temporary failure in name resolution" in normalized
+        or "name or service not known" in normalized
+    ):
+        return "Supabase 서버에 연결하지 못했습니다. .env의 SUPABASE_URL 또는 네트워크/DNS 상태를 확인하세요."
 
     return f"{action}에 실패했습니다. 잠시 후 다시 시도하세요. ({message})"

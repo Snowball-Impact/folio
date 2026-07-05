@@ -3,8 +3,10 @@ from streamlit_cookies_manager import EncryptedCookieManager
 
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
-from folio_app.pages import about, gallery, home, protected
+from folio_app.navigation import ROUTABLE_PAGES
+from folio_app.pages import gallery, home, onboarding, protected
 from folio_app.pages.auth import render_login, render_signup
+from folio_app.services.profiles import get_onboarding_status
 from folio_app.services.auth import (
     get_auth_tokens,
     get_current_user,
@@ -16,7 +18,7 @@ from folio_app.styles import apply_global_styles
 
 def _initial_page_from_query() -> str | None:
     page = st.query_params.get("page")
-    if page in {"Home", "Gallery", "Login", "Sign Up", "About", "Submit", "My Portfolio", "Profile"}:
+    if page in ROUTABLE_PAGES:
         return page
     return None
 
@@ -82,6 +84,17 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     st.rerun()
 
 
+def _normalize_legacy_routes() -> None:
+    if st.query_params.get("page") == "Gallery":
+        preserved = {key: st.query_params.get(key) for key in st.query_params}
+        st.query_params.clear()
+        st.query_params["page"] = "Home"
+        for key, value in preserved.items():
+            if key != "page" and value:
+                st.query_params[key] = value
+        st.rerun()
+
+
 def _handle_logout_query() -> None:
     logout = st.query_params.get("logout")
     if logout == "1" or logout == ["1"]:
@@ -108,20 +121,47 @@ def main() -> None:
 
     _restore_auth_from_cookies(cookies)
     _sync_browser_auth_storage(cookies)
+    _normalize_legacy_routes()
     _handle_logout_query()
     _render_verified_notice()
 
     selected_page = render_header(initial_page=_initial_page_from_query())
+    user = get_current_user()
+    if user is not None:
+        onboarding_done_key = f"onboarding_done_{user['id']}"
+        if not st.session_state.get(onboarding_done_key):
+            onboarding_status = get_onboarding_status(user["id"])
+            if onboarding_status.error_message:
+                st.error(onboarding_status.error_message)
+                if st.button("다시 시도", key="retry_onboarding_status"):
+                    st.rerun()
+                st.markdown(
+                    '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
+                    unsafe_allow_html=True,
+                )
+                return
+            if onboarding_status.required and not onboarding_status.is_complete:
+                onboarding.render(onboarding_status)
+                st.markdown(
+                    '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
+                    unsafe_allow_html=True,
+                )
+                return
+            st.session_state[onboarding_done_key] = True
 
     page_handlers = {
         "Home": home.render,
         "Gallery": gallery.render,
         "Login": render_login,
         "Sign Up": render_signup,
-        "About": about.render,
         "Submit": protected.render_submit,
         "My Portfolio": protected.render_my_portfolio,
         "Profile": protected.render_profile,
     }
 
     page_handlers.get(selected_page, home.render)()
+
+    st.markdown(
+        '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
+        unsafe_allow_html=True,
+    )

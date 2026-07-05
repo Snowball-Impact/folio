@@ -10,6 +10,31 @@ create table if not exists public.profiles (
     updated_at timestamptz not null default now()
 );
 
+create table if not exists public.policy_versions (
+    id uuid primary key default gen_random_uuid(),
+    policy_type text not null check (policy_type in ('terms', 'privacy')),
+    version text not null,
+    title text not null,
+    content text,
+    content_url text,
+    summary text,
+    effective_at timestamptz not null default now(),
+    is_active boolean not null default true,
+    created_at timestamptz not null default now(),
+    unique (policy_type, version)
+);
+
+create table if not exists public.user_policy_consents (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references public.profiles(id) on delete cascade,
+    policy_version_id uuid not null references public.policy_versions(id) on delete restrict,
+    consented_at timestamptz not null default now(),
+    ip_address inet,
+    user_agent text,
+    created_at timestamptz not null default now(),
+    unique (user_id, policy_version_id)
+);
+
 create table if not exists public.projects (
     id uuid primary key default gen_random_uuid(),
     author_id uuid not null references public.profiles(id) on delete cascade,
@@ -41,6 +66,21 @@ create table if not exists public.likes (
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists likes_user_id_idx on public.likes(user_id);
+create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
+create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
+create index if not exists user_policy_consents_policy_version_id_idx on public.user_policy_consents(policy_version_id);
+
+create or replace view public.public_profiles as
+select
+    id,
+    coalesce(nullif(name, ''), split_part(email, '@', 1)) as name,
+    organization,
+    avatar_url
+from public.profiles;
+
+grant select on public.public_profiles to anon, authenticated;
+grant select on public.policy_versions to anon, authenticated;
+grant select, insert on public.user_policy_consents to authenticated;
 
 create or replace function public.increment_project_view_count(project_id_input uuid)
 returns void
@@ -91,11 +131,14 @@ for each row execute function public.handle_new_user();
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.likes enable row level security;
+alter table public.policy_versions enable row level security;
+alter table public.user_policy_consents enable row level security;
 
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
-create policy "Profiles are readable by everyone"
+drop policy if exists "Users can read own profile" on public.profiles;
+create policy "Users can read own profile"
 on public.profiles for select
-using (true);
+using (auth.uid() = id);
 
 drop policy if exists "Users can create own profile" on public.profiles;
 create policy "Users can create own profile"
@@ -112,6 +155,11 @@ drop policy if exists "Public projects are readable by everyone" on public.proje
 create policy "Public projects are readable by everyone"
 on public.projects for select
 using (is_public = true);
+
+drop policy if exists "Users can read own projects" on public.projects;
+create policy "Users can read own projects"
+on public.projects for select
+using (auth.uid() = author_id);
 
 drop policy if exists "Users can create own projects" on public.projects;
 create policy "Users can create own projects"
@@ -143,3 +191,57 @@ drop policy if exists "Users can delete own likes" on public.likes;
 create policy "Users can delete own likes"
 on public.likes for delete
 using (auth.uid() = user_id);
+
+drop policy if exists "Active policy versions are readable by everyone" on public.policy_versions;
+create policy "Active policy versions are readable by everyone"
+on public.policy_versions for select
+using (is_active = true);
+
+drop policy if exists "Users can read own policy consents" on public.user_policy_consents;
+create policy "Users can read own policy consents"
+on public.user_policy_consents for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can create own policy consents" on public.user_policy_consents;
+create policy "Users can create own policy consents"
+on public.user_policy_consents for insert
+with check (auth.uid() = user_id);
+
+insert into public.policy_versions (policy_type, version, title, content, summary, effective_at, is_active)
+values
+    (
+        'terms',
+        '2026-06-23',
+        'FOLIO 서비스 이용약관',
+        'FOLIO는 데이터 분석 프로젝트를 포트폴리오 자산으로 등록, 탐색, 공유하는 서비스입니다.
+
+1. 사용자는 본인이 등록하는 프로젝트 정보와 첨부 링크에 대해 필요한 권리를 보유해야 합니다.
+2. 타인의 개인정보, 저작권, 영업비밀 또는 법령을 침해하는 콘텐츠를 등록할 수 없습니다.
+3. 서비스 운영자는 안정적인 서비스 운영과 정책 위반 대응을 위해 게시물을 제한하거나 삭제할 수 있습니다.
+4. 서비스는 MVP 단계로 제공되며, 기능과 정책은 사전 고지 후 변경될 수 있습니다.
+5. 사용자는 본 약관에 동의한 뒤 FOLIO 서비스를 이용할 수 있습니다.',
+        'FOLIO 서비스 이용 조건에 동의합니다.',
+        now(),
+        true
+    ),
+    (
+        'privacy',
+        '2026-06-23',
+        'FOLIO 개인정보 처리방침',
+        'FOLIO는 회원가입, 로그인, 프로젝트 등록 및 서비스 운영을 위해 필요한 최소한의 개인정보를 처리합니다.
+
+1. 수집 항목: 이메일, 이름, 소속, 서비스 이용 기록, 프로젝트 등록 정보
+2. 이용 목적: 회원 식별, 로그인, 프로젝트 관리, 서비스 제공 및 운영 개선
+3. 보관 기간: 회원 탈퇴 또는 처리 목적 달성 시까지 보관하며, 법령상 보관 의무가 있는 경우 해당 기간 동안 보관합니다.
+4. 제3자 제공: 법령에 따른 경우를 제외하고 사용자의 동의 없이 개인정보를 제3자에게 제공하지 않습니다.
+5. 사용자는 개인정보 열람, 정정, 삭제, 처리정지를 요청할 수 있습니다.',
+        '개인정보 수집 및 이용에 동의합니다.',
+        now(),
+        true
+    )
+on conflict (policy_type, version) do update
+set
+    title = excluded.title,
+    content = excluded.content,
+    summary = excluded.summary,
+    is_active = excluded.is_active;

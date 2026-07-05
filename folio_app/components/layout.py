@@ -1,96 +1,90 @@
+import base64
 import html
+from functools import lru_cache
+from pathlib import Path
 
 import streamlit as st
 
+from folio_app.navigation import ROUTABLE_PAGES, navigate
 from folio_app.services.auth import get_current_user
+
+
+_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+@lru_cache(maxsize=8)
+def _static_image_src(image_name: str) -> str:
+    image_path = _STATIC_DIR / image_name
+    encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+    return f"data:image/png;base64,{encoded}"
 
 
 def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
-    options = list(_navigation_options())
-    selected = initial_page if initial_page in _routable_pages() else "Home"
-    labels = [_page_label(option) for option in options]
+    selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
+    current_page = st.query_params.get("page") or "Home"
 
-    nav_links = "".join(
-        f"<a class='folio-nav-link{' folio-nav-link-active' if option == selected else ''}' href='?page={option}' target='_self'>{html.escape(label)}</a>"
-        for option, label in zip(options, labels)
-    )
-    if user:
-        nav_links += "<a class='folio-nav-link folio-nav-link-logout' href='?logout=1'>로그아웃</a>"
+    with st.container(border=False, key="folio_header"):
+        brand_col, nav_col = st.columns([5, 1])
 
-    st.markdown(
-        f"""
-        <header class="folio-topbar">
-            <div class="folio-brand-group">
-                <div class="folio-brand">FOLIO</div>
-                <div class="folio-tagline">발표로 끝나지 않는 프로젝트</div>
-            </div>
-            <input type="checkbox" id="nav_toggle" class="folio-nav-toggle" />
-            <label for="nav_toggle" class="folio-hamburger">☰</label>
-            <nav class="folio-nav">
-                {nav_links}
-            </nav>
-        </header>
-        """,
-        unsafe_allow_html=True,
-    )
+        with brand_col:
+            if st.button("FOLIO", key="nav_brand_home"):
+                navigate("Home")
+
+        with nav_col:
+            if user is None:
+                if st.button("로그인", key="nav_Login"):
+                    navigate("Login")
+            else:
+                logged_in_nav = [
+                    ("Submit", "프로젝트 제출"),
+                    ("My Portfolio", "내 포트폴리오"),
+                    ("Profile", "프로필"),
+                    ("__logout__", "로그아웃"),
+                ]
+                with st.popover("☰"):
+                    for option, label in logged_in_nav:
+                        is_active = option == current_page and option != "__logout__"
+                        if st.button(label, key=f"nav_{option}", use_container_width=True, disabled=is_active):
+                            if option == "__logout__":
+                                st.query_params.clear()
+                                st.query_params["logout"] = "1"
+                                st.rerun()
+                            else:
+                                navigate(option)
 
     return selected
 
 
-def _navigation_options() -> list[str]:
-    if get_current_user() is not None:
-        return [
-            "Home",
-            "Gallery",
-            "Submit",
-            "My Portfolio",
-            "Profile",
-            "About",
-        ]
-
-    return [
-        "Home",
-        "Gallery",
-        "Login",
-        "About",
-    ]
-
-
-def _routable_pages() -> set[str]:
-    return {
-        "Home",
-        "Gallery",
-        "Login",
-        "Sign Up",
-        "About",
-        "Submit",
-        "My Portfolio",
-        "Profile",
-    }
-
-
-def _page_label(page: str) -> str:
-    return {
-        "Home": "홈",
-        "Gallery": "둘러보기",
-        "Submit": "프로젝트 제출",
-        "My Portfolio": "내 포트폴리오",
-        "Profile": "프로필",
-        "Login": "로그인",
-        "Sign Up": "회원가입",
-        "About": "소개",
-    }.get(page, page)
-
-
-def render_hero(eyebrow: str, title: str, body: str) -> None:
+def render_hero(
+    eyebrow: str,
+    title: str,
+    body: str,
+    *,
+    dark: bool = False,
+    image_name: str | None = None,
+    image_alt: str = "",
+) -> None:
+    safe_eyebrow = html.escape(eyebrow)
     safe_title = html.escape(title)
     safe_body = html.escape(body)
+    hero_class = "folio-page-hero folio-page-hero-dark" if dark else "folio-page-hero"
+    visual_html = ""
+    if image_name:
+        visual_html = (
+            '<div class="folio-page-hero-visual">'
+            f'<img src="{_static_image_src(image_name)}" alt="{html.escape(image_alt, quote=True)}" />'
+            "</div>"
+        )
     st.markdown(
         f"""
-        <section class="folio-hero">
-            <h1>{safe_title}</h1>
-            <p class="folio-muted">{safe_body}</p>
+        <section class="{hero_class}">
+            <div class="folio-page-hero-copy">
+                <div class="folio-page-hero-eyebrow">{safe_eyebrow}</div>
+                <h1>{safe_title}</h1>
+                <p class="folio-muted">{safe_body}</p>
+            </div>
+            {visual_html}
         </section>
         """,
         unsafe_allow_html=True,

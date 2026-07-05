@@ -19,6 +19,8 @@
    - `likes`
 5. Database Triggers에서 `on_auth_user_created` 트리거가 생성되었는지 확인합니다.
 
+기존 프로젝트도 인증/RLS 정책이 변경되면 최신 `supabase/schema.sql`을 다시 실행합니다. 스키마는 `if not exists`, `drop policy if exists` 구문을 사용하므로 정책 갱신에도 같은 파일을 사용합니다.
+
 ## 3. API Key 확인
 
 1. Supabase 프로젝트에서 **Project Settings**로 이동합니다.

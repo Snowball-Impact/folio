@@ -2,7 +2,7 @@ import html
 
 import streamlit as st
 
-from folio_app.components.layout import render_hero, render_placeholder_card
+from folio_app.components.layout import render_hero
 from folio_app.components.project_form import (
     PROJECT_BODY_TEMPLATE,
     build_project_payload,
@@ -10,8 +10,9 @@ from folio_app.components.project_form import (
     render_project_form,
     validate_project_form,
 )
+from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
-from folio_app.services.profiles import get_profile
+from folio_app.services.profiles import get_profile, update_profile
 from folio_app.services.projects import (
     count_author_stats,
     create_project,
@@ -21,16 +22,29 @@ from folio_app.services.projects import (
 )
 
 
+def _render_login_required(page_key: str, message: str) -> None:
+    st.warning(message)
+    login_col, gallery_col = st.columns(2)
+    with login_col:
+        if st.button("로그인하기", key=f"login_required_{page_key}_login", use_container_width=True):
+            navigate("Login")
+    with gallery_col:
+        if st.button("홈으로", key=f"login_required_{page_key}_home", use_container_width=True):
+            navigate("Home")
+
+
 def render_submit() -> None:
     user = get_current_user()
     render_hero(
         "Submit",
         "새 프로젝트 등록",
         "당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.",
+        image_name="hero-submit.png",
+        image_alt="데이터 분석 프로젝트 등록 화면 일러스트",
     )
 
     if not user:
-        st.warning("로그인이 필요합니다.")
+        _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
         return
 
     form_data, submitted = render_project_form(
@@ -43,7 +57,6 @@ def render_submit() -> None:
         report_url="",
         github_url="",
         thumbnail_url="",
-        ai_summary="",
         submit_label="프로젝트 등록하기",
     )
 
@@ -64,9 +77,8 @@ def render_submit() -> None:
     )
 
     if result.ok:
-        st.query_params["page"] = "Gallery"
-        st.query_params["project_id"] = result.project_id or ""
-        st.rerun()
+        st.session_state["project_notice"] = result.message
+        navigate("Home", project_id=result.project_id)
     else:
         st.error(result.message)
 
@@ -77,17 +89,26 @@ def render_my_portfolio() -> None:
         "Portfolio",
         "내 포트폴리오",
         "내가 등록한 데이터 분석 프로젝트를 관리하세요.",
+        image_name="hero-portfolio.png",
+        image_alt="데이터 분석 프로젝트 포트폴리오 일러스트",
     )
 
     if not user:
-        st.warning("로그인이 필요합니다.")
+        _render_login_required("portfolio", "내 프로젝트를 관리하려면 로그인이 필요합니다.")
         return
 
-    if st.button("새 프로젝트 등록하기", use_container_width=True):
-        st.query_params["page"] = "Submit"
-        st.rerun()
+    notice = st.session_state.pop("portfolio_notice", None)
+    if notice:
+        st.success(notice)
 
     projects = list_projects_by_author(user["id"])
+    portfolio_title, portfolio_action = st.columns([3, 1])
+    with portfolio_title:
+        st.markdown(f"### 프로젝트 관리 · {len(projects)}개")
+    with portfolio_action:
+        if st.button("새 프로젝트 등록", type="primary", use_container_width=True):
+            navigate("Submit")
+
     if not projects:
         st.info("아직 등록한 프로젝트가 없습니다.")
         return
@@ -101,34 +122,48 @@ def render_my_portfolio() -> None:
         st.session_state.pop("editing_project_id", None)
 
     for project in projects:
-        title = html.escape(project.get("title") or "Untitled")
-        body = f"조회 {project.get('view_count', 0)} / 좋아요 {project.get('like_count', 0)}\n상태: {'공개' if project.get('is_public') else '비공개'}"
-        render_placeholder_card(title, body)
-
-        view_col, edit_col, delete_col = st.columns(3)
-        with view_col:
-            if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
-                st.query_params["page"] = "Gallery"
-                st.query_params["project_id"] = project["id"]
-                st.rerun()
-        with edit_col:
-            if st.button("수정", key=f"portfolio_edit_{project['id']}", use_container_width=True):
-                st.session_state["editing_project_id"] = project["id"]
-                st.rerun()
-        with delete_col:
-            confirm_delete = st.checkbox("삭제 확인", key=f"portfolio_confirm_delete_{project['id']}")
-            if st.button(
-                "삭제",
-                key=f"portfolio_delete_{project['id']}",
-                disabled=not confirm_delete,
-                use_container_width=True,
-            ):
-                result = delete_project(project["id"], user["id"])
-                if result.ok:
-                    st.success(result.message)
+        with st.container(border=True, key=f"portfolio_item_{project['id']}"):
+            _render_portfolio_item(project)
+            view_col, edit_col, delete_col = st.columns(3)
+            with view_col:
+                if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
+                    navigate("Home", project_id=project["id"])
+            with edit_col:
+                if st.button("수정", key=f"portfolio_edit_{project['id']}", use_container_width=True):
+                    st.session_state["editing_project_id"] = project["id"]
                     st.rerun()
-                else:
-                    st.error(result.message)
+            with delete_col:
+                if st.button(
+                    "삭제",
+                    key=f"portfolio_delete_{project['id']}",
+                    use_container_width=True,
+                ):
+                    _confirm_project_deletion(project, user["id"])
+
+
+@st.dialog("프로젝트 삭제")
+def _confirm_project_deletion(project: dict, author_id: str) -> None:
+    title = project.get("title") or "제목 없는 프로젝트"
+    st.write(f"‘{title}’ 프로젝트를 삭제할까요?")
+    st.caption("삭제한 프로젝트는 복구할 수 없습니다.")
+
+    cancel_col, delete_col = st.columns(2)
+    with cancel_col:
+        if st.button("취소", key=f"delete_cancel_{project['id']}", use_container_width=True):
+            st.rerun()
+    with delete_col:
+        if st.button(
+            "삭제하기",
+            key=f"delete_confirm_{project['id']}",
+            type="primary",
+            use_container_width=True,
+        ):
+            result = delete_project(project["id"], author_id)
+            if result.ok:
+                st.session_state["portfolio_notice"] = result.message
+                st.rerun()
+            else:
+                st.error(result.message)
 
 
 def render_profile() -> None:
@@ -137,10 +172,12 @@ def render_profile() -> None:
         "Profile",
         "프로필",
         "내 계정과 포트폴리오 통계를 확인하세요.",
+        image_name="hero-profile.png",
+        image_alt="데이터 분석가 프로필과 활동 통계 일러스트",
     )
 
     if not user:
-        st.warning("로그인이 필요합니다.")
+        navigate("Login")
         return
 
     profile = get_profile(user["id"])
@@ -148,26 +185,111 @@ def render_profile() -> None:
         st.info("프로필 정보를 불러오는 중 문제가 발생했습니다.")
         return
 
-    data = profile or {}
+    if st.session_state.get("editing_profile"):
+        _render_profile_edit_form(user["id"], profile)
+        return
+
+    _render_profile_view(user, profile)
+
+
+def _render_profile_view(user: dict, profile: dict) -> None:
     stats = count_author_stats(user["id"])
-    name = html.escape(data.get("name") or user.get("email") or "")
-    email = html.escape(data.get("email") or user.get("email") or "")
-    organization = html.escape(data.get("organization") or "-")
-    bio = html.escape(data.get("bio") or "-")
-    body = (
-        f"이메일: {email}\n"
-        f"기관: {organization}\n"
-        f"소개: {bio}\n"
-        f"등록 프로젝트: {stats['project_count']}개\n"
-        f"총 조회수: {stats['view_count']}"
-    )
-    render_placeholder_card(name, body)
+
+    name = profile.get("name") or user.get("email") or ""
+    email = profile.get("email") or user.get("email") or ""
+    organization = profile.get("organization") or ""
+    bio = profile.get("bio") or ""
+
+    initial = (name[0].upper()) if name else "?"
+    org_html = f"<p class='folio-profile-info-org'>{html.escape(organization)}</p>" if organization else ""
+    bio_html = f"<p class='folio-profile-bio'>{html.escape(bio)}</p>" if bio else ""
+
+    with st.container(border=True, key="profile_overview"):
+        st.markdown(
+            f"""
+            <div class="folio-profile-header">
+                <div class="folio-avatar">{html.escape(initial)}</div>
+                <div>
+                    <p class="folio-profile-info-name">{html.escape(name)}</p>
+                    {org_html}
+                </div>
+            </div>
+            {bio_html}
+            """,
+            unsafe_allow_html=True,
+        )
+        st.caption(f"이메일: {html.escape(email)}")
+
+        m1, m2 = st.columns(2)
+        m1.metric("등록 프로젝트", stats["project_count"])
+        m2.metric("총 조회수", stats["view_count"])
+
+        if st.button("프로필 수정", key="start_edit_profile"):
+            st.session_state["editing_profile"] = True
+            st.rerun()
 
     projects = list_projects_by_author(user["id"])
     if projects:
         st.markdown("### 작성 프로젝트")
         for project in projects:
-            st.markdown(f"- {html.escape(project.get('title') or 'Untitled')} · 조회 {project.get('view_count', 0)}")
+            st.markdown(
+                f"- {html.escape(project.get('title') or 'Untitled')} · 조회 {project.get('view_count', 0)}"
+            )
+
+
+def _render_profile_edit_form(user_id: str, profile: dict) -> None:
+    st.markdown("### 프로필 수정")
+    if st.button("← 취소", key="cancel_edit_profile"):
+        st.session_state.pop("editing_profile", None)
+        st.rerun()
+
+    with st.form("profile_edit_form"):
+        name = st.text_input("이름", value=profile.get("name") or "")
+        organization = st.text_input("소속", value=profile.get("organization") or "")
+        bio = st.text_area("자기소개", value=profile.get("bio") or "", height=120)
+        submitted = st.form_submit_button("저장", use_container_width=True)
+
+    if not submitted:
+        return
+
+    name = name.strip()
+    if not name:
+        st.error("이름을 입력하세요.")
+        return
+
+    try:
+        update_profile(user_id, name=name, organization=organization.strip(), bio=bio.strip())
+    except Exception as exc:
+        st.error(f"프로필 저장에 실패했습니다. ({exc})")
+        return
+
+    st.session_state.pop("editing_profile", None)
+    st.success("프로필이 업데이트됐습니다.")
+    st.rerun()
+
+
+def _render_portfolio_item(project: dict) -> None:
+    title = html.escape(project.get("title") or "Untitled")
+    one_liner = html.escape(project.get("one_liner") or "")
+    tags = project.get("tags") or []
+    tags_html = "".join(f"<span class='folio-tag'>#{html.escape(t)}</span>" for t in tags[:3])
+    tags_section = f"<div class='folio-tags'>{tags_html}</div>" if tags else ""
+    status = "공개" if project.get("is_public") else "비공개"
+    views = project.get("view_count", 0)
+    likes = project.get("like_count", 0)
+    liner_html = f"<p class='folio-portfolio-card-liner'>{one_liner}</p>" if one_liner else ""
+
+    st.markdown(
+        f"""
+        <div class="folio-portfolio-card">
+            <p class="folio-portfolio-card-title">{title}</p>
+            {liner_html}
+            {tags_section}
+            <p class="folio-portfolio-card-meta">조회 {views} · 좋아요 {likes} · {status}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _render_edit_project_form(author_id: str, project: dict) -> None:
@@ -186,7 +308,6 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
         report_url=project.get("report_url") or "",
         github_url=project.get("github_url") or "",
         thumbnail_url=project.get("thumbnail_url") or "",
-        ai_summary=project.get("ai_summary") or "",
         submit_label="수정 완료",
     )
 
@@ -209,7 +330,7 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
 
     if result.ok:
         st.session_state.pop("editing_project_id", None)
-        st.success(result.message)
+        st.session_state["portfolio_notice"] = result.message
         st.rerun()
     else:
         st.error(result.message)

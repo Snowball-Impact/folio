@@ -1,7 +1,8 @@
 import streamlit as st
 from time import time
 
-from folio_app.services.auth import resend_signup_confirmation, sign_in, sign_up
+from folio_app.navigation import navigate
+from folio_app.services.auth import get_current_user, resend_signup_confirmation, sign_in, sign_up
 from folio_app.services.profiles import profile_exists_for_email
 
 
@@ -87,23 +88,23 @@ def _resend_cooldown_remaining() -> int:
 
 
 def render_login() -> None:
-    with st.container(border=True):
+    if get_current_user() is not None:
+        navigate("Home")
+
+    with st.container(border=False, key="folio_auth_shell"):
         _render_auth_card_header(
             "Login",
             "로그인",
             "등록한 프로젝트와 포트폴리오를 이어서 관리하세요.",
             "login",
         )
-        with st.container(border=True):
-            st.markdown('<div class="folio-auth-form-card"></div>', unsafe_allow_html=True)
+        with st.container(border=False, key="folio_auth_form"):
             with st.form("login_form", clear_on_submit=False):
                 email = st.text_input("이메일", placeholder="name@example.com")
                 password = st.text_input("비밀번호", type="password")
                 submitted = st.form_submit_button("로그인", use_container_width=True)
-            st.markdown(
-                '<a class="folio-auth-switch" href="?page=Sign Up" target="_self">처음이라면 회원가입하기</a>',
-                unsafe_allow_html=True,
-            )
+            if st.button("처음이라면 회원가입하기", key="login_to_signup", use_container_width=True):
+                navigate("Sign Up")
 
     if submitted:
         email = _normalize_email(email)
@@ -113,22 +114,20 @@ def render_login() -> None:
 
         result = sign_in(email, password)
         if result.ok:
-            st.success(result.message)
-            st.rerun()
+            navigate("Home")
         else:
             st.error(result.message)
 
 
 def render_signup() -> None:
-    with st.container(border=True):
+    with st.container(border=False, key="folio_auth_shell"):
         _render_auth_card_header(
             "Sign Up",
             "회원가입",
             "이메일 인증 후 프로젝트를 등록하고 공유할 수 있습니다.",
             "signup",
         )
-        with st.container(border=True):
-            st.markdown('<div class="folio-auth-form-card"></div>', unsafe_allow_html=True)
+        with st.container(border=False, key="folio_auth_form"):
             email = _normalize_email(st.text_input("이메일", placeholder="name@example.com"))
             email_registered = _email_already_registered(email)
             _render_email_feedback(email, email_registered)
@@ -136,7 +135,7 @@ def render_signup() -> None:
             password = st.text_input(
                 "비밀번호",
                 type="password",
-                help="최소 8자 이상을 권장합니다.",
+                placeholder="8자 이상 입력",
             )
             _render_password_feedback(password)
 

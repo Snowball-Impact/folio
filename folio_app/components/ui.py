@@ -17,6 +17,10 @@ def plain_text(value: str | None) -> str:
     return " ".join(html.unescape(text).split())
 
 
+def clean_html(html_str: str) -> str:
+    return "".join(line.strip() for line in html_str.splitlines())
+
+
 def render_tag_chips(tags: list[str]) -> str:
     if not tags:
         return ""
@@ -55,13 +59,13 @@ def render_project_card_html(
     </div>
     """
     if not href:
-        return card_html
+        return clean_html(card_html)
 
-    return f"""
+    return clean_html(f"""
     <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
         {card_html}
     </a>
-    """
+    """)
 
 
 def render_gallery_card_html(project: dict, href: str | None = None) -> str:
@@ -99,10 +103,10 @@ def render_gallery_card_html(project: dict, href: str | None = None) -> str:
     </div>
     """
     if not href:
-        return card_html
+        return clean_html(card_html)
 
-    return f"""
+    return clean_html(f"""
     <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
         {card_html}
     </a>
-    """
+    """)

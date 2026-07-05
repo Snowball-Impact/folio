@@ -4,13 +4,27 @@ from supabase import Client, create_client
 from folio_app.config import get_settings
 
 
-@st.cache_resource(show_spinner=False)
+SESSION_CLIENT_KEY = "folio_supabase_client"
+SESSION_CLIENT_CONFIG_KEY = "folio_supabase_client_config"
+
+
 def get_supabase_client() -> Client | None:
     settings = get_settings()
     if not settings.is_supabase_configured:
         return None
 
-    return create_client(settings.supabase_url, settings.supabase_anon_key)
+    config_key = (settings.supabase_url, settings.supabase_anon_key)
+    client = st.session_state.get(SESSION_CLIENT_KEY)
+    if client is None or st.session_state.get(SESSION_CLIENT_CONFIG_KEY) != config_key:
+        client = create_client(settings.supabase_url, settings.supabase_anon_key)
+        st.session_state[SESSION_CLIENT_KEY] = client
+        st.session_state[SESSION_CLIENT_CONFIG_KEY] = config_key
+    return client
+
+
+def clear_supabase_client() -> None:
+    st.session_state.pop(SESSION_CLIENT_KEY, None)
+    st.session_state.pop(SESSION_CLIENT_CONFIG_KEY, None)
 
 
 def recover_from_expired_jwt(exc: Exception) -> bool:
