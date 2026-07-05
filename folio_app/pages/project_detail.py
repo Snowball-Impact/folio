@@ -10,6 +10,8 @@ from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.projects import (
+    ProjectServiceError,
+    clear_project_caches,
     get_project,
     increment_view_count,
     is_project_liked,
@@ -29,7 +31,19 @@ def render(project_id: str) -> None:
         increment_view_count(project_id)
         st.session_state[viewed_key] = True
 
-    project = get_project(project_id)
+    try:
+        project = get_project(project_id)
+    except ProjectServiceError as exc:
+        st.error(str(exc))
+        retry_col, back_col = st.columns(2)
+        with retry_col:
+            if st.button("다시 시도", key="retry_project_detail", use_container_width=True):
+                clear_project_caches()
+                st.rerun()
+        with back_col:
+            if st.button("목록으로 돌아가기", key="failed_detail_back", use_container_width=True):
+                navigate(_HOME_PAGE)
+        return
     if project is None:
         st.error("프로젝트를 찾을 수 없습니다.")
         if st.button("목록으로 돌아가기"):

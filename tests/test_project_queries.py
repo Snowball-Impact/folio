@@ -1,6 +1,7 @@
 import unittest
+from unittest.mock import patch
 
-from folio_app.services.projects import _filter_public_projects
+from folio_app.services.projects import ProjectServiceError, _filter_public_projects, list_public_projects
 
 
 class FilterPublicProjectsTests(unittest.TestCase):
@@ -27,6 +28,23 @@ class FilterPublicProjectsTests(unittest.TestCase):
         result = _filter_public_projects(self.projects)
         result[0]["title"] = "변경"
         self.assertEqual(self.projects[0]["title"], "프로젝트 0")
+
+
+class ProjectReadFailureTests(unittest.TestCase):
+    @patch("folio_app.services.projects._fetch_public_projects")
+    def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:
+        fetch_projects.side_effect = ProjectServiceError("Supabase 연결 설정을 확인하세요.")
+
+        with self.assertRaisesRegex(ProjectServiceError, "Supabase 연결 설정"):
+            list_public_projects()
+
+    @patch("folio_app.services.projects._attach_related_data")
+    @patch("folio_app.services.projects._fetch_public_projects", return_value=[{"id": "1"}])
+    def test_related_data_failure_becomes_safe_service_error(self, _fetch_projects, attach_data) -> None:
+        attach_data.side_effect = RuntimeError("provider details")
+
+        with self.assertRaisesRegex(ProjectServiceError, "공개 프로젝트를 불러오지 못했습니다"):
+            list_public_projects()
 
 
 if __name__ == "__main__":

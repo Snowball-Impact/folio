@@ -7,7 +7,12 @@ import streamlit as st
 from folio_app.components.ui import plain_text, render_gallery_card_html, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
-from folio_app.services.projects import list_popular_tags, list_public_projects
+from folio_app.services.projects import (
+    ProjectServiceError,
+    clear_project_caches,
+    list_popular_tags,
+    list_public_projects,
+)
 
 _HERO_PREVIEW_PATH = Path(__file__).resolve().parent.parent / "static" / "hero-preview.png"
 _HOME_PAGE = "Home"
@@ -30,8 +35,16 @@ def render() -> None:
     search = st.query_params.get("q", "")
     selected_tag = st.query_params.get("tag", "전체")
     sort = st.query_params.get("sort", "최신순")
-    projects = list_public_projects(search=search, tag=selected_tag, sort=sort)
-    _render_browse_panel(len(projects))
+    try:
+        projects = list_public_projects(search=search, tag=selected_tag, sort=sort)
+        popular_tags = list_popular_tags()
+    except ProjectServiceError as exc:
+        st.error(str(exc))
+        if st.button("다시 시도", key="retry_public_projects"):
+            clear_project_caches()
+            st.rerun()
+        return
+    _render_browse_panel(len(projects), popular_tags)
     _render_project_grid(projects)
 
 
@@ -58,7 +71,7 @@ def _render_hero() -> None:
     )
 
 
-def _render_browse_panel(project_count: int) -> None:
+def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
     initial_search = st.query_params.get("q", "")
     initial_tag = st.query_params.get("tag", "전체")
 
@@ -90,7 +103,6 @@ def _render_browse_panel(project_count: int) -> None:
 
         filter_left, filter_right, reset_col = st.columns([4, 1.2, 1])
         with filter_left:
-            popular_tags = list_popular_tags()
             tag_options = ["전체", *popular_tags]
             if initial_tag not in tag_options:
                 initial_tag = "전체"

@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from folio_app.config import _read_setting
+from folio_app.config import _read_first_setting, _read_setting
 
 
 class SettingsLoadingTests(unittest.TestCase):
@@ -20,3 +20,11 @@ class SettingsLoadingTests(unittest.TestCase):
         with patch.dict(os.environ, {}, clear=True):
             with patch("folio_app.config.st.secrets.get", side_effect=FileNotFoundError):
                 self.assertEqual(_read_setting("FOLIO_TEST_SETTING", "fallback"), "fallback")
+
+    def test_publishable_key_can_fall_back_to_legacy_anon_key(self) -> None:
+        with patch.dict(os.environ, {"SUPABASE_ANON_KEY": "legacy-key"}, clear=True):
+            with patch("folio_app.config.st.secrets", {}):
+                self.assertEqual(
+                    _read_first_setting("SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"),
+                    "legacy-key",
+                )

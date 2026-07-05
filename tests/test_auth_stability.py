@@ -14,7 +14,7 @@ class SupabaseClientIsolationTests(unittest.TestCase):
         get_settings.return_value = SimpleNamespace(
             is_supabase_configured=True,
             supabase_url="https://example.supabase.co",
-            supabase_anon_key="anon-key",
+            supabase_key="anon-key",
         )
         create_client.return_value = object()
 

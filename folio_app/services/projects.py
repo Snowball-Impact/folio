@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from html.parser import HTMLParser
+import logging
 from typing import Any
 from urllib.parse import urlparse
 
@@ -10,6 +11,13 @@ import streamlit as st
 
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
+
+
+logger = logging.getLogger(__name__)
+
+
+class ProjectServiceError(RuntimeError):
+    """A project operation failed in a way the UI can safely report."""
 
 
 @dataclass(frozen=True)
@@ -87,8 +95,14 @@ def list_public_projects(
     sort: str = "최신순",
     limit: int = 50,
 ) -> list[dict[str, Any]]:
-    projects = _filter_public_projects(_fetch_public_projects(), search=search, tag=tag)
-    projects = _attach_related_data(projects, sort=sort)
+    try:
+        projects = _filter_public_projects(_fetch_public_projects(), search=search, tag=tag)
+        projects = _attach_related_data(projects, sort=sort)
+    except ProjectServiceError:
+        raise
+    except Exception as exc:
+        logger.exception("Failed to load public projects")
+        raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     if sort == "조회수순":
         projects.sort(key=lambda project: project.get("view_count", 0) or 0, reverse=True)
     return projects[:limit]
@@ -98,7 +112,7 @@ def list_public_projects(
 def _fetch_public_projects() -> list[dict[str, Any]]:
     client = get_supabase_client()
     if client is None:
-        return []
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
     projects: list[dict[str, Any]] = []
     page_size = 500
@@ -115,7 +129,7 @@ def _fetch_public_projects() -> list[dict[str, Any]]:
             )
         )
         if response is None:
-            return []
+            raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
         page = response.data or []
         projects.extend(page)
         if len(page) < page_size:
@@ -176,44 +190,61 @@ def _is_public_read_connection_error(exc: Exception) -> bool:
 def list_projects_by_author(author_id: str) -> list[dict[str, Any]]:
     client = get_supabase_client()
     if client is None:
-        return []
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
-    response = (
-        client.table("projects")
-        .select("*")
-        .eq("author_id", author_id)
-        .order("created_at", desc=True)
-        .execute()
-    )
-    return _attach_related_data(response.data or [])
+    try:
+        response = (
+            client.table("projects")
+            .select("*")
+            .eq("author_id", author_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+    except Exception as exc:
+        logger.exception("Failed to load projects for the current author")
+        raise ProjectServiceError("내 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
+    try:
+        return _attach_related_data(response.data or [])
+    except Exception as exc:
+        logger.exception("Failed to attach project metadata for the current author")
+        raise ProjectServiceError("내 프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
 
 
 def get_project(project_id: str) -> dict[str, Any] | None:
     client = get_supabase_client()
     if client is None:
-        return None
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
-    response = _execute_public_read(
-        lambda: client.table("projects").select("*").eq("id", project_id).single().execute()
-    )
+    try:
+        response = _execute_public_read(
+            lambda: client.table("projects").select("*").eq("id", project_id).maybe_single().execute()
+        )
+    except Exception as exc:
+        logger.exception("Failed to load project detail")
+        raise ProjectServiceError("프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     if response is None:
-        return None
+        raise ProjectServiceError("프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
-    projects = _attach_related_data([response.data] if response.data else [])
+    try:
+        projects = _attach_related_data([response.data] if response.data else [])
+    except Exception as exc:
+        logger.exception("Failed to attach project detail metadata")
+        raise ProjectServiceError("프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     return projects[0] if projects else None
 
 
-def increment_view_count(project_id: str) -> None:
+def increment_view_count(project_id: str) -> bool:
     client = get_supabase_client()
     if client is None:
-        return
+        return False
 
     try:
         client.rpc("increment_project_view_count", {"project_id_input": project_id}).execute()
         _fetch_public_projects.clear()
+        return True
     except Exception:
-        # The RPC is added in supabase/schema.sql. Ignore until the SQL is applied remotely.
-        return
+        logger.exception("Failed to increment project view count")
+        return False
 
 
 def is_project_liked(project_id: str, user_id: str | None) -> bool:

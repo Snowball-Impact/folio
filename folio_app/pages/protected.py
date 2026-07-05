@@ -14,7 +14,8 @@ from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.profiles import get_profile, update_profile
 from folio_app.services.projects import (
-    count_author_stats,
+    ProjectServiceError,
+    clear_project_caches,
     create_project,
     delete_project,
     list_projects_by_author,
@@ -101,7 +102,14 @@ def render_my_portfolio() -> None:
     if notice:
         st.success(notice)
 
-    projects = list_projects_by_author(user["id"])
+    try:
+        projects = list_projects_by_author(user["id"])
+    except ProjectServiceError as exc:
+        st.error(str(exc))
+        if st.button("다시 시도", key="retry_my_portfolio"):
+            clear_project_caches()
+            st.rerun()
+        return
     portfolio_title, portfolio_action = st.columns([3, 1])
     with portfolio_title:
         st.markdown(f"### 프로젝트 관리 · {len(projects)}개")
@@ -193,7 +201,19 @@ def render_profile() -> None:
 
 
 def _render_profile_view(user: dict, profile: dict) -> None:
-    stats = count_author_stats(user["id"])
+    try:
+        projects = list_projects_by_author(user["id"])
+    except ProjectServiceError as exc:
+        st.error(str(exc))
+        if st.button("다시 시도", key="retry_profile_projects"):
+            clear_project_caches()
+            st.rerun()
+        return
+
+    stats = {
+        "project_count": len(projects),
+        "view_count": sum(project.get("view_count", 0) or 0 for project in projects),
+    }
 
     name = profile.get("name") or user.get("email") or ""
     email = profile.get("email") or user.get("email") or ""
@@ -228,7 +248,6 @@ def _render_profile_view(user: dict, profile: dict) -> None:
             st.session_state["editing_profile"] = True
             st.rerun()
 
-    projects = list_projects_by_author(user["id"])
     if projects:
         st.markdown("### 작성 프로젝트")
         for project in projects:

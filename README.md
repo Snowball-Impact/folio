@@ -37,7 +37,7 @@ pip install -r requirements.txt
 
 ```text
 SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 APP_URL=http://localhost:8501
 COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
 ```
@@ -60,7 +60,7 @@ streamlit run app.py
 
 ```toml
 SUPABASE_URL = "https://your-project-ref.supabase.co"
-SUPABASE_ANON_KEY = "your-supabase-anon-key"
+SUPABASE_PUBLISHABLE_KEY = "your-supabase-publishable-key"
 APP_URL = "https://your-app.streamlit.app"
 COOKIE_PASSWORD = "replace-with-a-long-random-cookie-password"
 ```

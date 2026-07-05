@@ -24,16 +24,24 @@ def _read_setting(name: str, default: str = "") -> str:
     return str(secret_value).strip()
 
 
+def _read_first_setting(*names: str, default: str = "") -> str:
+    for name in names:
+        value = _read_setting(name)
+        if value:
+            return value
+    return default.strip()
+
+
 @dataclass(frozen=True)
 class Settings:
     supabase_url: str
-    supabase_anon_key: str
+    supabase_key: str
     app_url: str
     cookie_password: str
 
     @property
     def is_supabase_configured(self) -> bool:
-        return bool(self.supabase_url and self.supabase_anon_key)
+        return bool(self.supabase_url and self.supabase_key)
 
     @property
     def login_redirect_url(self) -> str:
@@ -44,7 +52,10 @@ class Settings:
 def get_settings() -> Settings:
     return Settings(
         supabase_url=_read_setting("SUPABASE_URL"),
-        supabase_anon_key=_read_setting("SUPABASE_ANON_KEY"),
+        supabase_key=_read_first_setting(
+            "SUPABASE_PUBLISHABLE_KEY",
+            "SUPABASE_ANON_KEY",
+        ),
         app_url=_read_setting("APP_URL", "http://localhost:8501"),
         cookie_password=_read_setting(
             "COOKIE_PASSWORD",

@@ -27,7 +27,7 @@
 2. **API** 메뉴를 엽니다.
 3. 다음 값을 확인합니다.
    - Project URL
-   - anon public key
+   - Publishable key (`sb_publishable_...`)
 
 ## 4. `.env` 파일 생성
 
@@ -35,14 +35,15 @@
 
 ```text
 SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_ANON_KEY=your-supabase-anon-key
+SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 APP_URL=http://localhost:8501
 COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
 ```
 
 주의:
 
-- `service_role` key를 넣지 않습니다.
+- `secret` 또는 `service_role` key를 넣지 않습니다.
+- 기존 프로젝트의 legacy `anon` key는 `SUPABASE_ANON_KEY` 이름으로도 계속 사용할 수 있습니다.
 - `.env`는 `.gitignore`에 포함되어 있으므로 저장소에 커밋되지 않습니다.
 - `COOKIE_PASSWORD`는 로그인 유지용 암호화 쿠키에 사용하므로 운영 환경에서는 긴 임의 문자열로 설정합니다.
 
