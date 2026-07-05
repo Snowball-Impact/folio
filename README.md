@@ -50,6 +50,102 @@ streamlit run app.py
 
 기본 로컬 주소는 `http://localhost:8501`입니다.
 
+## 애플리케이션 진입 구조
+
+FOLIO에는 이름이 같은 `app.py`가 두 개 있지만 역할이 다릅니다.
+
+```text
+streamlit run app.py
+        │
+        ▼
+루트 app.py
+  - Streamlit 페이지 기본 설정
+  - folio_app.app.main() 호출
+        │
+        ▼
+folio_app/app.py
+  - 환경 설정과 로그인 쿠키 준비
+  - 인증 세션 복구와 온보딩 확인
+  - URL의 page 값에 맞는 화면 함수 호출
+  - 공통 헤더와 푸터 출력
+```
+
+- 루트 `app.py`는 Streamlit이 직접 실행하는 **얇은 실행 진입점**입니다. `st.set_page_config()`를 가장 먼저 호출한 후 실제 앱의 `main()`으로 넘깁니다.
+- `folio_app/app.py`는 애플리케이션의 **실제 조정자**입니다. 인증, 쿠키, 라우팅, 온보딩과 화면 렌더링 순서를 관리합니다.
+- 배포 설정의 Main file path에는 루트의 `app.py`를 지정합니다. `folio_app/app.py`를 직접 실행하지 않습니다.
+
+## URL과 페이지 코드 연결
+
+이 프로젝트는 Streamlit의 파일 기반 멀티페이지 디렉터리를 사용하지 않습니다. `?page=` 쿼리값을 `folio_app/app.py`가 읽어 해당 렌더 함수를 호출합니다.
+
+| URL 또는 `page` 값 | 화면 | 담당 코드 |
+|---|---|---|
+| `/` 또는 `?page=Home` | 홈, 검색, 태그 필터, 프로젝트 목록 | `pages/home.py:render()` |
+| `?page=Home&project_id=...` | 프로젝트 상세 | `pages/project_detail.py:render()` |
+| `?page=Login` | 로그인 | `pages/auth.py:render_login()` |
+| `?page=Sign+Up` | 회원가입, 인증 메일 재발송 | `pages/auth.py:render_signup()` |
+| `?page=Submit` | 프로젝트 등록 | `pages/protected.py:render_submit()` |
+| `?page=My+Portfolio` | 내 프로젝트 조회·수정·삭제 | `pages/protected.py:render_my_portfolio()` |
+| `?page=Profile` | 프로필과 포트폴리오 통계 | `pages/protected.py:render_profile()` |
+| `?page=Gallery` | 기존 URL 호환용 Home 리다이렉트 | `pages/gallery.py:render()` |
+| 로그인 직후 필요한 경우 | 약관·개인정보 동의 온보딩 | `pages/onboarding.py:render()` |
+
+페이지 주소를 추가하거나 변경할 때는 `folio_app/navigation.py`의 `ROUTABLE_PAGES`와 `folio_app/app.py`의 `page_handlers`를 함께 수정합니다.
+
+## Python 파일별 역할
+
+### 실행·설정
+
+| 파일 | 역할 |
+|---|---|
+| `app.py` | Streamlit 페이지 설정 후 `folio_app.app.main()`을 호출하는 실행 진입점 |
+| `folio_app/app.py` | 앱 초기화, 쿠키 세션 복구, 로그아웃, 레거시 URL 정리, 온보딩 검사, 페이지 라우팅, 푸터 출력 |
+| `folio_app/config.py` | 로컬 `.env`, 환경변수, Streamlit Cloud `st.secrets`를 읽어 Supabase·앱·쿠키 설정 제공 |
+| `folio_app/navigation.py` | 허용 페이지 목록과 `st.query_params` + `st.rerun()` 기반 내부 이동 제공 |
+| `folio_app/styles.py` | 앱 전역 CSS와 페이지·컴포넌트별 스타일 주입 |
+| `folio_app/__init__.py` | `folio_app`을 Python 패키지로 인식시키는 초기화 파일 |
+
+### 페이지
+
+| 파일 | 역할 |
+|---|---|
+| `folio_app/pages/home.py` | 홈 히어로, 검색·태그·정렬 폼, 공개 프로젝트 카드 목록 렌더링 |
+| `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, Power BI, 첨부 링크 렌더링 |
+| `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
+| `folio_app/pages/onboarding.py` | 최초 로그인 사용자의 프로필 확인과 약관·개인정보 동의 UI |
+| `folio_app/pages/protected.py` | 로그인이 필요한 프로젝트 등록, 내 포트폴리오, 수정·삭제, 프로필 화면 |
+| `folio_app/pages/gallery.py` | 과거 Gallery 주소를 Home으로 보내는 호환용 페이지 |
+| `folio_app/pages/__init__.py` | `pages` 패키지 초기화 파일 |
+
+### 공통 컴포넌트
+
+| 파일 | 역할 |
+|---|---|
+| `folio_app/components/layout.py` | 공통 헤더·메뉴, 페이지 히어로, 정적 이미지 로딩 |
+| `folio_app/components/project_form.py` | 등록·수정 공용 폼, Quill 편집기, 본문 섹션 파싱, URL 검증, 카드 미리보기 |
+| `folio_app/components/ui.py` | 태그, 프로젝트 카드 HTML, 일반 텍스트 변환 등 공통 UI 유틸리티 |
+| `folio_app/components/__init__.py` | `components` 패키지 초기화 파일 |
+
+### Supabase 서비스
+
+| 파일 | 역할 |
+|---|---|
+| `folio_app/services/supabase_client.py` | Streamlit 세션별 Supabase client 생성·폐기와 만료 JWT 복구 |
+| `folio_app/services/auth.py` | 회원가입, 로그인, 로그아웃, 토큰 저장과 쿠키 세션 복구 |
+| `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
+| `folio_app/services/projects.py` | 프로젝트 CRUD, 공개 목록·검색·정렬, 작성자 정보, 조회수, 좋아요, 캐시 관리 |
+| `folio_app/services/project_content.py` | 사용자 작성 HTML의 허용 태그·링크 검사와 위험 요소 제거 |
+| `folio_app/services/__init__.py` | `services` 패키지 초기화 파일 |
+
+### 기타 Python 파일
+
+| 경로 | 역할 |
+|---|---|
+| `tests/test_*.py` | 설정, 인증 안정성, 라우팅, 본문 정제, 프로젝트 조회·폼 동작에 대한 단위 테스트 |
+| `tools/capture_streamlit_scroll.py` | UI 변경 후 로컬 Streamlit 화면을 스크롤 캡처하는 개발 도구 |
+
+화면 문구나 버튼은 주로 `pages/`, 반복 UI는 `components/`, 데이터 처리나 Supabase 호출은 `services/`, 색상·간격·폰트는 `styles.py`에서 수정합니다.
+
 ## 배포
 
 이 앱은 지속 실행되는 Streamlit 서버가 필요하므로 Vercel Functions에 직접 배포하지 않습니다. MVP 배포는 Streamlit Community Cloud를 권장합니다.
