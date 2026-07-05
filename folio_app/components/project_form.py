@@ -231,7 +231,8 @@ def render_project_form(
     github_url: str,
     thumbnail_url: str,
     submit_label: str,
-) -> tuple[dict[str, str], bool]:
+    secondary_label: str | None = None,
+) -> tuple[dict[str, str], bool, bool]:
     st.markdown(
         """
         <div class="folio-project-form-intro">
@@ -243,36 +244,58 @@ def render_project_form(
     )
     st.caption("작성 중에는 페이지를 새로고침하지 마세요. 등록 또는 수정이 완료되기 전까지 내용은 현재 세션에만 유지됩니다.")
 
-    with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
-        st.markdown(
-            '<div class="folio-form-section-heading"><span>1</span><div><strong>기본 정보</strong><small>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</small></div></div>',
-            unsafe_allow_html=True,
-        )
-        title_input = st.text_input(
-            "프로젝트명 *",
-            value=title,
-            placeholder="예: 서울시 청년 취업 데이터 분석",
-            key=f"{key_prefix}_title",
-        )
-        one_liner_input = st.text_input(
-            "프로젝트 한 줄 소개",
-            value=one_liner,
-            placeholder="핵심 메시지를 한 문장으로 적어주세요.",
-            key=f"{key_prefix}_one_liner",
-        )
-        tags_input = st.text_input(
-            "태그",
-            value=tags,
-            placeholder="공공데이터, PowerBI, 취업",
-            help="#은 자동으로 제거되고 쉼표 기준으로 최대 10개까지 저장됩니다.",
-            key=f"{key_prefix}_tags",
-        )
-        preview_tags = _normalize_tag_preview(tags_input)
-        if preview_tags:
-            tag_preview = " ".join(f"`#{tag}`" for tag in preview_tags)
-            st.caption(f"저장될 태그: {tag_preview}")
-        if _raw_tag_count(tags_input) > 10:
-            st.warning("태그는 앞에서부터 최대 10개까지만 저장됩니다.")
+    overview_col, links_col = st.columns(2, gap="large")
+    with overview_col:
+        with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
+            st.markdown(
+                '<div class="folio-form-section-heading"><span>1</span><div><strong>기본 정보</strong><small>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</small></div></div>',
+                unsafe_allow_html=True,
+            )
+            title_input = st.text_input(
+                "프로젝트명 *",
+                value=title,
+                placeholder="예: 서울시 청년 취업 데이터 분석",
+                key=f"{key_prefix}_title",
+            )
+            one_liner_input = st.text_input(
+                "프로젝트 한 줄 소개",
+                value=one_liner,
+                placeholder="핵심 메시지를 한 문장으로 적어주세요.",
+                key=f"{key_prefix}_one_liner",
+            )
+            tags_input = st.text_input(
+                "태그",
+                value=tags,
+                placeholder="공공데이터, PowerBI, 취업",
+                help="#은 자동으로 제거되고 쉼표 기준으로 최대 10개까지 저장됩니다.",
+                key=f"{key_prefix}_tags",
+            )
+            preview_tags = _normalize_tag_preview(tags_input)
+            if preview_tags:
+                tag_preview = " ".join(f"`#{tag}`" for tag in preview_tags)
+                st.caption(f"저장될 태그: {tag_preview}")
+            if _raw_tag_count(tags_input) > 10:
+                st.warning("태그는 앞에서부터 최대 10개까지만 저장됩니다.")
+
+    with links_col:
+        with st.container(border=True, key=f"{key_prefix}_form_section_links"):
+            st.markdown(
+                '<div class="folio-form-section-heading"><span>3</span><div><strong>관련 결과물 링크</strong><small>관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.</small></div></div>',
+                unsafe_allow_html=True,
+            )
+            power_bi_url_input = st.text_input(
+                "BI Platform Embed URL",
+                value=power_bi_url,
+                help="BI Platform 에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
+                key=f"{key_prefix}_power_bi_url",
+            )
+            _render_url_feedback(power_bi_url_input, "BI Platform Embed URL", power_bi=True)
+            github_url_input = st.text_input(
+                "GitHub URL",
+                value=github_url,
+                key=f"{key_prefix}_github_url",
+            )
+            _render_url_feedback(github_url_input, "GitHub URL")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
         st.markdown(
@@ -281,50 +304,25 @@ def render_project_form(
         )
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
-    with st.container(border=True, key=f"{key_prefix}_form_section_links"):
-        st.markdown(
-            '<div class="folio-form-section-heading"><span>3</span><div><strong>링크 및 썸네일</strong><small>관련 결과물이나 대표 이미지를 연결할 수 있습니다. 선택 입력 항목입니다.</small></div></div>',
-            unsafe_allow_html=True,
-        )
-        link_left, link_right = st.columns(2, gap="large")
-        with link_left:
-            power_bi_url_input = st.text_input(
-                "Power BI Embed URL",
-                value=power_bi_url,
-                help="Power BI에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
-                key=f"{key_prefix}_power_bi_url",
-            )
-            _render_url_feedback(power_bi_url_input, "Power BI Embed URL", power_bi=True)
-            report_url_input = st.text_input(
-                "보고서 URL",
-                value=report_url,
-                key=f"{key_prefix}_report_url",
-            )
-            _render_url_feedback(report_url_input, "보고서 URL")
-        with link_right:
-            github_url_input = st.text_input(
-                "GitHub URL",
-                value=github_url,
-                key=f"{key_prefix}_github_url",
-            )
-            _render_url_feedback(github_url_input, "GitHub URL")
-            thumbnail_url_input = st.text_input(
-                "썸네일 URL",
-                value=thumbnail_url,
-                key=f"{key_prefix}_thumbnail_url",
-            )
-            _render_url_feedback(thumbnail_url_input, "썸네일 URL")
-
     if st.toggle("등록 전 카드 미리보기", key=f"{key_prefix}_preview"):
         _render_project_preview(
             title_input,
             one_liner_input,
             tags_input,
             project_body,
-            thumbnail_url_input,
         )
 
-    action_space, action_col = st.columns([3, 1])
+    cancelled = False
+    if secondary_label:
+        action_space, secondary_col, action_col = st.columns([2, 1, 1])
+        with secondary_col:
+            cancelled = st.button(
+                secondary_label,
+                use_container_width=True,
+                key=f"{key_prefix}_secondary",
+            )
+    else:
+        action_space, action_col = st.columns([3, 1])
     with action_col:
         submitted = st.button(
             submit_label,
@@ -339,11 +337,14 @@ def render_project_form(
             "tags": tags_input,
             "project_body": project_body,
             "power_bi_url": power_bi_url_input,
-            "report_url": report_url_input,
+            # These legacy fields are no longer editable, but keeping their
+            # existing values prevents an edit from clearing stored data.
+            "report_url": report_url,
             "github_url": github_url_input,
-            "thumbnail_url": thumbnail_url_input,
+            "thumbnail_url": thumbnail_url,
         },
         submitted,
+        cancelled,
     )
 
 
@@ -396,14 +397,12 @@ def _render_project_preview(
     one_liner: str,
     tags: str,
     project_body: str,
-    thumbnail_url: str,
 ) -> None:
     preview = {
         "title": title.strip() or "프로젝트명이 여기에 표시됩니다.",
         "one_liner": one_liner.strip(),
         "insights": plain_text(project_body),
         "tags": _normalize_tag_preview(tags),
-        "thumbnail_url": normalize_optional_url(thumbnail_url),
         "view_count": 0,
         "like_count": 0,
     }

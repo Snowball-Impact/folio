@@ -260,7 +260,7 @@ def apply_global_styles() -> None:
 
         .folio-home-eyebrow {
             color: var(--folio-blue);
-            font-size: 0.75rem;
+            font-size: 1.35rem;
             font-weight: 700;
             letter-spacing: 0.12em;
             margin-bottom: 14px;
@@ -564,8 +564,9 @@ def apply_global_styles() -> None:
             border-radius: 14px;
             display: flex;
             flex-direction: column;
-            min-height: 280px;
-            padding: 16px 16px 14px;
+            min-height: 350px;
+            overflow: hidden;
+            padding: 0 16px 14px;
             transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
         }
 
@@ -596,11 +597,6 @@ def apply_global_styles() -> None:
             transform: translateY(-2px);
         }
 
-        .folio-card-link .folio-home-card h3,
-        .folio-card-link .folio-gallery-card h3 {
-            color: var(--folio-navy);
-        }
-
         .folio-card-link .folio-home-card p,
         .folio-card-link .folio-gallery-card p,
         .folio-card-link .folio-home-metrics,
@@ -612,55 +608,140 @@ def apply_global_styles() -> None:
             color: #0a7a72;
         }
 
-        .folio-home-card h3 {
-            color: var(--folio-navy);
-            font-size: 0.94rem;
-            font-weight: 700;
-            line-height: 1.38;
-            margin: 12px 0 6px;
-            word-break: keep-all;
-        }
-
         .folio-home-card p {
             color: var(--folio-muted);
+            display: -webkit-box;
             font-size: 0.85rem;
             line-height: 1.55;
             margin: 0;
             min-height: 40px;
+            overflow: hidden;
             word-break: keep-all;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
         }
 
-        .folio-home-card .folio-tags {
-            margin: 10px 0 0;
-        }
-
-        .folio-home-thumb {
-            border-radius: 8px;
-            height: 124px;
-            object-fit: cover;
-            width: 100%;
-        }
-
-        .folio-home-thumb-fallback {
-            align-items: center;
-            background: linear-gradient(135deg, #eef3fd 0%, #e4efff 100%);
-            border-radius: 8px;
-            color: var(--folio-blue);
-            display: flex;
-            font-size: 0.72rem;
+        .folio-home-author {
+            color: var(--folio-navy) !important;
+            display: block !important;
+            font-size: 0.78rem !important;
             font-weight: 700;
-            height: 124px;
-            justify-content: center;
-            letter-spacing: 0.1em;
-            text-transform: uppercase;
-            width: 100%;
+            margin: 12px 0 5px !important;
+            min-height: auto !important;
         }
+
+        .folio-auto-cover {
+            background: linear-gradient(135deg, #0d3b86, #1768ce);
+            box-sizing: border-box;
+            color: #ffffff;
+            height: 200px;
+            margin: 0 -16px;
+            overflow: hidden;
+            padding: 18px 18px 9px;
+            position: relative;
+        }
+
+        .folio-auto-cover-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            z-index: 2;
+        }
+
+        .folio-auto-cover-eyebrow {
+            color: rgba(255, 255, 255, 0.82) !important;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: 0.13em;
+            opacity: 0.72;
+        }
+
+        .folio-auto-cover h3,
+        .folio-card-link .folio-auto-cover h3 {
+            color: #ffffff;
+            display: -webkit-box;
+            font-size: 1.12rem;
+            font-weight: 800;
+            line-height: 1.4;
+            margin: 12px 0 0;
+            overflow: hidden;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+            word-break: keep-all;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 3;
+        }
+
+        .folio-auto-cover-tags {
+            display: flex;
+            gap: 7px;
+            justify-content: flex-end;
+            margin-top: auto;
+            min-height: 22px;
+        }
+
+        .folio-auto-cover-tags span {
+            background: rgba(255, 255, 255, 0.16);
+            border: 1px solid rgba(255, 255, 255, 0.24);
+            border-radius: 999px;
+            color: #ffffff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 3px 8px;
+        }
+
+        .folio-auto-cover-pattern {
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 50%;
+            height: 112px;
+            position: absolute;
+            right: -28px;
+            top: -30px;
+            width: 112px;
+        }
+
+        .folio-auto-cover-pattern::after {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            content: "";
+            height: 70px;
+            left: 20px;
+            position: absolute;
+            top: 20px;
+            width: 70px;
+        }
+
+        .folio-auto-cover-1 { background: linear-gradient(135deg, #086b72, #0ba3a0); }
+        .folio-auto-cover-2 { background: linear-gradient(135deg, #4932a8, #705ad7); }
+        .folio-auto-cover-3 { background: linear-gradient(135deg, #8a3c18, #d46a2b); }
+        .folio-auto-cover-4 { background: linear-gradient(135deg, #155e43, #2c9972); }
+        .folio-auto-cover-5 { background: linear-gradient(135deg, #7a2455, #bb4380); }
 
         .folio-home-metrics {
+            align-items: center;
             color: var(--folio-muted);
+            display: flex;
             font-size: 0.8rem;
+            gap: 22px;
+            justify-content: flex-end;
             margin-top: auto;
             padding-top: 12px;
+        }
+
+        .folio-home-metrics span {
+            align-items: center;
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .folio-home-metrics svg {
+            fill: none;
+            height: 15px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+            width: 15px;
         }
 
         /* ── Gallery Card (single featured result) ── */
@@ -723,7 +804,15 @@ def apply_global_styles() -> None:
             height: 160px;
             justify-content: center;
             letter-spacing: 0.1em;
+            overflow: hidden;
             text-transform: uppercase;
+            width: 100%;
+        }
+
+        .folio-thumbnail .folio-auto-cover {
+            height: 100%;
+            margin: 0;
+            text-align: left;
             width: 100%;
         }
 
@@ -1078,9 +1167,53 @@ def apply_global_styles() -> None:
             background: var(--folio-surface) !important;
             border: 1px solid var(--folio-border) !important;
             border-radius: 14px !important;
+            box-sizing: border-box !important;
             box-shadow: none !important;
             margin-bottom: 18px !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
             padding: 24px 26px !important;
+            width: 100% !important;
+        }
+
+        [class*="form_section_"] [data-testid="stVerticalBlock"],
+        [class*="form_section_"] [data-testid="stHorizontalBlock"],
+        [class*="form_section_"] [data-testid="stColumn"],
+        [class*="form_section_"] [data-testid="stElementContainer"] {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        [class*="form_section_"] .stTextInput,
+        [class*="form_section_"] .stTextArea,
+        [class*="form_section_"] .stSelectbox,
+        [class*="form_section_"] .stMultiSelect,
+        [class*="form_section_"] [data-testid="stFileUploader"],
+        [class*="form_section_"] [data-testid="stCustomComponentV1"],
+        [class*="form_section_"] iframe {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        [class*="form_section_"] .stTextInput > div,
+        [class*="form_section_"] .stTextInput div[data-baseweb="input"],
+        [class*="form_section_"] .stTextArea > div,
+        [class*="form_section_"] .stTextArea div[data-baseweb="textarea"] {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        [class*="form_section_"] input,
+        [class*="form_section_"] textarea {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
         }
 
         [class*="form_section_"] [data-testid="stWidgetLabel"] {
@@ -1206,19 +1339,57 @@ def apply_global_styles() -> None:
 
         /* ── Portfolio item cards ── */
         .folio-portfolio-card {
+            align-items: start;
             background: var(--folio-surface);
             border: 0;
             border-radius: 0;
+            box-sizing: border-box;
+            display: grid;
+            gap: 24px;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 0.48fr);
             margin-bottom: 4px;
+            max-width: 100%;
+            min-width: 0;
             padding: 4px 2px 8px;
+            width: 100%;
         }
 
         [class*="st-key-portfolio_item_"] {
             background: var(--folio-surface);
             border-color: var(--folio-border) !important;
             border-radius: 14px !important;
+            box-sizing: border-box !important;
             margin-bottom: 14px;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            overflow: clip;
             padding: 16px 18px !important;
+            width: 100% !important;
+        }
+
+        [class*="st-key-portfolio_item_"] [data-testid="stHorizontalBlock"],
+        [class*="st-key-portfolio_item_"] [data-testid="stColumn"],
+        [class*="st-key-portfolio_item_"] [data-testid="stElementContainer"] {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+        }
+
+        .folio-portfolio-card-main,
+        .folio-portfolio-card-side {
+            min-width: 0;
+        }
+
+        .folio-portfolio-card-side {
+            align-items: flex-end;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .folio-portfolio-card-side .folio-tags {
+            justify-content: flex-end;
+            margin: 0;
         }
 
         .folio-portfolio-card-title {
@@ -1238,9 +1409,29 @@ def apply_global_styles() -> None:
         }
 
         .folio-portfolio-card-meta {
+            align-items: center;
             color: var(--folio-muted);
+            display: flex;
             font-size: 0.82rem;
-            margin: 8px 0 0;
+            gap: 18px;
+            justify-content: flex-end;
+            margin: 0;
+        }
+
+        .folio-portfolio-card-meta span {
+            align-items: center;
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .folio-portfolio-card-meta svg {
+            fill: none;
+            height: 16px;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+            width: 16px;
         }
 
         /* ── Profile ── */
@@ -1404,6 +1595,20 @@ def apply_global_styles() -> None:
 
             .folio-gallery-footer .folio-tags,
             .folio-gallery-footer .folio-detail-meta {
+                justify-content: flex-start;
+            }
+
+            .folio-portfolio-card {
+                gap: 12px;
+                grid-template-columns: 1fr;
+            }
+
+            .folio-portfolio-card-side {
+                align-items: flex-start;
+            }
+
+            .folio-portfolio-card-side .folio-tags,
+            .folio-portfolio-card-meta {
                 justify-content: flex-start;
             }
 

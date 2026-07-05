@@ -48,7 +48,7 @@ def render_submit() -> None:
         _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
         return
 
-    form_data, submitted = render_project_form(
+    form_data, submitted, _ = render_project_form(
         "submit",
         title="",
         one_liner="",
@@ -86,6 +86,8 @@ def render_submit() -> None:
 
 def render_my_portfolio() -> None:
     user = get_current_user()
+    editing_project_id = st.session_state.get("editing_project_id") if user else None
+
     render_hero(
         "Portfolio",
         "내 포트폴리오",
@@ -110,24 +112,18 @@ def render_my_portfolio() -> None:
             clear_project_caches()
             st.rerun()
         return
-    portfolio_title, portfolio_action = st.columns([3, 1])
-    with portfolio_title:
-        st.markdown(f"### 프로젝트 관리 · {len(projects)}개")
-    with portfolio_action:
-        if st.button("새 프로젝트 등록", type="primary", use_container_width=True):
-            navigate("Submit")
 
     if not projects:
         st.info("아직 등록한 프로젝트가 없습니다.")
         return
 
-    editing_project_id = st.session_state.get("editing_project_id")
     if editing_project_id:
         project = next((item for item in projects if item["id"] == editing_project_id), None)
         if project:
             _render_edit_project_form(user["id"], project)
             return
         st.session_state.pop("editing_project_id", None)
+        st.rerun()
 
     for project in projects:
         with st.container(border=True, key=f"portfolio_item_{project['id']}"):
@@ -293,18 +289,40 @@ def _render_portfolio_item(project: dict) -> None:
     tags = project.get("tags") or []
     tags_html = "".join(f"<span class='folio-tag'>#{html.escape(t)}</span>" for t in tags[:3])
     tags_section = f"<div class='folio-tags'>{tags_html}</div>" if tags else ""
-    status = "공개" if project.get("is_public") else "비공개"
     views = project.get("view_count", 0)
     likes = project.get("like_count", 0)
+    is_public = bool(project.get("is_public"))
+    visibility_label = "공개" if is_public else "비공개"
+    visibility_icon = (
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>'
+        if is_public
+        else '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>'
+    )
     liner_html = f"<p class='folio-portfolio-card-liner'>{one_liner}</p>" if one_liner else ""
 
     st.markdown(
         f"""
         <div class="folio-portfolio-card">
-            <p class="folio-portfolio-card-title">{title}</p>
-            {liner_html}
-            {tags_section}
-            <p class="folio-portfolio-card-meta">조회 {views} · 좋아요 {likes} · {status}</p>
+            <div class="folio-portfolio-card-main">
+                <p class="folio-portfolio-card-title">{title}</p>
+                {liner_html}
+            </div>
+            <div class="folio-portfolio-card-side">
+                {tags_section}
+                <div class="folio-portfolio-card-meta">
+                    <span title="조회수" aria-label="조회수 {views}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>
+                        {views}
+                    </span>
+                    <span title="좋아요" aria-label="좋아요 {likes}">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"></path></svg>
+                        {likes}
+                    </span>
+                    <span title="{visibility_label}" aria-label="공개 상태 {visibility_label}">
+                        {visibility_icon}
+                    </span>
+                </div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -313,11 +331,8 @@ def _render_portfolio_item(project: dict) -> None:
 
 def _render_edit_project_form(author_id: str, project: dict) -> None:
     st.markdown("### 프로젝트 수정")
-    if st.button("목록으로 돌아가기"):
-        st.session_state.pop("editing_project_id", None)
-        st.rerun()
 
-    form_data, submitted = render_project_form(
+    form_data, submitted, cancelled = render_project_form(
         f"edit_{project['id']}",
         title=project.get("title") or "",
         one_liner=project.get("one_liner") or "",
@@ -328,7 +343,12 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
         github_url=project.get("github_url") or "",
         thumbnail_url=project.get("thumbnail_url") or "",
         submit_label="수정 완료",
+        secondary_label="목록으로 돌아가기",
     )
+
+    if cancelled:
+        st.session_state.pop("editing_project_id", None)
+        st.rerun()
 
     if not submitted:
         return

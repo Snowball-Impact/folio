@@ -4,7 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from folio_app.components.ui import plain_text, render_gallery_card_html, render_project_card_html
+from folio_app.components.ui import plain_text, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
 from folio_app.services.projects import (
@@ -16,7 +16,7 @@ from folio_app.services.projects import (
 
 _HERO_PREVIEW_PATH = Path(__file__).resolve().parent.parent / "static" / "hero-preview.png"
 _HOME_PAGE = "Home"
-_GRID_COLUMNS = 4
+_GRID_COLUMNS = 3
 
 
 @lru_cache(maxsize=1)
@@ -135,12 +135,6 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
 def _render_project_grid(projects: list[dict]) -> None:
     if not projects:
         st.info("아직 표시할 프로젝트가 없습니다. 첫 프로젝트를 등록해보세요.")
-        return
-
-    if len(projects) == 1:
-        href = f"?page={_HOME_PAGE}&project_id={projects[0]['id']}"
-        html_content = f'<div class="folio-featured-result">{render_gallery_card_html(projects[0], href=href)}</div>'
-        st.markdown(html_content, unsafe_allow_html=True)
         return
 
     for index in range(0, len(projects), _GRID_COLUMNS):
