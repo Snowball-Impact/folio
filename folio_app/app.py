@@ -110,9 +110,10 @@ def main() -> None:
 
     settings = get_settings()
     if not settings.is_supabase_configured:
+        missing = ", ".join(settings.missing_supabase_settings)
         st.warning(
-            "Supabase 환경 변수가 아직 설정되지 않았습니다. "
-            ".env.example을 참고해 .env를 만든 뒤 회원가입/로그인을 테스트하세요."
+            f"Supabase 설정을 찾지 못했습니다: {missing}. "
+            "Streamlit Cloud의 App settings > Secrets에서 키 이름과 저장 위치를 확인하세요."
         )
 
     cookies = _get_cookie_manager(settings)

@@ -68,6 +68,7 @@ COOKIE_PASSWORD = "replace-with-a-long-random-cookie-password"
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 
 `service_role` 키와 로컬 `.env`는 저장소 또는 배포 설정에 노출하지 않습니다.
+Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용만 붙여넣고, 저장 후 앱을 재부팅합니다. 앱은 루트 키를 우선 사용하며 `[supabase]` 섹션의 `url`과 `key` 형식도 호환합니다.
 
 ## 주요 문서
 

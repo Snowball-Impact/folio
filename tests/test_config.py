@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import patch
 
-from folio_app.config import _read_first_setting, _read_setting
+from folio_app.config import Settings, _read_first_setting, _read_secret_section, _read_setting
 
 
 class SettingsLoadingTests(unittest.TestCase):
@@ -28,3 +28,23 @@ class SettingsLoadingTests(unittest.TestCase):
                     _read_first_setting("SUPABASE_PUBLISHABLE_KEY", "SUPABASE_ANON_KEY"),
                     "legacy-key",
                 )
+
+    def test_section_style_streamlit_secrets_are_supported(self) -> None:
+        with patch(
+            "folio_app.config.st.secrets",
+            {"supabase": {"url": "https://example.supabase.co", "key": "section-key"}},
+        ):
+            self.assertEqual(_read_secret_section("supabase", "SUPABASE_URL", "url"), "https://example.supabase.co")
+            self.assertEqual(_read_secret_section("supabase", "SUPABASE_KEY", "key"), "section-key")
+
+    def test_missing_settings_names_do_not_include_secret_values(self) -> None:
+        settings = Settings(
+            supabase_url="",
+            supabase_key="",
+            app_url="http://localhost:8501",
+            cookie_password="password",
+        )
+        self.assertEqual(
+            settings.missing_supabase_settings,
+            ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"),
+        )
