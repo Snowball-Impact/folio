@@ -16,6 +16,11 @@ class SettingsLoadingTests(unittest.TestCase):
             with patch("folio_app.config.st.secrets", {"FOLIO_TEST_SETTING": " from-secrets "}):
                 self.assertEqual(_read_setting("FOLIO_TEST_SETTING"), "from-secrets")
 
+    def test_empty_environment_value_does_not_hide_streamlit_secret(self) -> None:
+        with patch.dict(os.environ, {"FOLIO_TEST_SETTING": "  "}, clear=True):
+            with patch("folio_app.config.st.secrets", {"FOLIO_TEST_SETTING": "from-secrets"}):
+                self.assertEqual(_read_setting("FOLIO_TEST_SETTING"), "from-secrets")
+
     def test_default_is_used_without_local_secrets_file(self) -> None:
         with patch.dict(os.environ, {}, clear=True):
             with patch("folio_app.config.st.secrets.get", side_effect=FileNotFoundError):

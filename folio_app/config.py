@@ -11,7 +11,7 @@ load_dotenv()
 def _read_setting(name: str, default: str = "") -> str:
     """Read local environment values first, then Streamlit Cloud secrets."""
     environment_value = os.getenv(name)
-    if environment_value is not None:
+    if environment_value is not None and environment_value.strip():
         return environment_value.strip()
 
     try:
