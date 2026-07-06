@@ -91,6 +91,10 @@ def render_login() -> None:
     if get_current_user() is not None:
         navigate("Home")
 
+    login_notice = st.session_state.pop("login_notice", None)
+    if login_notice:
+        st.info(login_notice)
+
     with st.container(border=False, key="folio_auth_shell"):
         _render_auth_card_header(
             "Login",

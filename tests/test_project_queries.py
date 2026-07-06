@@ -1,7 +1,33 @@
 import unittest
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
-from folio_app.services.projects import ProjectServiceError, _filter_public_projects, list_public_projects
+from postgrest.types import CountMethod, ReturnMethod
+
+from folio_app.services.auth import AuthResult
+from folio_app.services.projects import ProjectServiceError, _filter_public_projects, list_public_projects, update_project
+
+
+class ProjectMutationTests(unittest.TestCase):
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
+    @patch("folio_app.services.projects.get_supabase_client")
+    def test_update_uses_minimal_return_to_allow_public_to_private_change(self, get_client, _auth) -> None:
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=None, count=1)
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = update_project("project-id", "author-id", {"is_public": False})
+
+        self.assertTrue(result.ok)
+        builder.update.assert_called_once_with(
+            {"is_public": False},
+            count=CountMethod.exact,
+            returning=ReturnMethod.minimal,
+        )
 
 
 class FilterPublicProjectsTests(unittest.TestCase):

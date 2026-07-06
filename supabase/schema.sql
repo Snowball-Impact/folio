@@ -81,6 +81,8 @@ from public.profiles;
 grant select on public.public_profiles to anon, authenticated;
 grant select on public.policy_versions to anon, authenticated;
 grant select, insert on public.user_policy_consents to authenticated;
+grant select on public.projects to anon;
+grant select, insert, update, delete on public.projects to authenticated;
 
 create or replace function public.increment_project_view_count(project_id_input uuid)
 returns void

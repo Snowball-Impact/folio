@@ -152,7 +152,9 @@ with st.container(border=False, key="folio_header"):
       └─ 쿠키에서 access_token / refresh_token 복구 시도
           └─ restore_session() → Supabase
               └─ 성공: session_state에 user 저장 → st.rerun()
-              └─ 실패: 쿠키 삭제, restore_failed=1 표시
+              └─ 실패: 쿠키 삭제
+                  ├─ 공개 페이지: 비로그인 상태로 조용히 계속
+                  └─ 보호 페이지: Login으로 이동해 안내 표시
 ```
 
 - `get_current_user()`: `session_state["folio_user"]` 반환. 없으면 None.
@@ -220,7 +222,74 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - 캡처 확인은 UI/UX 작업 시만. 확인 후 `artifacts/` 이미지 정리.
 - 캡처 스크립트: `tools/capture_streamlit_scroll.py` (의존: selenium, Pillow → `requirements-dev.txt`).
 
+### Streamlit UI 작업 재발 방지 원칙
+
+상세 페이지 개선 과정에서 같은 정렬 요청을 여러 번 수정한 원인은 CSS 값보다 Streamlit의 생성 DOM 구조를 충분히 확인하지 않은 데 있었다. 이후 UI 작업은 아래 순서를 따른다.
+
+1. **요청을 픽셀 단위 완료 조건으로 바꾼다.**
+   - "크기를 통일"은 대상 요소들의 실제 `width`와 `height`가 같은 상태를 뜻한다.
+   - "여백을 통일"은 비교 대상의 `getBoundingClientRect().left/right`가 같은 상태를 뜻한다.
+2. **CSS를 추정해 반복 수정하지 않는다.**
+   - 1차 수정이 화면과 다르면 즉시 Selenium `execute_script()`로 대상과 조상 래퍼의 좌표·계산 스타일을 측정한다.
+   - 캡처 이미지만 보고 2px, 4px을 누적 보정하지 않는다.
+3. **Streamlit의 실제 래퍼를 확인한다.**
+   - 컬럼 test id는 `stColumn`이다. `column` 선택자는 동작하지 않는다.
+   - `st.button()`은 `stElementContainer → stButton → 중간 div → stTooltipIcon → stTooltipHoverTarget → button` 구조가 될 수 있다.
+   - 버튼 컬럼과 `stButton`이 100%여도 `stTooltipHoverTarget`이 내용 폭이면 실제 버튼은 축소된다. 버튼 폭 통일 시 이 래퍼까지 확인한다.
+4. **HTML과 Streamlit 위젯의 렌더링 경계를 존중한다.**
+   - `st.markdown()` HTML 내부에 `st.button()`을 넣을 수 없다. 히어로와 액션 컨테이너를 별도로 렌더링하고 CSS로 하나의 카드처럼 연결한다.
+   - 여러 줄 HTML을 f-string에 삽입할 때 들여쓰기가 Markdown 코드 블록으로 해석될 수 있다. 공통 히어로처럼 중첩 HTML이 들어가는 마크업은 들여쓰기 없는 문자열 조합을 사용한다.
+5. **스코프와 박스 모델을 먼저 고정한다.**
+   - `.st-key-*` 아래로 스타일을 제한하고 `box-sizing: border-box`, `min-width: 0`, `max-width: 100%`를 먼저 확인한다.
+   - iframe·링크 버튼이 카드 밖으로 나가면 자식 너비만 줄이지 말고 padding을 가진 상위 래퍼의 박스 모델을 확인한다.
+6. **PC와 모바일을 모두 검증한다.**
+   - PC 1440×900과 모바일 390×844 캡처를 기본 검증 크기로 사용한다.
+   - 검증 후 임시 캡처는 `artifacts/`에서 삭제한다.
+
+### 로그인 전환 시 레이아웃 플래시 방지
+
+- 전역 CSS는 일반 본문 요소인 `st.markdown()`으로 주입하지 않는다. rerun 시 본문 DOM과 함께 스타일 노드가 교체되어 잠깐 기본 레이아웃이 노출될 수 있다.
+- 현재 `apply_global_styles()`는 스타일 전용 `st.html()`을 사용한다. Streamlit 1.41에서는 style-only 콘텐츠가 메인 레이아웃이 아닌 이벤트 컨테이너에 배치되어 인증 rerun 중에도 CSS가 안정적으로 유지된다.
+- CookieManager 동기화 iframe은 전역 CSS에서 계속 숨긴다. 인증 전환 중 이 iframe이 노출되면 레이아웃이 튀는 것처럼 보일 수 있다.
+
+### 상세 페이지 현재 레이아웃 기준
+
+- 히어로 본문과 푸터 콘텐츠의 실제 좌우 좌표가 일치해야 한다.
+- 푸터 왼쪽은 `작성자 / 소속 / 등록일`, 오른쪽은 `조회수 / 좋아요 / 공개 상태` 순서다.
+- 우측 세 요소는 동일 컬럼 비율이며 브라우저 실측 기준 같은 너비·38px 높이를 사용한다.
+- 상세 푸터의 공개 상태는 읽기 전용이다. 공개 여부 변경은 `내 포트폴리오 → 수정 → 프로젝트 공개`에서 저장한다.
+- 수정 화면의 공개 설정 카드는 폼 최하단 좌측에 두고 취소/저장 액션은 우측에 둔다.
+- `목록으로 돌아가기`는 프로젝트 비주얼 카드 하단에 둔다. 비주얼 카드가 없으면 본문 하단에 둔다.
+- 프로젝트 비주얼은 `대시보드`와 `첨부 자료` 사이에만 구분선을 둔다.
+- 대시보드 iframe과 링크 버튼은 프로젝트 비주얼 카드 안에서 `max-width: 100%`를 유지한다.
+
+### 인증/RLS 작업 교훈
+
+- `session_state`에 사용자가 있다고 해서 PostgREST 요청도 인증된 것은 아니다.
+- 작성자 전용 mutation 전에 `ensure_authenticated_session()`으로 세션을 갱신하고 갱신된 access token을 `client.postgrest.auth()`에 명시적으로 적용한다.
+- 프로젝트 UPDATE는 `return=representation`을 사용하지 않는다. 공개→비공개 변경 직후 변경 행을 다시 SELECT해 반환하면 원격 RLS 정책과 충돌할 수 있으므로 `return=minimal`과 영향 행 count로 성공을 판정한다.
+- 인증 재동기화 후에도 42501이 발생하면 로그인 오류로 오진하지 않는다. 원격 DB에 `Users can read own projects`와 `Users can update own projects` 정책이 누락된 것이므로 `supabase/fix_project_owner_rls.sql`을 SQL Editor에서 적용한다.
+- 비로그인 또는 유령 세션에서 mutation을 보내 RLS 원문 오류를 노출하지 않는다. 세션을 정리하고 Login으로 이동시킨다.
+- RLS 관련 변경은 단위 테스트만으로 완료로 판단하지 않고 실제 테스트 계정으로 공개↔비공개 전환을 확인한다.
+
 ---
+
+## 최근 작업 요약
+
+### 핵심 변경 사항
+- 프로젝트 상세 히어로 푸터를 작성자·소속·등록일과 조회수·좋아요·공개 설정 구조로 재편했다.
+- 조회수·좋아요·공개 설정은 동일 너비와 38px 높이로 맞췄으며, Streamlit의 `stTooltipHoverTarget` 래퍼까지 폭을 확장했다.
+- 프로젝트 비주얼 카드의 iframe·링크 오버플로를 수정하고 대시보드/첨부 자료의 정보 위계를 정리했다.
+- 작성자 mutation 전에 Supabase Auth 세션과 PostgREST JWT를 재동기화하도록 보강했다.
+- `내 포트폴리오` 카드에서 태그 정렬 문제를 수정했고, 태그와 뷰/좋아요/공개 정보를 카드 하단 footer로 이동했다.
+- `보기 / 수정 / 삭제` 버튼을 카드 오른쪽에 배치하여 관리 액션을 명확히 했다.
+- `render_tag_chips()`와 `render_project_metrics()` 공통 UI 헬퍼를 분리해 재사용성을 높였다.
+- 로그아웃 상태에서는 자동 로그인 복원을 중단하고, 로그인/회원가입 화면에서는 복원 실패 메시지를 숨기도록 auth 흐름을 개선했다.
+
+### 주요 교훈
+- UI 레이아웃 문제는 개별 스타일이 아니라 카드 구조 전체를 재정렬하는 것이 더 효과적일 때가 많다.
+- Streamlit에서는 상태/쿼리/버튼 동작을 함께 고려해야 하며, `navigate()` 스타일의 쿼리 이동을 우선해야 한다.
+- 공통 렌더링 로직 분리는 유지보수성과 일관성에 큰 도움이 된다.
 
 ## 다음 작업 우선순위
 

@@ -44,8 +44,8 @@ def _sync_browser_auth_storage(cookies: EncryptedCookieManager) -> None:
     if should_clear_browser_auth():
         cookies.pop("access_token", None)
         cookies.pop("refresh_token", None)
-        cookies.pop("restore_failed", None)
         cookies.save()
+        st.session_state.pop("folio_restore_failed", None)
         return
 
     access_token, refresh_token = get_auth_tokens()
@@ -53,6 +53,8 @@ def _sync_browser_auth_storage(cookies: EncryptedCookieManager) -> None:
         if cookies.get("access_token") != access_token or cookies.get("refresh_token") != refresh_token:
             cookies["access_token"] = access_token
             cookies["refresh_token"] = refresh_token
+            cookies.save()
+        elif cookies.get("restore_failed") == "1":
             cookies.pop("restore_failed", None)
             cookies.save()
 
@@ -61,7 +63,7 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     if get_current_user() is not None:
         return
 
-    if cookies.get("restore_failed") == "1":
+    if st.session_state.pop("folio_logout_in_progress", False):
         return
 
     access_token = cookies.get("access_token")
@@ -74,13 +76,15 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     if not result.ok:
         cookies.pop("access_token", None)
         cookies.pop("refresh_token", None)
-        cookies["restore_failed"] = "1"
         cookies.save()
-        st.warning(result.message)
+        current_page = st.query_params.get("page") or "Home"
+        if current_page in {"Submit", "My Portfolio", "Profile"}:
+            st.session_state["login_notice"] = result.message
+            st.query_params.clear()
+            st.query_params["page"] = "Login"
+            st.rerun()
         return
 
-    cookies.pop("restore_failed", None)
-    cookies.save()
     st.rerun()
 
 
@@ -120,10 +124,10 @@ def main() -> None:
     if not cookies.ready():
         st.stop()
 
-    _restore_auth_from_cookies(cookies)
-    _sync_browser_auth_storage(cookies)
-    _normalize_legacy_routes()
     _handle_logout_query()
+    _sync_browser_auth_storage(cookies)
+    _restore_auth_from_cookies(cookies)
+    _normalize_legacy_routes()
     _render_verified_notice()
 
     selected_page = render_header(initial_page=_initial_page_from_query())

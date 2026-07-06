@@ -2,6 +2,8 @@ import base64
 import html
 from functools import lru_cache
 from pathlib import Path
+from textwrap import dedent
+from typing import Callable, Optional
 
 import streamlit as st
 
@@ -23,12 +25,17 @@ def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
     selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
     current_page = st.query_params.get("page") or "Home"
+    logo_src = _static_image_src("logo.png")
 
     with st.container(border=False, key="folio_header"):
         brand_col, nav_col = st.columns([5, 1])
 
         with brand_col:
-            if st.button("FOLIO", key="nav_brand_home"):
+            st.markdown(
+                f'<div class="folio-header-logo"><img src="{logo_src}" alt="Folio"></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button("홈으로 이동", key="nav_brand_home"):
                 navigate("Home")
 
         with nav_col:
@@ -62,33 +69,49 @@ def render_hero(
     body: str,
     *,
     dark: bool = False,
-    image_name: str | None = None,
+    image_name: Optional[str] = None,
     image_alt: str = "",
+    image_html: str = "",
+    footer_html: str = "",
+    footer_actions: Optional[Callable[[], None]] = None,
+    class_name: str = "",
 ) -> None:
     safe_eyebrow = html.escape(eyebrow)
     safe_title = html.escape(title)
     safe_body = html.escape(body)
+    footer_html = dedent(footer_html).strip()
     hero_class = "folio-page-hero folio-page-hero-dark" if dark else "folio-page-hero"
+    if class_name:
+        hero_class += f" {class_name}"
+    if not image_name and not image_html:
+        hero_class += " folio-page-hero-no-visual"
     visual_html = ""
-    if image_name:
+    if image_html:
+        visual_html = f"<div class=\"folio-page-hero-visual\">{image_html}</div>"
+    elif image_name:
         visual_html = (
             '<div class="folio-page-hero-visual">'
             f'<img src="{_static_image_src(image_name)}" alt="{html.escape(image_alt, quote=True)}" />'
             "</div>"
         )
+    hero_markup = (
+        f'<section class="{hero_class}">'
+        '<div class="folio-page-hero-copy">'
+        f'<div class="folio-page-hero-eyebrow">{safe_eyebrow}</div>'
+        f'<h1>{safe_title}</h1>'
+        f'<p class="folio-muted">{safe_body}</p>'
+        f'{footer_html}'
+        '</div>'
+        f'{visual_html}'
+        '</section>'
+    )
     st.markdown(
-        f"""
-        <section class="{hero_class}">
-            <div class="folio-page-hero-copy">
-                <div class="folio-page-hero-eyebrow">{safe_eyebrow}</div>
-                <h1>{safe_title}</h1>
-                <p class="folio-muted">{safe_body}</p>
-            </div>
-            {visual_html}
-        </section>
-        """,
+        hero_markup,
         unsafe_allow_html=True,
     )
+    if footer_actions:
+        with st.container(border=False, key="folio_hero_footer_actions"):
+            footer_actions()
 
 
 def render_placeholder_card(title: str, body: str, metric: str | None = None) -> None:

@@ -8,6 +8,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import streamlit as st
+from postgrest.types import CountMethod, ReturnMethod
 
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
@@ -46,6 +47,12 @@ def create_project(author_id: str, payload: dict[str, Any]) -> ProjectResult:
 
 
 def update_project(project_id: str, author_id: str, payload: dict[str, Any]) -> ProjectResult:
+    from folio_app.services.auth import ensure_authenticated_session
+
+    auth_result = ensure_authenticated_session()
+    if not auth_result.ok:
+        return ProjectResult(False, auth_result.message)
+
     client = get_supabase_client()
     if client is None:
         return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
@@ -55,17 +62,27 @@ def update_project(project_id: str, author_id: str, payload: dict[str, Any]) -> 
     try:
         response = (
             client.table("projects")
-            .update(data)
+            .update(data, count=CountMethod.exact, returning=ReturnMethod.minimal)
             .eq("id", project_id)
             .eq("author_id", author_id)
             .execute()
         )
-        if not response.data:
+        if response.count == 0:
             return ProjectResult(False, "수정할 프로젝트를 찾을 수 없습니다.")
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 수정되었습니다.", project_id)
     except Exception as exc:
+        if "42501" in str(exc) or "row-level security" in str(exc).lower():
+            logger.exception("Project update was rejected by the remote RLS policy")
+            return ProjectResult(
+                False,
+                "프로젝트 접근 정책이 최신 상태가 아닙니다. 관리자에게 Supabase RLS 정책 확인을 요청하세요.",
+            )
         return ProjectResult(False, f"프로젝트 수정에 실패했습니다. ({exc})")
+
+
+def set_project_visibility(project_id: str, author_id: str, is_public: bool) -> ProjectResult:
+    return update_project(project_id, author_id, {"is_public": is_public})
 
 
 def delete_project(project_id: str, author_id: str) -> ProjectResult:
@@ -302,20 +319,32 @@ def count_author_stats(author_id: str) -> dict[str, int]:
 
 
 def _clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "title": payload.get("title", "").strip(),
-        "one_liner": payload.get("one_liner", "").strip() or None,
-        "problem": sanitize_project_html(payload.get("problem")),
-        "dataset": sanitize_project_html(payload.get("dataset")) or None,
-        "process": sanitize_project_html(payload.get("process")) or None,
-        "insights": sanitize_project_html(payload.get("insights")),
-        "power_bi_url": normalize_power_bi_embed_url(payload.get("power_bi_url", "")),
-        "report_url": normalize_optional_url(payload.get("report_url", "")),
-        "github_url": normalize_optional_url(payload.get("github_url", "")),
-        "thumbnail_url": normalize_optional_url(payload.get("thumbnail_url", "")),
-        "tags": _normalize_tags(payload.get("tags", "")),
-        "is_public": True,
-    }
+    data: dict[str, Any] = {}
+    if "title" in payload:
+        data["title"] = payload.get("title", "").strip()
+    if "one_liner" in payload:
+        data["one_liner"] = payload.get("one_liner", "").strip() or None
+    if "problem" in payload:
+        data["problem"] = sanitize_project_html(payload.get("problem"))
+    if "dataset" in payload:
+        data["dataset"] = sanitize_project_html(payload.get("dataset")) or None
+    if "process" in payload:
+        data["process"] = sanitize_project_html(payload.get("process")) or None
+    if "insights" in payload:
+        data["insights"] = sanitize_project_html(payload.get("insights"))
+    if "power_bi_url" in payload:
+        data["power_bi_url"] = normalize_power_bi_embed_url(payload.get("power_bi_url", ""))
+    if "report_url" in payload:
+        data["report_url"] = normalize_optional_url(payload.get("report_url", ""))
+    if "github_url" in payload:
+        data["github_url"] = normalize_optional_url(payload.get("github_url", ""))
+    if "thumbnail_url" in payload:
+        data["thumbnail_url"] = normalize_optional_url(payload.get("thumbnail_url", ""))
+    if "tags" in payload:
+        data["tags"] = _normalize_tags(payload.get("tags", ""))
+    if "is_public" in payload:
+        data["is_public"] = bool(payload.get("is_public"))
+    return data
 
 
 def _normalize_tags(value: str | list[str]) -> list[str]:

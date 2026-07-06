@@ -55,9 +55,8 @@ def render_submit() -> None:
         tags="",
         project_body_initial=PROJECT_BODY_TEMPLATE,
         power_bi_url="",
-        report_url="",
         github_url="",
-        thumbnail_url="",
+        etc_url="",
         submit_label="프로젝트 등록하기",
     )
 
@@ -127,16 +126,15 @@ def render_my_portfolio() -> None:
 
     for project in projects:
         with st.container(border=True, key=f"portfolio_item_{project['id']}"):
-            _render_portfolio_item(project)
-            view_col, edit_col, delete_col = st.columns(3)
-            with view_col:
+            project_col, actions_col = st.columns([5, 1], gap="small")
+            with project_col:
+                _render_portfolio_item(project)
+            with actions_col:
                 if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
                     navigate("Home", project_id=project["id"])
-            with edit_col:
                 if st.button("수정", key=f"portfolio_edit_{project['id']}", use_container_width=True):
                     st.session_state["editing_project_id"] = project["id"]
                     st.rerun()
-            with delete_col:
                 if st.button(
                     "삭제",
                     key=f"portfolio_delete_{project['id']}",
@@ -283,20 +281,24 @@ def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     st.rerun()
 
 
+from folio_app.components.ui import render_tag_chips, render_project_metrics
+
+
 def _render_portfolio_item(project: dict) -> None:
     title = html.escape(project.get("title") or "Untitled")
     one_liner = html.escape(project.get("one_liner") or "")
-    tags = project.get("tags") or []
-    tags_html = "".join(f"<span class='folio-tag'>#{html.escape(t)}</span>" for t in tags[:3])
-    tags_section = f"<div class='folio-tags'>{tags_html}</div>" if tags else ""
-    views = project.get("view_count", 0)
-    likes = project.get("like_count", 0)
+    tags_html = render_tag_chips(project.get("tags") or [])
     is_public = bool(project.get("is_public"))
     visibility_label = "공개" if is_public else "비공개"
     visibility_icon = (
         '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>'
         if is_public
         else '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>'
+    )
+    metrics_html = render_project_metrics(
+        project,
+        container_class="folio-portfolio-card-meta",
+        extra_html=f"<span title=\"{visibility_label}\" aria-label=\"공개 상태 {visibility_label}\">{visibility_icon}</span>",
     )
     liner_html = f"<p class='folio-portfolio-card-liner'>{one_liner}</p>" if one_liner else ""
 
@@ -307,21 +309,9 @@ def _render_portfolio_item(project: dict) -> None:
                 <p class="folio-portfolio-card-title">{title}</p>
                 {liner_html}
             </div>
-            <div class="folio-portfolio-card-side">
-                {tags_section}
-                <div class="folio-portfolio-card-meta">
-                    <span title="조회수" aria-label="조회수 {views}">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>
-                        {views}
-                    </span>
-                    <span title="좋아요" aria-label="좋아요 {likes}">
-                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"></path></svg>
-                        {likes}
-                    </span>
-                    <span title="{visibility_label}" aria-label="공개 상태 {visibility_label}">
-                        {visibility_icon}
-                    </span>
-                </div>
+            <div class="folio-portfolio-card-footer">
+                {tags_html}
+                {metrics_html}
             </div>
         </div>
         """,
@@ -339,9 +329,11 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
         tags=", ".join(project.get("tags") or []),
         project_body_initial=project_body_from_project(project),
         power_bi_url=project.get("power_bi_url") or "",
-        report_url=project.get("report_url") or "",
         github_url=project.get("github_url") or "",
+        etc_url=project.get("report_url") or "",
         thumbnail_url=project.get("thumbnail_url") or "",
+        is_public=bool(project.get("is_public")),
+        show_visibility_setting=True,
         submit_label="수정 완료",
         secondary_label="목록으로 돌아가기",
     )

@@ -21,6 +21,17 @@
 
 기존 프로젝트도 인증/RLS 정책이 변경되면 최신 `supabase/schema.sql`을 다시 실행합니다. 스키마는 `if not exists`, `drop policy if exists` 구문을 사용하므로 정책 갱신에도 같은 파일을 사용합니다.
 
+### 공개 → 비공개 변경 시 42501 오류
+
+로그인한 작성자가 공개 프로젝트는 수정할 수 있지만 비공개 저장에서 `42501` 오류를 받는다면 원격 DB의 작성자 SELECT/UPDATE 정책이 오래된 상태입니다.
+
+1. Supabase **SQL Editor**를 엽니다.
+2. `supabase/fix_project_owner_rls.sql` 내용을 실행합니다.
+3. 앱에서 로그아웃 후 다시 로그인합니다.
+4. `내 포트폴리오 → 수정 → 프로젝트 공개`를 끄고 저장합니다.
+
+이 SQL은 작성자 본인의 프로젝트만 조회·수정할 수 있도록 `auth.uid() = author_id`를 검사합니다.
+
 ## 3. API Key 확인
 
 1. Supabase 프로젝트에서 **Project Settings**로 이동합니다.

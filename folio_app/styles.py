@@ -2,7 +2,9 @@
 
 
 def apply_global_styles() -> None:
-    st.markdown(
+    # st.html sends style-only content to Streamlit's event container instead
+    # of the main layout, so reruns do not briefly remove the global CSS.
+    st.html(
         """
         <style>
         /* ── Design Tokens ── */
@@ -132,28 +134,51 @@ def apply_global_styles() -> None:
             opacity: 1 !important;
         }
 
-        /* FOLIO brand button — must come AFTER general button CSS to override */
+        /* Header logo keeps the original wordmark footprint. */
+        .folio-header-logo {
+            align-items: center;
+            display: flex;
+            height: 34px;
+            width: fit-content;
+        }
+
+        .folio-header-logo img {
+            display: block;
+            height: 24px;
+            object-fit: contain;
+            transform: translateY(-10px);
+            width: auto;
+        }
+
+        /* Transparent button overlays the logo so it remains a session-safe Home action. */
+        .st-key-folio_header .st-key-nav_brand_home {
+            height: 34px;
+            left: 0;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 76px;
+            z-index: 1;
+        }
+
         .st-key-folio_header .st-key-nav_brand_home button {
             background: transparent !important;
             border: none !important;
-            color: #ffffff !important;
-            font-size: 1.5rem !important;
-            font-weight: 900 !important;
-            letter-spacing: -0.04em !important;
-            line-height: 1 !important;
-            min-height: unset !important;
-            padding: 6px 0 !important;
+            color: transparent !important;
+            height: 34px !important;
+            min-height: 34px !important;
+            padding: 0 !important;
+            width: 76px !important;
         }
 
         .st-key-folio_header .st-key-nav_brand_home button p,
         .st-key-folio_header .st-key-nav_brand_home button div,
         .st-key-folio_header .st-key-nav_brand_home button span {
-            font-weight: 900 !important;
+            color: transparent !important;
         }
 
         .st-key-folio_header .st-key-nav_brand_home button:hover {
             background: transparent !important;
-            color: rgba(180, 205, 255, 0.88) !important;
             transform: none !important;
         }
 
@@ -311,18 +336,18 @@ def apply_global_styles() -> None:
 
         /* ── Page Hero (sub-pages) ── */
         .folio-page-hero {
-            align-items: center;
+            align-items: start;
             background: var(--folio-surface);
             border: 1px solid var(--folio-border);
             border-radius: 16px;
             display: grid;
-            gap: 28px;
+            gap: 18px;
             grid-template-columns: minmax(0, 1fr) minmax(300px, 0.78fr);
             margin-top: 16px;
-            margin-bottom: 28px;
-            min-height: 230px;
+            margin-bottom: 20px;
+            min-height: 220px;
             overflow: hidden;
-            padding: 34px 28px;
+            padding: 22px 20px;
         }
 
         .folio-page-hero-copy {
@@ -331,10 +356,10 @@ def apply_global_styles() -> None:
 
         .folio-page-hero-eyebrow {
             color: var(--folio-blue);
-            font-size: 0.82rem;
+            font-size: 1.05rem;
             font-weight: 800;
             letter-spacing: 0.12em;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             text-transform: uppercase;
         }
 
@@ -349,27 +374,173 @@ def apply_global_styles() -> None:
 
         .folio-page-hero p {
             color: var(--folio-muted);
-            font-size: 0.98rem;
-            line-height: 1.65;
+            font-size: 0.92rem;
+            line-height: 1.55;
             margin: 0;
-            max-width: 480px;
+            max-width: 440px;
             word-break: keep-all;
         }
 
         .folio-page-hero-visual {
-            align-items: center;
+            align-items: flex-start;
+            background: var(--folio-subtle);
+            border-radius: 20px;
             display: flex;
             justify-content: flex-end;
+            padding: 6px;
         }
 
-        .folio-page-hero-visual img {
-            border: 1px solid rgba(20, 89, 200, 0.12);
-            border-radius: 14px;
-            box-shadow: 0 14px 38px rgba(11, 31, 63, 0.12);
+        .folio-page-hero-visual img,
+        .folio-page-hero-cover-image {
+            border: 1px solid rgba(20, 89, 200, 0.08);
+            border-radius: 18px;
+            box-shadow: 0 12px 32px rgba(11, 31, 63, 0.08);
             display: block;
-            height: 176px;
+            height: 236px;
             object-fit: cover;
-            width: min(100%, 390px);
+            width: min(100%, 420px);
+        }
+
+        .folio-page-hero-visual .folio-auto-cover {
+            margin: 0;
+            height: 236px;
+            width: 100%;
+            border-radius: 16px;
+        }
+
+        .folio-page-hero.folio-page-hero-no-visual {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .folio-page-hero-footer {
+            align-items: center;
+            background: rgba(148, 167, 205, 0.08);
+            border: 1px solid rgba(148, 167, 205, 0.2);
+            border-radius: 14px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            padding: 10px 12px;
+            width: 100%;
+        }
+
+        .folio-page-hero-footer .folio-tags {
+            margin: 0;
+            justify-content: flex-start;
+        }
+
+        .folio-page-hero-footer .folio-page-hero-meta {
+            color: var(--folio-muted);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.92rem;
+            margin: 0;
+        }
+
+        .folio-page-hero-footer .folio-detail-meta {
+            align-items: center;
+            display: flex;
+            margin: 0;
+            justify-content: flex-start;
+            min-width: 0;
+        }
+
+        .folio-page-hero-footer .folio-home-metrics {
+            justify-content: flex-start;
+            margin-top: 0;
+            padding-top: 0;
+            gap: 12px;
+        }
+
+        /* Hero footer actions styling */
+        .st-key-folio_hero_footer_actions {
+            margin-top: -20px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .st-key-folio_hero_footer_actions > div {
+            background: #f7f9fd;
+            border: 1px solid var(--folio-border);
+            border-top: none;
+            border-radius: 0 0 16px 16px;
+            box-shadow: 0 10px 24px rgba(11, 31, 63, 0.05);
+            padding: 10px 20px 12px 22px;
+        }
+
+        .st-key-folio_hero_footer_actions [data-testid="stColumn"] {
+            align-items: center;
+            padding: 0;
+        }
+
+        .st-key-folio_hero_footer_actions .folio-detail-meta-row {
+            min-height: 38px;
+        }
+
+        .st-key-folio_hero_footer_actions .st-key-detail_like_action {
+            align-items: stretch;
+            display: flex;
+            height: 38px;
+            justify-content: stretch;
+            margin: 0;
+            width: 100%;
+        }
+
+        .st-key-folio_hero_footer_actions .st-key-detail_like_action .stButton,
+        .st-key-folio_hero_footer_actions .st-key-detail_like_action button {
+            height: 38px;
+            margin: 0 !important;
+            min-height: 38px !important;
+            width: 100% !important;
+        }
+
+        .st-key-folio_hero_footer_actions .st-key-detail_like_action [data-testid="stTooltipHoverTarget"] {
+            width: 100% !important;
+        }
+
+        .folio-project-detail-hero {
+            border-radius: 16px 16px 0 0;
+            margin-bottom: 0;
+            min-height: 0;
+        }
+
+        .folio-project-detail-hero .folio-page-hero-copy {
+            align-self: center;
+        }
+
+        .folio-project-detail-hero .folio-page-hero-footer {
+            background: transparent;
+            border: 0;
+            padding: 0;
+        }
+
+        .folio-detail-stat {
+            align-items: center;
+            background: #ffffff;
+            border: 1px solid var(--folio-border);
+            border-radius: 10px;
+            box-sizing: border-box;
+            display: flex;
+            gap: 8px;
+            height: 38px;
+            justify-content: center;
+            padding: 0 12px;
+            width: 100%;
+        }
+
+        .folio-detail-stat span {
+            color: var(--folio-muted);
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .folio-detail-stat strong {
+            color: var(--folio-navy);
+            font-size: 0.95rem;
+            font-weight: 800;
         }
 
         .folio-hero {
@@ -722,16 +893,35 @@ def apply_global_styles() -> None:
             color: var(--folio-muted);
             display: flex;
             font-size: 0.8rem;
-            gap: 22px;
+            gap: 18px;
             justify-content: flex-end;
             margin-top: auto;
             padding-top: 12px;
+            min-width: 0;
         }
 
         .folio-home-metrics span {
             align-items: center;
             display: inline-flex;
             gap: 4px;
+            flex-shrink: 0;
+            min-width: 0;
+        }
+
+        .folio-home-metrics span + span {
+            margin-left: 12px;
+        }
+
+        .folio-visibility-pill {
+            align-items: center;
+            background: rgba(20, 89, 200, 0.08);
+            border: 1px solid rgba(20, 89, 200, 0.18);
+            border-radius: 999px;
+            color: var(--folio-blue);
+            display: inline-flex;
+            font-size: 0.82rem;
+            font-weight: 700;
+            padding: 4px 10px;
         }
 
         .folio-home-metrics svg {
@@ -907,13 +1097,20 @@ def apply_global_styles() -> None:
         .st-key-detail_like_action {
             display: flex;
             justify-content: flex-end;
-            margin: -18px 0 22px;
+            margin: -10px 0 12px;
         }
 
         .st-key-detail_like_action button {
+            align-items: center;
+            background: var(--folio-surface);
+            border: 1px solid var(--folio-border);
             border-radius: 999px;
-            min-height: 38px;
-            padding: 0 16px;
+            color: var(--folio-navy);
+            display: inline-flex;
+            font-size: 0.88rem;
+            font-weight: 700;
+            min-height: 34px;
+            padding: 0 14px;
         }
 
         /* ── Auth Cards ── */
@@ -1339,18 +1536,18 @@ def apply_global_styles() -> None:
 
         /* ── Portfolio item cards ── */
         .folio-portfolio-card {
-            align-items: start;
+            align-items: stretch;
             background: var(--folio-surface);
             border: 0;
             border-radius: 0;
             box-sizing: border-box;
-            display: grid;
-            gap: 24px;
-            grid-template-columns: minmax(0, 1fr) minmax(220px, 0.48fr);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
             margin-bottom: 4px;
             max-width: 100%;
             min-width: 0;
-            padding: 4px 2px 8px;
+            padding: 12px 12px 16px;
             width: 100%;
         }
 
@@ -1380,16 +1577,42 @@ def apply_global_styles() -> None:
             min-width: 0;
         }
 
-        .folio-portfolio-card-side {
-            align-items: flex-end;
+        .folio-portfolio-card-footer {
+            align-items: flex-start;
             display: flex;
             flex-direction: column;
             gap: 10px;
+            max-width: 100%;
+            min-width: 0;
+            width: 100%;
+            overflow: hidden;
         }
 
-        .folio-portfolio-card-side .folio-tags {
-            justify-content: flex-end;
+        .folio-portfolio-card-footer .folio-tags {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-items: flex-start;
+            gap: 6px;
             margin: 0;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+        }
+
+        .folio-portfolio-card-side .folio-tag {
+            display: inline-flex;
+            flex: 0 1 auto;
+            margin: 0;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: normal;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+            vertical-align: top;
         }
 
         .folio-portfolio-card-title {
@@ -1412,9 +1635,10 @@ def apply_global_styles() -> None:
             align-items: center;
             color: var(--folio-muted);
             display: flex;
+            flex-wrap: wrap;
             font-size: 0.82rem;
-            gap: 18px;
-            justify-content: flex-end;
+            gap: 12px;
+            justify-content: flex-start;
             margin: 0;
         }
 
@@ -1434,7 +1658,435 @@ def apply_global_styles() -> None:
             width: 16px;
         }
 
-        /* ── Profile ── */
+        /* ── Profile Detail Page Styles ── */
+
+        /* Back button */
+        .st-key-detail_back_button button {
+            background: transparent !important;
+            border: none !important;
+            color: var(--folio-muted) !important;
+            font-size: 0.92rem !important;
+            font-weight: 600 !important;
+            margin-bottom: 12px !important;
+            padding: 0 !important;
+            min-height: auto !important;
+            transition: color 0.13s;
+        }
+
+        .st-key-detail_back_button button:hover {
+            background: transparent !important;
+            color: var(--folio-blue) !important;
+            transform: none !important;
+        }
+
+        /* Hero back button styling */
+        .st-key-detail_hero_back_button button {
+            background: rgba(148, 167, 205, 0.08) !important;
+            border: 1px solid rgba(148, 167, 205, 0.2) !important;
+            color: var(--folio-navy) !important;
+            font-weight: 600;
+            transition: all 0.13s ease;
+        }
+
+        .st-key-detail_hero_back_button button:hover {
+            background: rgba(20, 89, 200, 0.1) !important;
+            border-color: rgba(20, 89, 200, 0.3) !important;
+            color: var(--folio-blue) !important;
+        }
+
+        /* Detail page metadata section */
+        .folio-detail-meta-section {
+            margin-bottom: 12px;
+        }
+
+        .folio-detail-meta-row {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            width: 100%;
+        }
+
+        .folio-detail-meta-item {
+            align-items: center;
+            color: var(--folio-muted);
+            display: inline-flex;
+            font-size: 0.88rem;
+            gap: 6px;
+            line-height: 1.4;
+            padding: 4px 12px;
+            position: relative;
+        }
+
+        [class*="_visibility_setting"] {
+            background: linear-gradient(135deg, #f8faff, #eef4ff) !important;
+            border: 1px solid rgba(20, 89, 200, 0.2) !important;
+            border-radius: 14px !important;
+            box-shadow: none !important;
+            padding: 16px 18px !important;
+        }
+
+        [class*="_visibility_setting"] [data-testid="stVerticalBlock"] {
+            gap: 8px !important;
+        }
+
+        .folio-visibility-setting-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .folio-visibility-setting-copy strong {
+            color: var(--folio-navy);
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+
+        .folio-visibility-setting-copy span {
+            color: var(--folio-muted);
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .folio-detail-meta-item small {
+            color: #8a99b3;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .folio-detail-meta-item strong {
+            color: var(--folio-navy);
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .folio-detail-meta-item::after {
+            content: "·";
+            color: var(--folio-subtle);
+            margin-left: 12px;
+            position: absolute;
+            right: -8px;
+        }
+
+        .folio-detail-meta-item:last-child::after {
+            display: none;
+        }
+
+        .folio-detail-author {
+            color: var(--folio-navy);
+            font-weight: 700;
+            font-size: 0.92rem;
+            padding-left: 0;
+        }
+
+        .folio-detail-visibility {
+            align-items: center;
+            background: rgba(20, 89, 200, 0.08);
+            border-radius: 999px;
+            color: var(--folio-blue);
+            display: inline-flex;
+            font-size: 0.82rem;
+            font-weight: 700;
+            margin-left: 0;
+            padding: 4px 10px;
+        }
+
+        /* Detail section cards */
+        .folio-detail-section {
+            background: var(--folio-surface);
+            border: 1px solid var(--folio-border);
+            border-radius: 14px;
+            margin-bottom: 20px;
+            padding: 24px 26px;
+            overflow: hidden;
+        }
+
+        .folio-detail-section-title {
+            color: var(--folio-navy);
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin: 0 0 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--folio-subtle);
+        }
+
+        .folio-detail-section-content {
+            color: var(--folio-navy);
+            font-size: 0.96rem;
+            line-height: 1.7;
+            word-break: keep-all;
+        }
+
+        .folio-detail-section-content p {
+            margin: 0 0 12px;
+        }
+
+        .folio-detail-section-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .folio-detail-section-content h3,
+        .folio-detail-section-content h4,
+        .folio-detail-section-content h5 {
+            color: var(--folio-navy);
+            margin: 16px 0 8px;
+        }
+
+        .folio-detail-section-content ul,
+        .folio-detail-section-content ol {
+            margin: 8px 0 12px;
+            padding-left: 20px;
+        }
+
+        .folio-detail-section-content li {
+            margin: 6px 0;
+        }
+
+        .folio-detail-section-content strong {
+            color: var(--folio-navy);
+            font-weight: 700;
+        }
+
+        .folio-detail-section-content em {
+            color: var(--folio-muted);
+            font-style: italic;
+        }
+
+        /* Sidebar section titles */
+        .folio-sidebar-section-title {
+            color: var(--folio-navy);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            margin: 0 0 14px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--folio-subtle);
+        }
+
+        .st-key-project_detail_sidebar {
+            background: var(--folio-surface) !important;
+            border: 1px solid var(--folio-border) !important;
+            border-radius: 16px !important;
+            box-sizing: border-box !important;
+            box-shadow: 0 10px 28px rgba(11, 31, 63, 0.06) !important;
+            max-width: 100% !important;
+            overflow: hidden !important;
+            padding: 18px !important;
+            width: 100% !important;
+        }
+
+        .st-key-project_detail_sidebar [data-testid="stVerticalBlock"] {
+            box-sizing: border-box;
+            gap: 12px;
+            max-width: 100%;
+            min-width: 0;
+            width: 100%;
+        }
+
+        .st-key-project_detail_sidebar [data-testid="stElementContainer"],
+        .st-key-project_detail_sidebar [data-testid="stCustomComponentV1"],
+        .st-key-project_detail_sidebar .stLinkButton {
+            box-sizing: border-box !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        .folio-sidebar-heading {
+            margin-bottom: 2px;
+            padding-bottom: 12px;
+        }
+
+        .folio-sidebar-heading h2 {
+            color: var(--folio-navy);
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .folio-sidebar-heading.folio-sidebar-resources {
+            border-top: 1px solid var(--folio-border);
+            margin-top: 10px;
+            padding-top: 18px;
+        }
+
+        .st-key-project_detail_sidebar iframe {
+            box-sizing: border-box;
+            border-radius: 12px;
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .st-key-project_detail_sidebar [data-testid="stCaptionContainer"] {
+            color: var(--folio-muted);
+            font-size: 0.78rem;
+            line-height: 1.45;
+        }
+
+        .st-key-project_detail_sidebar .stLinkButton > a {
+            background: #ffffff !important;
+            border: 1px solid var(--folio-border) !important;
+            border-radius: 10px !important;
+            box-shadow: none !important;
+            color: var(--folio-navy) !important;
+            font-size: 0.86rem !important;
+            font-weight: 700 !important;
+            min-height: 40px !important;
+            transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease !important;
+            width: 100% !important;
+        }
+
+        .st-key-project_detail_sidebar .stLinkButton > a:hover {
+            background: rgba(20, 89, 200, 0.05) !important;
+            border-color: rgba(20, 89, 200, 0.35) !important;
+            color: var(--folio-blue) !important;
+        }
+
+        .st-key-project_detail_sidebar .st-key-detail_visual_back_button {
+            border-top: 1px solid var(--folio-border);
+            margin-top: 8px;
+            padding-top: 14px;
+            width: 100%;
+        }
+
+        .st-key-project_detail_sidebar .st-key-detail_visual_back_button button,
+        .st-key-detail_content_back_button button {
+            background: transparent !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            color: var(--folio-muted) !important;
+            font-size: 0.84rem !important;
+            font-weight: 700 !important;
+        }
+
+        .st-key-project_detail_sidebar .st-key-detail_visual_back_button button:hover,
+        .st-key-detail_content_back_button button:hover {
+            color: var(--folio-blue) !important;
+            transform: none !important;
+        }
+
+        /* Dashboard and attachment links styling */
+        .project_detail_sidebar .stLink > a {
+            background: var(--folio-blue);
+            border: none;
+            border-radius: 10px;
+            color: #ffffff !important;
+            display: inline-block;
+            font-weight: 600;
+            margin: 8px 0;
+            padding: 10px 16px;
+            text-decoration: none !important;
+            transition: background 0.13s;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .project_detail_sidebar .stLink > a:hover {
+            background: #0e42a8;
+            text-decoration: none !important;
+        }
+
+        /* Metric styling for detail view */
+        .st-key-detail_hero_back_button .stMetric {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .stMetric {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        .st-metric {
+            background: transparent;
+            border: none;
+            padding: 0;
+        }
+
+        /* Like button styling */
+        .st-key-detail_like_action button {
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.13s ease;
+        }
+
+        .st-key-detail_like_action button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1024px) {
+            .folio-detail-section {
+                padding: 20px 22px;
+            }
+
+            .folio-detail-section-title {
+                font-size: 1.05rem;
+            }
+
+            .folio-detail-section-content {
+                font-size: 0.94rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .folio-page-hero {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                padding: 20px 16px;
+                min-height: auto;
+            }
+
+            .folio-page-hero-visual {
+                justify-content: center;
+            }
+
+            .folio-page-hero-visual img,
+            .folio-page-hero-cover-image {
+                height: 200px;
+                width: 100%;
+            }
+
+            .folio-detail-section {
+                margin-bottom: 16px;
+                padding: 18px 16px;
+            }
+
+            .folio-detail-section-title {
+                font-size: 1rem;
+                margin-bottom: 12px;
+            }
+
+            .folio-detail-section-content {
+                font-size: 0.93rem;
+            }
+
+            .folio-detail-meta-row {
+                flex-wrap: wrap;
+            }
+
+            .folio-detail-meta-item {
+                padding: 4px 8px;
+            }
+
+            .folio-detail-meta-item::after {
+                margin-left: 8px;
+                right: -4px;
+            }
+
+            .folio-detail-grid {
+                grid-template-columns: 1fr;
+                gap: 18px;
+            }
+        }
+
+        /* ── Profile ──
         .folio-profile-header {
             align-items: center;
             display: flex;
@@ -1600,14 +2252,13 @@ def apply_global_styles() -> None:
 
             .folio-portfolio-card {
                 gap: 12px;
-                grid-template-columns: 1fr;
             }
 
-            .folio-portfolio-card-side {
+            .folio-portfolio-card-footer {
                 align-items: flex-start;
             }
 
-            .folio-portfolio-card-side .folio-tags,
+            .folio-portfolio-card-footer .folio-tags,
             .folio-portfolio-card-meta {
                 justify-content: flex-start;
             }
@@ -1667,5 +2318,4 @@ def apply_global_styles() -> None:
         }
         </style>
         """,
-        unsafe_allow_html=True,
     )

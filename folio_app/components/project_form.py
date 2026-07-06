@@ -211,6 +211,7 @@ def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]
         "github_url": form_data["github_url"],
         "thumbnail_url": form_data["thumbnail_url"],
         "tags": form_data["tags"],
+        "is_public": form_data["is_public"],
     }
 
 
@@ -227,10 +228,12 @@ def render_project_form(
     tags: str,
     project_body_initial: str,
     power_bi_url: str,
-    report_url: str,
     github_url: str,
-    thumbnail_url: str,
+    etc_url: str,
     submit_label: str,
+    thumbnail_url: str = "",
+    is_public: bool = True,
+    show_visibility_setting: bool = False,
     secondary_label: str | None = None,
 ) -> tuple[dict[str, str], bool, bool]:
     st.markdown(
@@ -290,12 +293,20 @@ def render_project_form(
                 key=f"{key_prefix}_power_bi_url",
             )
             _render_url_feedback(power_bi_url_input, "BI Platform Embed URL", power_bi=True)
+
             github_url_input = st.text_input(
                 "GitHub URL",
                 value=github_url,
                 key=f"{key_prefix}_github_url",
             )
             _render_url_feedback(github_url_input, "GitHub URL")
+
+            etc_url_input = st.text_input(
+                "ETC URL",
+                value=etc_url,
+                key=f"{key_prefix}_etc_url",
+            )
+            _render_url_feedback(etc_url_input, "ETC URL")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
         st.markdown(
@@ -313,7 +324,35 @@ def render_project_form(
         )
 
     cancelled = False
-    if secondary_label:
+    if show_visibility_setting:
+        visibility_col, actions_col = st.columns([2, 1], gap="large", vertical_alignment="bottom")
+        with visibility_col, st.container(border=True, key=f"{key_prefix}_visibility_setting"):
+            st.markdown(
+                '<div class="folio-visibility-setting-copy"><strong>공개 설정</strong><span>공개를 끄면 목록과 검색에서 숨겨지고 작성자만 볼 수 있습니다.</span></div>',
+                unsafe_allow_html=True,
+            )
+            is_public_input = st.toggle(
+                "프로젝트 공개",
+                value=is_public,
+                key=f"{key_prefix}_is_public",
+            )
+        with actions_col:
+            secondary_col, action_col = st.columns(2)
+            with secondary_col:
+                cancelled = st.button(
+                    secondary_label or "목록으로 돌아가기",
+                    use_container_width=True,
+                    key=f"{key_prefix}_secondary",
+                )
+            with action_col:
+                submitted = st.button(
+                    submit_label,
+                    type="primary",
+                    use_container_width=True,
+                    key=f"{key_prefix}_submit",
+                )
+    elif secondary_label:
+        is_public_input = is_public
         action_space, secondary_col, action_col = st.columns([2, 1, 1])
         with secondary_col:
             cancelled = st.button(
@@ -321,15 +360,23 @@ def render_project_form(
                 use_container_width=True,
                 key=f"{key_prefix}_secondary",
             )
+        with action_col:
+            submitted = st.button(
+                submit_label,
+                type="primary",
+                use_container_width=True,
+                key=f"{key_prefix}_submit",
+            )
     else:
+        is_public_input = is_public
         action_space, action_col = st.columns([3, 1])
-    with action_col:
-        submitted = st.button(
-            submit_label,
-            type="primary",
-            use_container_width=True,
-            key=f"{key_prefix}_submit",
-        )
+        with action_col:
+            submitted = st.button(
+                submit_label,
+                type="primary",
+                use_container_width=True,
+                key=f"{key_prefix}_submit",
+            )
     return (
         {
             "title": title_input,
@@ -337,11 +384,12 @@ def render_project_form(
             "tags": tags_input,
             "project_body": project_body,
             "power_bi_url": power_bi_url_input,
-            # These legacy fields are no longer editable, but keeping their
-            # existing values prevents an edit from clearing stored data.
-            "report_url": report_url,
+            # ETC URL is stored in the legacy report_url column. Thumbnail is
+            # no longer editable, but retaining it prevents edits from clearing it.
+            "report_url": etc_url_input,
             "github_url": github_url_input,
             "thumbnail_url": thumbnail_url,
+            "is_public": is_public_input,
         },
         submitted,
         cancelled,

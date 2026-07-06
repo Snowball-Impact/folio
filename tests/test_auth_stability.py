@@ -2,8 +2,46 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from folio_app.app import _restore_auth_from_cookies
+from folio_app.services.auth import AuthResult
 from folio_app.services.profiles import ensure_profile, get_onboarding_status
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
+
+
+class CookieStub(dict):
+    def save(self) -> None:
+        self.saved = True
+
+
+class AuthRestoreUXTests(unittest.TestCase):
+    @patch("folio_app.app.restore_session", return_value=AuthResult(False, "로그인 복원 실패"))
+    @patch("folio_app.app.get_current_user", return_value=None)
+    @patch("folio_app.app.st")
+    def test_public_home_silently_clears_expired_cookies(self, streamlit, _current_user, _restore) -> None:
+        streamlit.session_state = {}
+        streamlit.query_params = {"page": "Home"}
+        cookies = CookieStub(access_token="expired", refresh_token="expired")
+
+        _restore_auth_from_cookies(cookies)
+
+        self.assertNotIn("access_token", cookies)
+        self.assertNotIn("refresh_token", cookies)
+        streamlit.warning.assert_not_called()
+        streamlit.rerun.assert_not_called()
+
+    @patch("folio_app.app.restore_session", return_value=AuthResult(False, "로그인 복원 실패"))
+    @patch("folio_app.app.get_current_user", return_value=None)
+    @patch("folio_app.app.st")
+    def test_protected_page_redirects_to_login_after_restore_failure(self, streamlit, _current_user, _restore) -> None:
+        streamlit.session_state = {}
+        streamlit.query_params = {"page": "My Portfolio"}
+        cookies = CookieStub(access_token="expired", refresh_token="expired")
+
+        _restore_auth_from_cookies(cookies)
+
+        self.assertEqual(streamlit.query_params, {"page": "Login"})
+        self.assertEqual(streamlit.session_state["login_notice"], "로그인 복원 실패")
+        streamlit.rerun.assert_called_once()
 
 
 class SupabaseClientIsolationTests(unittest.TestCase):

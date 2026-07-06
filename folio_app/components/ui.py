@@ -54,21 +54,45 @@ def _render_auto_cover(project: dict, *, compact: bool = False) -> str:
     """)
 
 
-def _render_card_metrics(project: dict) -> str:
+def render_project_metrics(
+    project: dict,
+    container_class: str = "folio-home-metrics",
+    extra_html: str = "",
+    include_likes: bool = True,
+) -> str:
     views = project.get("view_count", 0) or 0
     likes = project.get("like_count", 0) or 0
+    likes_html = ""
+    if include_likes:
+        likes_html = f"""
+        <span title=\"좋아요\" aria-label=\"좋아요 {likes}\">
+            <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z\"></path></svg>
+            {likes}
+        </span>
+        """
     return clean_html(f"""
-    <div class="folio-home-metrics">
+    <div class="{container_class}">
         <span title="조회수" aria-label="조회수 {views}">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>
             {views}
         </span>
-        <span title="좋아요" aria-label="좋아요 {likes}">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"></path></svg>
-            {likes}
-        </span>
+        {likes_html}
+        {extra_html}
     </div>
     """)
+
+
+def render_project_cover_html(project: dict, compact: bool = False) -> str:
+    thumbnail_url = project.get("thumbnail_url")
+    if thumbnail_url:
+        return clean_html(f"""
+        <img
+            class="folio-page-hero-cover-image"
+            src="{html.escape(thumbnail_url, quote=True)}"
+            alt="프로젝트 커버 이미지"
+        />
+        """)
+    return _render_auto_cover(project, compact=compact)
 
 
 def render_project_card_html(
@@ -84,7 +108,7 @@ def render_project_card_html(
     author = project.get("author") or {}
     author_name = html.escape(author.get("name") or "작성자")
     cover_html = _render_auto_cover(project, compact=compact)
-    metrics_html = _render_card_metrics(project)
+    metrics_html = render_project_metrics(project)
 
     card_class = "folio-home-card folio-home-card-compact" if compact else "folio-home-card"
     card_html = f"""
@@ -105,6 +129,36 @@ def render_project_card_html(
     """)
 
 
+def render_portfolio_card_html(project: dict, href: str | None = None) -> str:
+    title = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
+    one_liner = html.escape(project.get("one_liner") or project.get("insights") or project.get("problem") or "")
+    author = project.get("author") or {}
+    author_name = html.escape(author.get("name") or "작성자")
+    tags_html = render_tag_chips(project.get("tags") or [])
+    metrics_html = render_project_metrics(project, container_class="folio-portfolio-card-meta")
+    visibility_icon = (
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>'
+        if project.get("is_public")
+        else '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>'
+    )
+    card_html = f"""
+    <div class="folio-home-card folio-home-card-compact">
+        <p class="folio-home-author">{author_name}</p>
+        <p>{one_liner}</p>
+        {tags_html}
+        <div class="folio-portfolio-visibility">{visibility_icon}</div>
+        {metrics_html}
+    </div>
+    """
+    if not href:
+        return clean_html(card_html)
+    return clean_html(f"""
+    <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
+        {card_html}
+    </a>
+    """)
+
+
 def render_gallery_card_html(project: dict, href: str | None = None) -> str:
     author = project.get("author") or {}
     one_liner = html.escape(project.get("one_liner") or project.get("insights") or "")
@@ -112,7 +166,7 @@ def render_gallery_card_html(project: dict, href: str | None = None) -> str:
         one_liner = html.escape(project.get("problem") or "")
     author_name = html.escape(author.get("name") or "작성자")
     cover_html = _render_auto_cover(project)
-    metrics_html = _render_card_metrics(project)
+    metrics_html = render_project_metrics(project, container_class="folio-gallery-footer")
 
     card_html = f"""
     <div class="folio-gallery-card">

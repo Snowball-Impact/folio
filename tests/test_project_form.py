@@ -3,6 +3,7 @@ import unittest
 from folio_app.components.project_form import (
     _normalize_tag_preview,
     _raw_tag_count,
+    build_project_payload,
     validate_project_form,
 )
 
@@ -25,6 +26,28 @@ class ProjectFormTests(unittest.TestCase):
         _, missing, url_error = validate_project_form(form_data)
         self.assertEqual(missing, [])
         self.assertIn("보고서 URL", url_error or "")
+
+    def test_build_payload_preserves_private_visibility(self) -> None:
+        form_data = {
+            "title": "비공개 프로젝트",
+            "one_liner": "",
+            "power_bi_url": "",
+            "report_url": "",
+            "github_url": "",
+            "thumbnail_url": "",
+            "tags": "python",
+            "is_public": False,
+        }
+        parsed_body = {
+            "problem": "문제",
+            "dataset": "데이터",
+            "process": "과정",
+            "insights": "인사이트",
+        }
+
+        payload = build_project_payload(form_data, parsed_body)
+
+        self.assertIs(payload["is_public"], False)
 
 
 if __name__ == "__main__":

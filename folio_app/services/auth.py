@@ -14,6 +14,7 @@ SESSION_USER_KEY = "folio_user"
 SESSION_TOKEN_KEY = "folio_access_token"
 SESSION_REFRESH_TOKEN_KEY = "folio_refresh_token"
 SESSION_CLEAR_BROWSER_AUTH_KEY = "folio_clear_browser_auth"
+SESSION_LOGOUT_IN_PROGRESS_KEY = "folio_logout_in_progress"
 
 
 @dataclass(frozen=True)
@@ -134,6 +135,7 @@ def sign_out() -> None:
     st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
     st.session_state.pop(SESSION_USER_KEY, None)
     st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
+    st.session_state[SESSION_LOGOUT_IN_PROGRESS_KEY] = True
     clear_supabase_client()
 
 
@@ -166,6 +168,31 @@ def get_auth_tokens() -> tuple[str | None, str | None]:
         st.session_state.get(SESSION_TOKEN_KEY),
         st.session_state.get(SESSION_REFRESH_TOKEN_KEY),
     )
+
+
+def ensure_authenticated_session() -> AuthResult:
+    """Rebind the stored user session to PostgREST before an authenticated mutation."""
+    user = get_current_user()
+    access_token, refresh_token = get_auth_tokens()
+    if user is None or not access_token or not refresh_token:
+        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
+
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        response = client.auth.set_session(access_token, refresh_token)
+        if response.user is None or response.session is None:
+            return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
+        if response.user.id != user.get("id"):
+            return AuthResult(False, "로그인 사용자 정보가 일치하지 않습니다. 다시 로그인하세요.")
+
+        _save_auth_session(response.session, response.user.model_dump())
+        client.postgrest.auth(response.session.access_token)
+        return AuthResult(True, "로그인 상태를 확인했습니다.")
+    except Exception:
+        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
 
 
 def should_clear_browser_auth() -> bool:
