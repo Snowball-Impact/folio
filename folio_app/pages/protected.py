@@ -12,6 +12,12 @@ from folio_app.components.project_form import (
 )
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
+from folio_app.services.project_drafts import (
+    apply_pending_draft_clear,
+    clear_project_draft,
+    load_project_draft,
+    save_project_draft,
+)
 from folio_app.services.profiles import ProfileServiceError, get_profile, update_profile
 from folio_app.services.projects import (
     ProjectServiceError,
@@ -49,17 +55,39 @@ def render_submit() -> None:
         _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
         return
 
-    form_data, submitted, _ = render_project_form(
-        "submit",
-        title="",
-        one_liner="",
-        tags="",
-        project_body_initial=PROJECT_BODY_TEMPLATE,
-        power_bi_url="",
-        github_url="",
-        etc_url="",
+    draft_id = "submit"
+    widget_prefix = "submit"
+    apply_pending_draft_clear(st.session_state, user["id"], draft_id)
+    defaults = {
+        "title": "",
+        "one_liner": "",
+        "tags": "",
+        "project_body": PROJECT_BODY_TEMPLATE,
+        "power_bi_url": "",
+        "github_url": "",
+        "report_url": "",
+        "thumbnail_url": "",
+        "is_public": True,
+    }
+    draft = load_project_draft(st.session_state, user["id"], draft_id, defaults)
+
+    form_data, submitted, discarded = render_project_form(
+        widget_prefix,
+        title=draft["title"],
+        one_liner=draft["one_liner"],
+        tags=draft["tags"],
+        project_body_initial=draft["project_body"],
+        power_bi_url=draft["power_bi_url"],
+        github_url=draft["github_url"],
+        etc_url=draft["report_url"],
         submit_label="프로젝트 등록하기",
+        secondary_label="초안 지우기",
     )
+    save_project_draft(st.session_state, user["id"], draft_id, form_data)
+
+    if discarded:
+        clear_project_draft(st.session_state, user["id"], draft_id, widget_prefix)
+        st.rerun()
 
     if not submitted:
         return
@@ -78,6 +106,7 @@ def render_submit() -> None:
     )
 
     if result.ok:
+        clear_project_draft(st.session_state, user["id"], draft_id, widget_prefix)
         st.session_state["project_notice"] = result.message
         navigate("Home", project_id=result.project_id)
     else:
@@ -359,23 +388,41 @@ def _render_portfolio_item(project: dict) -> None:
 def _render_edit_project_form(author_id: str, project: dict) -> None:
     st.markdown("### 프로젝트 수정")
 
+    draft_id = f"edit:{project['id']}"
+    widget_prefix = f"edit_{project['id']}"
+    apply_pending_draft_clear(st.session_state, author_id, draft_id)
+    defaults = {
+        "title": project.get("title") or "",
+        "one_liner": project.get("one_liner") or "",
+        "tags": ", ".join(project.get("tags") or []),
+        "project_body": project_body_from_project(project),
+        "power_bi_url": project.get("power_bi_url") or "",
+        "github_url": project.get("github_url") or "",
+        "report_url": project.get("report_url") or "",
+        "thumbnail_url": project.get("thumbnail_url") or "",
+        "is_public": bool(project.get("is_public")),
+    }
+    draft = load_project_draft(st.session_state, author_id, draft_id, defaults)
+
     form_data, submitted, cancelled = render_project_form(
-        f"edit_{project['id']}",
-        title=project.get("title") or "",
-        one_liner=project.get("one_liner") or "",
-        tags=", ".join(project.get("tags") or []),
-        project_body_initial=project_body_from_project(project),
-        power_bi_url=project.get("power_bi_url") or "",
-        github_url=project.get("github_url") or "",
-        etc_url=project.get("report_url") or "",
-        thumbnail_url=project.get("thumbnail_url") or "",
-        is_public=bool(project.get("is_public")),
+        widget_prefix,
+        title=draft["title"],
+        one_liner=draft["one_liner"],
+        tags=draft["tags"],
+        project_body_initial=draft["project_body"],
+        power_bi_url=draft["power_bi_url"],
+        github_url=draft["github_url"],
+        etc_url=draft["report_url"],
+        thumbnail_url=draft["thumbnail_url"],
+        is_public=bool(draft["is_public"]),
         show_visibility_setting=True,
         submit_label="수정 완료",
         secondary_label="목록으로 돌아가기",
     )
+    save_project_draft(st.session_state, author_id, draft_id, form_data)
 
     if cancelled:
+        clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
         st.session_state.pop("editing_project_id", None)
         st.rerun()
 
@@ -397,6 +444,7 @@ def _render_edit_project_form(author_id: str, project: dict) -> None:
     )
 
     if result.ok:
+        clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
         st.session_state.pop("editing_project_id", None)
         st.session_state["portfolio_notice"] = result.message
         st.rerun()

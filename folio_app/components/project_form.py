@@ -245,7 +245,7 @@ def render_project_form(
         """,
         unsafe_allow_html=True,
     )
-    st.caption("작성 중에는 페이지를 새로고침하지 마세요. 등록 또는 수정이 완료되기 전까지 내용은 현재 세션에만 유지됩니다.")
+    st.caption("작성 내용은 현재 세션에 자동 임시 저장됩니다. 브라우저 새로고침이나 종료 시에는 사라질 수 있습니다.")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
         overview_col, preview_col = st.columns(2, gap="large")
