@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from folio_app.config import Settings, _read_first_setting, _read_secret_section, _read_setting
 
@@ -22,8 +22,10 @@ class SettingsLoadingTests(unittest.TestCase):
                 self.assertEqual(_read_setting("FOLIO_TEST_SETTING"), "from-secrets")
 
     def test_default_is_used_without_local_secrets_file(self) -> None:
+        missing_secrets = MagicMock()
+        missing_secrets.get.side_effect = FileNotFoundError
         with patch.dict(os.environ, {}, clear=True):
-            with patch("folio_app.config.st.secrets.get", side_effect=FileNotFoundError):
+            with patch("folio_app.config.st.secrets", missing_secrets):
                 self.assertEqual(_read_setting("FOLIO_TEST_SETTING", "fallback"), "fallback")
 
     def test_publishable_key_can_fall_back_to_legacy_anon_key(self) -> None:

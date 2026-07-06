@@ -22,11 +22,11 @@
 ```
 folio_app/
   app.py                  # 진입점. 쿠키 복구, 라우팅, 온보딩 체크
-  styles.py               # 전역 CSS 주입 (apply_global_styles)
+  styles/                 # 전역 CSS 주입 (apply_global_styles), 화면 영역별로 모듈 분리
   config.py               # 환경변수 로드 (get_settings)
   navigation.py           # 내부 이동 공통 헬퍼와 허용 라우트
   components/
-    layout.py             # render_header(), render_hero(), render_placeholder_card()
+    layout.py             # render_header(), render_hero()
     ui.py                 # clean_html(), 공통 UI 헬퍼
     project_form.py       # 프로젝트 등록/수정 폼
   pages/
@@ -99,6 +99,34 @@ folio_app/
 
 ## CSS 아키텍처
 
+### 파일 구조: 화면 영역별 모듈 분리 (2026-07-06 리팩토링)
+
+`folio_app/styles.py` 단일 파일(2400줄+)이 계속 커지면서 죽은 선택자·중복 선언이 쌓였다. `folio_app/styles/` 패키지로 분리했다:
+
+```
+folio_app/styles/
+  __init__.py          # apply_global_styles() -- 아래 모듈들의 CSS를 정해진 순서로 이어붙여 st.html() 1회 호출
+  tokens.py            # :root 토큰, 전역 리셋(stApp/사이드바 숨김/CookieManager iframe 숨김/block-container), 푸터
+  header.py            # 상단 헤더(브랜드, nav 버튼, 로그인 버튼, 메뉴 팝오버)
+  hero.py              # 홈 히어로 + 서브페이지 공용 히어로(render_hero) + 히어로 푸터 액션 + 다크 히어로
+  buttons_inputs.py     # 전역 버튼/입력 필드 스타일
+  browse_panel.py       # 홈 탐색(검색/태그/정렬) 패널
+  cards.py              # 홈 프로젝트 카드 그리드 + 자동 커버 아트
+  shared.py             # folio-tags/folio-tag/folio-detail-meta/folio-muted (카드·히어로·상세 공용)
+  auth.py               # 로그인/회원가입 카드
+  onboarding.py         # 온보딩(약관 동의) 카드
+  project_form.py        # 프로젝트 등록/수정 폼 + 공개 설정 토글
+  portfolio.py           # 내 포트폴리오 카드
+  detail_page.py         # 프로젝트 상세 페이지(메타 행, 본문 섹션, 대시보드/첨부 사이드바)
+  profile.py             # 프로필 페이지
+```
+
+각 모듈은 `<style>` 태그 없이 순수 CSS 텍스트를 담은 `CSS` 상수만 노출한다. `__init__.py`가 고정된 순서로 이어붙여 기존과 동일하게 `st.html()`을 1회만 호출한다 (스타일 전용 콘텐츠가 이벤트 컨테이너에 배치되어 인증 rerun 중에도 CSS가 유지되는 특성은 그대로 유지됨).
+
+**분리 시 검증 방법**: 선택자+선언을 정규화해 분리 전/후 CSS를 구조적으로 비교하는 스크립트로 전체 선택자 집합과 선언 내용이 1:1로 동일함을 확인했다(의도적으로 제거한 죽은 선택자 제외). 이 방법은 이후 CSS 파일을 다시 재구성할 때도 재사용 가능하다.
+
+**새 섹션을 추가할 때**: 어느 화면에 속하는지 위 표에서 가장 가까운 모듈을 찾아 그 모듈의 `CSS` 상수에 추가한다. 새 화면 영역이면 새 모듈을 만들고 `__init__.py`의 `_SECTIONS` 튜플에 등록한다 (등록 순서 = 최종 CSS 내 등장 순서 = 동일 선택자·동일 명시도 충돌 시 타이브레이크 순서이므로, 특정 선택자를 다른 모듈의 규칙보다 나중에 덮어써야 한다면 순서에 유의).
+
 ### 핵심 패턴: key 기반 스코프
 
 `st.container(key="...")`가 생성하는 `.st-key-*` 클래스로 컨테이너를 직접 타겟팅한다. 상위 래퍼까지 매칭하는 광범위한 `:has()`는 피한다.
@@ -128,19 +156,16 @@ with st.container(border=False, key="folio_header"):
 ### 주의사항
 
 - `stVerticalBlockBorderWrapper` 전역 스타일은 모든 `border=True` 컨테이너에 적용되므로 직접 수정하지 않는다.
-- `.stButton>button` 전역 규칙은 `styles.py`에 1개만 유지 (중복 시 충돌).
+- `.stButton>button` 전역 규칙은 `buttons_inputs.py`에 1개만 유지 (중복 시 충돌).
 - 헤더 내 nav 버튼은 `.st-key-folio_header .stButton > button`으로 별도 오버라이드.
-- 사용하지 않는 컴포넌트 선택자는 기능 변경 직후 제거하고, 중복 선언은 한 섹션에만 유지한다.
+- 사용하지 않는 컴포넌트 선택자는 기능 변경 직후 제거하고, 중복 선언은 한 섹션에만 유지한다. (2026-07-06 리팩토링에서 이 원칙을 어긴 죽은 CSS ~450줄과 그 CSS만을 위해 남아있던 미사용 Python 함수 3개를 정리했다 — 아래 "최근 작업 요약" 참고.)
+- 새 CSS 선택자를 추가하기 전에 그 클래스/키가 실제로 어떤 `.py` 파일에서 렌더링되는지 먼저 확인한다. 렌더링 코드가 바뀌거나 삭제됐는데 CSS만 남으면 이번처럼 다음 정리 때까지 죽은 채로 쌓인다.
 
 ---
 
 ## Streamlit CSS 한계 (학습)
 
-**헤더-히어로 gap 제거 불가**: `st.container(border=True)`로 만든 헤더와 다음 요소 사이에 Streamlit이 자동으로 여백을 추가함. `gap: 0 !important`, `margin-bottom: 0 !important` 등 시도했으나 완전 제거 불가.
-
-**결론 및 새 방향**: 다크-온-다크 디자인(헤더+히어로 이음새)은 이 여백 때문에 항상 어색해 보임. **라이트 테마(흰 배경 기반)**로 전환하면 여백이 같은 색이라 눈에 띄지 않음.
-
-**다음 세션 작업 방향**: 라이트 테마 재설계. Streamlit 자연 레이아웃(카드 기반, 일정 여백)을 활용하는 방향.
+헤더/네비처럼 항상 보이는 요소는 `position:absolute` + `top:50%`/`margin:auto` 수동 중앙정렬 대신 **flex/grid 네이티브 정렬(`align-items`, `justify-content`)을 먼저 시도**한다 (`min-height`만 있는 컨테이너는 `top:50%`가 조용히 static position으로 대체되어 로그인 전/후 마크업 차이에 따라 위치가 흔들렸던 사례). 현재 헤더는 이 원칙에 따라 `display:flex; flex-direction:row; align-items:center; justify-content:space-between;`로 구성되어 있다(`folio_app/styles/header.py`).
 
 ---
 
@@ -219,37 +244,30 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - 한글 문구: `word-break: keep-all` + 적절한 `max-width`.
 - 카드 HTML을 `st.markdown()`으로 렌더링 시 들여쓰기 주의 (`clean_html()` 활용).
 - 사용자 프로젝트 본문은 저장 시와 표시 시 `sanitize_project_html()`로 정제.
-- 캡처 확인은 UI/UX 작업 시만. 확인 후 `artifacts/` 이미지 정리.
+- 셀레니움 동적 테스트나 스크린샷 검증은 **수정사항이 크리티컬하거나 원인 파악이 어려울 때만** 한다. 원인이 명확한 단순 CSS/문구 변경은 `py_compile` + 유닛 테스트로 끝내고 브라우저 검증은 생략한다. 확인이 필요할 때도 캡처 후 `artifacts/` 임시 이미지는 정리한다.
+- 같은 증상(예: 정렬/위치가 자꾸 미세하게 어긋남)이 서로 다른 수정으로 세 번 이상 재발하면, 패치를 더 쌓지 말고 **접근 방식 자체를 재검토(리팩토링)**하는 걸 먼저 고려한다. 헤더를 `position:absolute` 트릭으로 여러 번 고치다 계속 재발한 뒤 flex-row로 다시 짜서 근본 해결한 사례 참고 ("Streamlit CSS 한계" 섹션).
+- 버그를 추론할 때는 앱 코드뿐 아니라 **Streamlit 프레임워크 자체의 알려진 동작/한계**도 항상 초기 가설에 넣는다 (`st.columns()`의 내부 ResizeObserver, 위젯 버전별 API 변경, 서드파티 컴포넌트 iframe 타이밍 등).
+- 로그인 등 실제 인증 세션이 있어야 확인되는 UI는, 계정이 없어도 `get_current_user()`를 몽키패치해서 두 상태를 나란히 렌더링·비교할 수 있다 → `tools/probe_header_auth_states.py` 참고.
 - 캡처 스크립트: `tools/capture_streamlit_scroll.py` (의존: selenium, Pillow → `requirements-dev.txt`).
+- 페이지 전환 CLS 측정 스크립트: `tools/measure_transition_cls.py` (Selenium, `scrollTop`/`scrollHeight`/헤더·히어로 좌표를 시간대별로 기록).
+- 인증 상태별 UI 비교 스크립트: `tools/probe_header_auth_states.py` (`get_current_user()` 몽키패치로 로그인 세션 없이 logged_in/logged_out 헤더를 나란히 렌더링).
 
-### Streamlit UI 작업 재발 방지 원칙
+### 작업 실행 프로토콜 (진단 → 수정 → 검증)
 
-상세 페이지 개선 과정에서 같은 정렬 요청을 여러 번 수정한 원인은 CSS 값보다 Streamlit의 생성 DOM 구조를 충분히 확인하지 않은 데 있었다. 이후 UI 작업은 아래 순서를 따른다.
+과거 세션에서 같은 요청을 여러 번 반복 수정한 원인은 구현 난이도보다 진단 순서가 늦었던 데 있었다. 아래를 기본 흐름으로 쓴다.
 
-1. **요청을 픽셀 단위 완료 조건으로 바꾼다.**
-   - "크기를 통일"은 대상 요소들의 실제 `width`와 `height`가 같은 상태를 뜻한다.
-   - "여백을 통일"은 비교 대상의 `getBoundingClientRect().left/right`가 같은 상태를 뜻한다.
-2. **CSS를 추정해 반복 수정하지 않는다.**
-   - 1차 수정이 화면과 다르면 즉시 Selenium `execute_script()`로 대상과 조상 래퍼의 좌표·계산 스타일을 측정한다.
-   - 캡처 이미지만 보고 2px, 4px을 누적 보정하지 않는다.
-3. **Streamlit의 실제 래퍼를 확인한다.**
-   - 컬럼 test id는 `stColumn`이다. `column` 선택자는 동작하지 않는다.
-   - `st.button()`은 `stElementContainer → stButton → 중간 div → stTooltipIcon → stTooltipHoverTarget → button` 구조가 될 수 있다.
-   - 버튼 컬럼과 `stButton`이 100%여도 `stTooltipHoverTarget`이 내용 폭이면 실제 버튼은 축소된다. 버튼 폭 통일 시 이 래퍼까지 확인한다.
-4. **HTML과 Streamlit 위젯의 렌더링 경계를 존중한다.**
-   - `st.markdown()` HTML 내부에 `st.button()`을 넣을 수 없다. 히어로와 액션 컨테이너를 별도로 렌더링하고 CSS로 하나의 카드처럼 연결한다.
-   - 여러 줄 HTML을 f-string에 삽입할 때 들여쓰기가 Markdown 코드 블록으로 해석될 수 있다. 공통 히어로처럼 중첩 HTML이 들어가는 마크업은 들여쓰기 없는 문자열 조합을 사용한다.
-5. **스코프와 박스 모델을 먼저 고정한다.**
-   - `.st-key-*` 아래로 스타일을 제한하고 `box-sizing: border-box`, `min-width: 0`, `max-width: 100%`를 먼저 확인한다.
-   - iframe·링크 버튼이 카드 밖으로 나가면 자식 너비만 줄이지 말고 padding을 가진 상위 래퍼의 박스 모델을 확인한다.
-6. **PC와 모바일을 모두 검증한다.**
-   - PC 1440×900과 모바일 390×844 캡처를 기본 검증 크기로 사용한다.
-   - 검증 후 임시 캡처는 `artifacts/`에서 삭제한다.
+1. **완료 조건을 수정 전에 구체화한다.** "정렬을 맞춰라" → `left/right` 좌표 일치, "크기를 통일" → `width/height` 일치, "상태 변경" → 입력 상태·DB 결과·rerun 후 화면 상태를 각각 정의. 모호한 "비슷하게"를 CSS 값 추정으로 반복 보정하지 않는다.
+2. **1차 수정이 화면과 다르면 즉시 실측한다.** UI는 Selenium `execute_script()`로 대상·조상 래퍼의 좌표/computed style을 확인한다 (`stColumn`이 실제 컬럼 testid, `st.button()`은 `stElementContainer → stButton → stTooltipHoverTarget → button` 구조일 수 있음에 유의). 인증은 `session_state` / Supabase Auth 세션 / PostgREST JWT를 분리해서 확인한다. 캡처 이미지만 보고 2~4px씩 누적 보정하지 않는다.
+3. **관련 변경을 한 번의 응집된 패치로 처리한다.** 함수 시그니처를 바꾸면 모든 호출부·반환 데이터·테스트를 같은 차례에 검색한다. UI 요소를 이동하면 기존 로직과 죽은 CSS도 함께 제거한다.
+4. **검증은 위험도에 맞게 계층화한다.** CSS 한 줄은 문법 확인, Python 흐름은 관련 테스트 + `py_compile`, 공통 서비스/인증/DB payload는 회귀 테스트 후 전체 테스트 1회. 동일한 전체 테스트·전체 캡처를 작은 수정마다 반복하지 않는다. PC 1440×900 / 모바일 390×844를 기본 검증 크기로 쓰고, 임시 캡처는 `artifacts/`에서 삭제한다.
+5. **외부 적용이 필요한 순간을 일찍 알린다.** RLS/스키마/배포 설정처럼 로컬 코드만으로 끝나지 않는 작업은 즉시 구분하고, 실행 가능한 SQL/절차를 제공하되 원격 적용 전에는 "완료"라고 하지 않는다.
+6. **작업 종료 시 다음 세션 진입 비용을 없앤다.** 현재 상태·남은 문제·완료 기준을 이 문서에 짧게 갱신한다.
+
+**피해야 할 패턴**: DOM 확인 없이 padding 반복 조정 · Streamlit 내부 래퍼를 추측한 선택자 사용 · 오류 문구만 보고 인증 실패로 단정 · 함수 인자 하나만 고치고 다른 호출부 미확인 · 외부 DB 정책 미적용을 앱 코드로 우회 · 매 단계 대형 파일/전체 diff 반복 출력.
 
 ### 로그인 전환 시 레이아웃 플래시 방지
 
-- 전역 CSS는 일반 본문 요소인 `st.markdown()`으로 주입하지 않는다. rerun 시 본문 DOM과 함께 스타일 노드가 교체되어 잠깐 기본 레이아웃이 노출될 수 있다.
-- 현재 `apply_global_styles()`는 스타일 전용 `st.html()`을 사용한다. Streamlit 1.41에서는 style-only 콘텐츠가 메인 레이아웃이 아닌 이벤트 컨테이너에 배치되어 인증 rerun 중에도 CSS가 안정적으로 유지된다.
+- 전역 CSS는 `st.markdown()`이 아니라 `apply_global_styles()`의 스타일 전용 `st.html()`로 주입한다 (`st.markdown()`은 rerun 시 본문 DOM과 함께 교체되어 스타일이 잠깐 빠질 수 있음). style-only 콘텐츠는 메인 레이아웃이 아닌 이벤트 컨테이너에 배치되어 인증 rerun 중에도 CSS가 안정적으로 유지된다.
 - CookieManager 동기화 iframe은 전역 CSS에서 계속 숨긴다. 인증 전환 중 이 iframe이 노출되면 레이아웃이 튀는 것처럼 보일 수 있다.
 
 ### 상세 페이지 현재 레이아웃 기준
@@ -276,20 +294,22 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 
 ## 최근 작업 요약
 
-### 핵심 변경 사항
-- 프로젝트 상세 히어로 푸터를 작성자·소속·등록일과 조회수·좋아요·공개 설정 구조로 재편했다.
-- 조회수·좋아요·공개 설정은 동일 너비와 38px 높이로 맞췄으며, Streamlit의 `stTooltipHoverTarget` 래퍼까지 폭을 확장했다.
-- 프로젝트 비주얼 카드의 iframe·링크 오버플로를 수정하고 대시보드/첨부 자료의 정보 위계를 정리했다.
-- 작성자 mutation 전에 Supabase Auth 세션과 PostgREST JWT를 재동기화하도록 보강했다.
-- `내 포트폴리오` 카드에서 태그 정렬 문제를 수정했고, 태그와 뷰/좋아요/공개 정보를 카드 하단 footer로 이동했다.
-- `보기 / 수정 / 삭제` 버튼을 카드 오른쪽에 배치하여 관리 액션을 명확히 했다.
-- `render_tag_chips()`와 `render_project_metrics()` 공통 UI 헬퍼를 분리해 재사용성을 높였다.
-- 로그아웃 상태에서는 자동 로그인 복원을 중단하고, 로그인/회원가입 화면에서는 복원 실패 메시지를 숨기도록 auth 흐름을 개선했다.
+### CSS 리팩토링 (2026-07-06)
 
-### 주요 교훈
-- UI 레이아웃 문제는 개별 스타일이 아니라 카드 구조 전체를 재정렬하는 것이 더 효과적일 때가 많다.
-- Streamlit에서는 상태/쿼리/버튼 동작을 함께 고려해야 하며, `navigate()` 스타일의 쿼리 이동을 우선해야 한다.
-- 공통 렌더링 로직 분리는 유지보수성과 일관성에 큰 도움이 된다.
+`folio_app/styles.py`(2405줄) 전체를 감사해 스타일 중심으로 정리했다. 요청 계기: 파일이 계속 커지며 중복·죽은 CSS가 쌓였다.
+
+- **버그 수정**: `/* ── Profile ──` 주석이 닫는 `*/` 없이 이어지다 우연히 `/* ── Generic card ── */`(같은 줄에 열고 닫음)에서 닫히는 바람에, 프로필 페이지가 실제로 쓰는 `.folio-profile-header`/`.folio-avatar`/`.folio-profile-info-name`/`.folio-profile-info-org`/`.folio-profile-bio`/`.st-key-profile_overview`/`st.metric` 스타일 전체가 통째로 죽어 있었다(프로필 페이지가 무스타일로 렌더링됨). 주석을 닫아 복구.
+- **죽은 CSS ~450줄 제거**: 렌더링 코드가 없거나(레거시 히어로/갤러리 카드, 미사용 백링크·첨부링크 클래스), 렌더링 함수 자체가 어디서도 호출되지 않거나(`render_portfolio_card_html`, `render_gallery_card_html`, `render_placeholder_card`), 클래스명이 실제 마크업과 어긋난(`folio-visibility-pill` vs 실제 `folio-detail-visibility-stat`, `folio-detail-visibility` vs 실제 클래스 없음) 선택자들을 확인 후 제거. 검증은 각 클래스/키를 `grep`으로 모든 `.py` 파일과 대조해 실제 호출부가 있는지 하나씩 확인하는 방식으로 진행했다.
+- **중복 선언 통합**: 좋아요 버튼(`st-key-detail_like_action`) 스타일이 서로 다른 3곳(구 상세 히어로, 히어로 푸터 액션, "Like button styling" 섹션)에 흩어져 있었다 — `detail_like_action`은 항상 `folio_hero_footer_actions` 안에서만 렌더링되므로, 실제 캐스케이드 결과(어느 선언이 specificity로 이겼는지)를 계산해 하나의 규칙으로 합쳤다.
+- **파일 분리**: `folio_app/styles.py` → `folio_app/styles/` 패키지(화면 영역별 14개 모듈). 자세한 구조는 위 "CSS 아키텍처 → 파일 구조" 참고.
+- **연쇄 Python 정리**: 위 죽은 CSS의 원인이었던 미사용 함수 3개(`render_portfolio_card_html`, `render_gallery_card_html` in `ui.py`, `render_placeholder_card` in `layout.py`)와 `render_hero()`의 미사용 `footer_html` 매개변수를 제거했다(호출부가 전혀 없음을 grep으로 확인, 테스트도 참조하지 않음).
+- **검증**: 분리 전/후 CSS를 선택자+선언 단위로 정규화해 구조적으로 비교하는 스크립트로 완전히 동일함을 확인(의도적으로 제거한 항목 제외). `python -m unittest discover -s tests`(32개) 통과, 모든 페이지/컴포넌트 모듈 import 스모크 테스트 통과. 화면 동작 자체는 바꾸지 않는 리팩토링이라 브라우저 검증은 생략함 — 다음에 실제로 화면을 열 때 프로필 페이지가 정상적으로 스타일링되는지(버그 수정 확인 차원) 한 번 확인하면 좋음.
+
+### 완료: 페이지 전환 CLS 개선 (2026-07-06)
+
+Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내부 ResizeObserver 오버슈트가 프레임워크 차원에서 고쳐짐). 헤더도 `st.columns()`를 걷어내고 flex-row로 재구성(위 "Streamlit CSS 한계" 참고).
+
+**남은 것**: 홈 화면 검색/태그 필터 패널 등 다른 `st.columns()` 사용처는 리사이즈 시 여전히 작은 흔들림이 있음(범위상 보류). 로그인 세션에서 메뉴 팝오버(`st.popover`) 동작 재확인 필요.
 
 ## 다음 작업 우선순위
 
@@ -299,12 +319,14 @@ user_policy_consents (user_id, policy_version_id, consented_at)
    - 테스트 계정 2개로 회원가입, 이메일 인증, 로그인 유지, 온보딩을 확인한다.
    - 프로젝트 공개/비공개 RLS와 작성자 전용 수정·삭제를 확인한다.
    - 조회수 RPC, 같은 세션의 중복 조회 방지, 좋아요 추가·취소·정렬을 확인한다.
+   - 로그인 김에 메뉴 팝오버 동작과 프로필 페이지 스타일(위 CSS 리팩토링 버그 수정)도 같이 확인한다.
 2. **오류 처리와 운영 진단 보강**
    - 데이터가 없는 상태와 Supabase 조회 실패 상태를 화면에서 구분한다.
    - 현재 조용히 무시하는 조회수 RPC 실패를 진단할 수 있게 한다.
    - 주요 조회 화면에 재시도 흐름을 제공한다.
 3. **라이트 테마 재설계**
    - 색상 토큰과 전역 배경부터 정리한 뒤 Home, 카드, 상세, 인증/관리 화면 순으로 적용한다.
+   - `folio_app/styles/` 모듈 구조 위에서 진행하면 된다.
    - UI 변경 후 PC·모바일 스크롤 캡처로 확인한다.
 4. **프로젝트 작성 초안 보호**
    - 신규 등록과 수정 내용을 구분해 `session_state`에 임시 보존한다.
