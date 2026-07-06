@@ -11,6 +11,7 @@
 | [DATA_MODEL.md](DATA_MODEL.md) | ERD, 관계·삭제 규칙, RLS 행렬, trigger와 RPC |
 | [DECISIONS.md](DECISIONS.md) | 기술·제품 선택의 맥락과 결과를 ADR 형식으로 기록 |
 | [ENGINEERING_PLAYBOOK.md](ENGINEERING_PLAYBOOK.md) | 개발 정책, 검증 기준, 시행착오에서 얻은 교훈 |
+| [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 과정에서 관찰한 역량과 성장 기준을 날짜별로 기록 |
 
 ## 제품과 화면
 
@@ -26,6 +27,7 @@
 |---|---|
 | [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | 새 작업을 시작할 때 가장 먼저 읽는 현재 컨텍스트 |
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
+| [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase를 사용한 통합 검증 결과 및 미검증 범위 |
 
 ## 완료 기록
 

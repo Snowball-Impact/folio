@@ -27,10 +27,7 @@ def render(project_id: str) -> None:
     if notice:
         st.success(notice)
 
-    viewed_key = f"viewed_{project_id}"
-    if not st.session_state.get(viewed_key):
-        increment_view_count(project_id)
-        st.session_state[viewed_key] = True
+    _record_project_view(project_id)
 
     try:
         project = get_project(project_id)
@@ -129,6 +126,15 @@ def render(project_id: str) -> None:
     else:
         if st.button("← 홈 갤러리로 돌아가기", key="detail_content_back_button"):
             navigate(_HOME_PAGE)
+
+
+def _record_project_view(project_id: str) -> None:
+    viewed_key = f"viewed_{project_id}"
+    visitor_id = st.session_state.get("folio_visitor_id")
+    if visitor_id and not st.session_state.get(viewed_key):
+        view_result = increment_view_count(project_id, visitor_id)
+        if view_result.ok:
+            st.session_state[viewed_key] = True
 
 
 def _render_project_sidebar(

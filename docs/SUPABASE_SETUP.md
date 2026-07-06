@@ -21,6 +21,18 @@
 
 기존 프로젝트도 인증/RLS 정책이 변경되면 최신 `supabase/schema.sql`을 다시 실행합니다. 스키마는 `if not exists`, `drop policy if exists` 구문을 사용하므로 정책 갱신에도 같은 파일을 사용합니다.
 
+### 일간 순조회수 마이그레이션
+
+기존 운영 프로젝트에는 전체 스키마 대신 다음 순서로 적용한다.
+
+1. SQL Editor에서 `supabase/migrate_daily_unique_views.sql`을 실행한다.
+2. 결과의 `project_views_table`이 `project_views`이고 기존 `preserved_total_view_count`가 유지됐는지 확인한다.
+3. 새 앱 코드로 익명 사용자 같은 날 중복 방지와 로그인 작성자 제외를 검증한다.
+4. 모든 검증이 끝난 뒤에만 `supabase/reset_view_counts.sql`을 실행한다.
+5. 초기화 결과의 `stored_view_events`와 `total_view_count`가 모두 0인지 확인한다.
+
+초기화 SQL은 기존 조회수와 검증 중 생성된 조회 기록을 영구 삭제한다. 마이그레이션과 동시에 실행하지 않는다.
+
 ### 공개 → 비공개 변경 시 42501 오류
 
 로그인한 작성자가 공개 프로젝트는 수정할 수 있지만 비공개 저장에서 `42501` 오류를 받는다면 원격 DB의 작성자 SELECT/UPDATE 정책이 오래된 상태입니다.

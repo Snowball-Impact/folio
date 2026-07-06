@@ -63,9 +63,20 @@ create table if not exists public.likes (
     primary key (project_id, user_id)
 );
 
+create extension if not exists pgcrypto with schema extensions;
+
+create table if not exists public.project_views (
+    project_id uuid not null references public.projects(id) on delete cascade,
+    viewer_hash text not null,
+    viewed_on date not null,
+    created_at timestamptz not null default now(),
+    primary key (project_id, viewer_hash, viewed_on)
+);
+
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists likes_user_id_idx on public.likes(user_id);
+create index if not exists project_views_project_date_idx on public.project_views(project_id, viewed_on);
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
 create index if not exists user_policy_consents_policy_version_id_idx on public.user_policy_consents(policy_version_id);
@@ -84,21 +95,74 @@ grant select, insert on public.user_policy_consents to authenticated;
 grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
 
-create or replace function public.increment_project_view_count(project_id_input uuid)
-returns void
+drop function if exists public.increment_project_view_count(uuid);
+
+create or replace function public.increment_project_view_count(
+    project_id_input uuid,
+    anonymous_viewer_id_input uuid
+)
+returns boolean
 language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+    project_author_id uuid;
+    project_is_public boolean;
+    viewer_source text;
+    hashed_viewer text;
+    current_view_date date;
+    inserted_rows integer;
 begin
+    select author_id, is_public
+    into project_author_id, project_is_public
+    from public.projects
+    where id = project_id_input
+    for update;
+
+    if not found or not project_is_public then
+        return false;
+    end if;
+
+    if auth.uid() is not null and auth.uid() = project_author_id then
+        return false;
+    end if;
+
+    if auth.uid() is not null then
+        viewer_source := 'user:' || auth.uid()::text;
+    elsif anonymous_viewer_id_input is not null then
+        viewer_source := 'anonymous:' || anonymous_viewer_id_input::text;
+    else
+        return false;
+    end if;
+
+    hashed_viewer := encode(
+        extensions.digest(convert_to(viewer_source, 'UTF8'), 'sha256'),
+        'hex'
+    );
+    current_view_date := (timezone('Asia/Seoul', now()))::date;
+
+    insert into public.project_views (project_id, viewer_hash, viewed_on)
+    values (project_id_input, hashed_viewer, current_view_date)
+    on conflict do nothing;
+
+    get diagnostics inserted_rows = row_count;
+    if inserted_rows = 0 then
+        return false;
+    end if;
+
     update public.projects
     set
         view_count = view_count + 1,
         updated_at = now()
-    where id = project_id_input
-      and is_public = true;
+    where id = project_id_input;
+
+    return true;
 end;
 $$;
+
+revoke all on function public.increment_project_view_count(uuid, uuid) from public;
+grant execute on function public.increment_project_view_count(uuid, uuid) to anon, authenticated;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -133,8 +197,11 @@ for each row execute function public.handle_new_user();
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.likes enable row level security;
+alter table public.project_views enable row level security;
 alter table public.policy_versions enable row level security;
 alter table public.user_policy_consents enable row level security;
+
+revoke all on table public.project_views from anon, authenticated;
 
 drop policy if exists "Profiles are readable by everyone" on public.profiles;
 drop policy if exists "Users can read own profile" on public.profiles;

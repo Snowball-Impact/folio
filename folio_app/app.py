@@ -1,3 +1,5 @@
+from uuid import UUID, uuid4
+
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCookieManager
 
@@ -53,6 +55,22 @@ def _sync_browser_auth_storage(cookies: EncryptedCookieManager) -> None:
             cookies["access_token"] = access_token
             cookies["refresh_token"] = refresh_token
             cookies.save()
+
+
+def _ensure_visitor_id(cookies: EncryptedCookieManager) -> str:
+    visitor_id = cookies.get("visitor_id")
+    try:
+        visitor_id = str(UUID(visitor_id)) if visitor_id else ""
+    except (TypeError, ValueError, AttributeError):
+        visitor_id = ""
+
+    if not visitor_id:
+        visitor_id = str(uuid4())
+        cookies["visitor_id"] = visitor_id
+        cookies.save()
+
+    st.session_state["folio_visitor_id"] = visitor_id
+    return visitor_id
 
 
 def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
@@ -120,6 +138,7 @@ def main() -> None:
     if not cookies.ready():
         st.stop()
 
+    _ensure_visitor_id(cookies)
     _handle_logout_query()
     _sync_browser_auth_storage(cookies)
     _restore_auth_from_cookies(cookies)

@@ -28,6 +28,12 @@ class ProjectResult:
     project_id: str | None = None
 
 
+@dataclass(frozen=True)
+class ViewCountResult:
+    ok: bool
+    counted: bool
+
+
 def create_project(author_id: str, payload: dict[str, Any]) -> ProjectResult:
     client = get_supabase_client()
     if client is None:
@@ -246,18 +252,26 @@ def get_project(project_id: str) -> dict[str, Any] | None:
     return projects[0] if projects else None
 
 
-def increment_view_count(project_id: str) -> bool:
+def increment_view_count(project_id: str, anonymous_viewer_id: str) -> ViewCountResult:
     client = get_supabase_client()
     if client is None:
-        return False
+        return ViewCountResult(False, False)
 
     try:
-        client.rpc("increment_project_view_count", {"project_id_input": project_id}).execute()
-        _fetch_public_projects.clear()
-        return True
+        response = client.rpc(
+            "increment_project_view_count",
+            {
+                "project_id_input": project_id,
+                "anonymous_viewer_id_input": anonymous_viewer_id,
+            },
+        ).execute()
+        counted = response.data is True
+        if counted:
+            _fetch_public_projects.clear()
+        return ViewCountResult(True, counted)
     except Exception:
         logger.exception("Failed to increment project view count")
-        return False
+        return ViewCountResult(False, False)
 
 
 def is_project_liked(project_id: str, user_id: str | None) -> bool:
