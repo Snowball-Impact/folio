@@ -20,6 +20,18 @@ CSS = """
     transform: translateY(-1px);
 }
 
+.stButton > button[kind="primary"] {
+    background: var(--folio-blue);
+    border-color: var(--folio-blue);
+    color: #ffffff;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: #0f4aab;
+    border-color: #0f4aab;
+    color: #ffffff;
+}
+
 /* ── Form Inputs ── */
 .stTextInput > div > div > input,
 .stTextArea > div > div > textarea {

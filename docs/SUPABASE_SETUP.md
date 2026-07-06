@@ -28,7 +28,7 @@
 1. Supabase **SQL Editor**를 엽니다.
 2. `supabase/fix_project_owner_rls.sql` 내용을 실행합니다.
 3. 앱에서 로그아웃 후 다시 로그인합니다.
-4. `내 포트폴리오 → 수정 → 프로젝트 공개`를 끄고 저장합니다.
+4. `마이 페이지 → 수정 → 프로젝트 공개`를 끄고 저장합니다.
 
 이 SQL은 작성자 본인의 프로젝트만 조회·수정할 수 있도록 `auth.uid() = author_id`를 검사합니다.
 
@@ -79,8 +79,7 @@ streamlit run app.py
 7. 같은 계정으로 로그인합니다.
 8. 로그인 후 햄버거 메뉴 안에 다음 메뉴가 표시되는지 확인합니다.
    - `Submit`
-   - `My Portfolio`
-   - `Profile`
+   - `My Page`
 
 ## 7. 이메일 인증 설정 참고
 

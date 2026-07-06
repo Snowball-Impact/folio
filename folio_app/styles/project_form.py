@@ -239,5 +239,15 @@ div[data-testid="stForm"] button {
         padding-left: 0;
         padding-top: 20px;
     }
+
+    [class*="_form_section_overview"] [data-testid="stHorizontalBlock"],
+    [class*="_form_section_links"] [data-testid="stHorizontalBlock"] {
+        flex-direction: column;
+    }
+
+    [class*="_form_section_overview"] [data-testid="stColumn"],
+    [class*="_form_section_links"] [data-testid="stColumn"] {
+        width: 100% !important;
+    }
 }
 """

@@ -123,5 +123,27 @@ CSS = """
     .folio-portfolio-card-meta {
         justify-content: flex-start;
     }
+
+    [class*="st-key-portfolio_item_"] [data-testid="stHorizontalBlock"] {
+        flex-direction: column;
+    }
+
+    [class*="st-key-portfolio_item_"] [data-testid="stColumn"] {
+        width: 100% !important;
+    }
+
+    [class*="st-key-portfolio_item_"] [data-testid="stColumn"]:last-child {
+        margin-top: 10px;
+    }
+
+    [class*="st-key-portfolio_item_"] [data-testid="stColumn"]:last-child [data-testid="stVerticalBlock"] {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    [class*="st-key-portfolio_item_"] [data-testid="stColumn"]:last-child [data-testid="stElementContainer"] {
+        flex: 1;
+    }
 }
 """

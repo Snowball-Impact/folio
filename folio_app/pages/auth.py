@@ -236,6 +236,9 @@ def render_signup() -> None:
                     else:
                         st.error(result.message)
 
+            if st.button("이미 계정이 있다면 로그인하기", key="signup_to_login", width="stretch"):
+                navigate("Login")
+
 
 def _render_auth_card_header(eyebrow: str, title: str, body: str, variant: str) -> None:
     st.markdown(
