@@ -1,9 +1,17 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 from folio_app.services.supabase_client import get_supabase_client
+
+
+logger = logging.getLogger(__name__)
+
+
+class ProfileServiceError(RuntimeError):
+    """A profile operation failed in a way the UI can safely report."""
 
 
 @dataclass(frozen=True)
@@ -76,9 +84,13 @@ def ensure_profile(
 def get_profile(user_id: str) -> dict[str, Any] | None:
     client = get_supabase_client()
     if client is None:
-        return None
+        raise ProfileServiceError("프로필 연결 설정을 확인하세요.")
 
-    response = client.table("profiles").select("*").eq("id", user_id).single().execute()
+    try:
+        response = client.table("profiles").select("*").eq("id", user_id).maybe_single().execute()
+    except Exception as exc:
+        logger.exception("Failed to load profile")
+        raise ProfileServiceError("프로필 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     return response.data
 
 
@@ -103,6 +115,7 @@ def get_onboarding_status(user_id: str) -> OnboardingStatus:
         policies = get_required_policy_versions()
         consented_policy_ids = get_user_consented_policy_ids(user_id)
     except Exception:
+        logger.exception("Failed to load onboarding status")
         return OnboardingStatus(
             required=True,
             profile=None,
@@ -175,11 +188,15 @@ def update_profile(
 ) -> None:
     client = get_supabase_client()
     if client is None:
-        raise RuntimeError("Supabase 환경 변수가 설정되지 않았습니다.")
+        raise ProfileServiceError("프로필 연결 설정을 확인하세요.")
 
-    client.table("profiles").update(
-        {"name": name, "organization": organization, "bio": bio}
-    ).eq("id", user_id).execute()
+    try:
+        client.table("profiles").update(
+            {"name": name, "organization": organization, "bio": bio}
+        ).eq("id", user_id).execute()
+    except Exception as exc:
+        logger.exception("Failed to update profile")
+        raise ProfileServiceError("프로필을 저장하지 못했습니다. 잠시 후 다시 시도하세요.") from exc
 
 
 def complete_onboarding(
@@ -188,7 +205,7 @@ def complete_onboarding(
 ) -> None:
     client = get_supabase_client()
     if client is None:
-        raise RuntimeError("Supabase 환경 변수가 설정되지 않았습니다.")
+        raise ProfileServiceError("온보딩 연결 설정을 확인하세요.")
 
     existing_policy_ids = get_user_consented_policy_ids(user_id)
     consent_rows = [
@@ -200,4 +217,8 @@ def complete_onboarding(
         if policy_version_id not in existing_policy_ids
     ]
     if consent_rows:
-        client.table("user_policy_consents").insert(consent_rows).execute()
+        try:
+            client.table("user_policy_consents").insert(consent_rows).execute()
+        except Exception as exc:
+            logger.exception("Failed to save onboarding consents")
+            raise ProfileServiceError("온보딩 정보를 저장하지 못했습니다. 잠시 후 다시 시도하세요.") from exc

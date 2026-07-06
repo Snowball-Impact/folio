@@ -232,7 +232,14 @@ def _render_detail_like_button(project_id: str, like_count: int, user: dict | No
             navigate("Login")
         return
 
-    liked = is_project_liked(project_id, user["id"])
+    try:
+        liked = is_project_liked(project_id, user["id"])
+    except ProjectServiceError as exc:
+        st.error(str(exc))
+        if st.button("좋아요 상태 다시 불러오기", key="retry_detail_like", use_container_width=True):
+            clear_project_caches()
+            st.rerun()
+        return
     label = f"♥ 좋아요 {like_count}" if liked else f"♡ 좋아요 {like_count}"
     button_type = "primary" if liked else "secondary"
     if st.button(

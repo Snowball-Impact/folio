@@ -2,7 +2,12 @@ import streamlit as st
 
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
-from folio_app.services.profiles import OnboardingStatus, complete_onboarding, get_onboarding_status
+from folio_app.services.profiles import (
+    OnboardingStatus,
+    ProfileServiceError,
+    complete_onboarding,
+    get_onboarding_status,
+)
 
 
 POLICY_LABELS = {
@@ -74,8 +79,8 @@ def render(status: OnboardingStatus | None = None) -> None:
 
     try:
         complete_onboarding(user["id"], agreed_policy_ids)
-    except Exception as exc:
-        st.error(f"온보딩 정보를 저장하지 못했습니다. ({exc})")
+    except ProfileServiceError as exc:
+        st.error(str(exc))
         return
 
     st.session_state[f"onboarding_done_{user['id']}"] = True

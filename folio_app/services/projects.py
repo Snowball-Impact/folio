@@ -49,7 +49,8 @@ def create_project(author_id: str, payload: dict[str, Any]) -> ProjectResult:
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 등록되었습니다.", response.data[0]["id"])
     except Exception as exc:
-        return ProjectResult(False, f"프로젝트 등록에 실패했습니다. ({exc})")
+        logger.exception("Failed to create project")
+        return ProjectResult(False, "프로젝트 등록에 실패했습니다. 잠시 후 다시 시도하세요.")
 
 
 def update_project(project_id: str, author_id: str, payload: dict[str, Any]) -> ProjectResult:
@@ -84,7 +85,8 @@ def update_project(project_id: str, author_id: str, payload: dict[str, Any]) -> 
                 False,
                 "프로젝트 접근 정책이 최신 상태가 아닙니다. 관리자에게 Supabase RLS 정책 확인을 요청하세요.",
             )
-        return ProjectResult(False, f"프로젝트 수정에 실패했습니다. ({exc})")
+        logger.exception("Failed to update project")
+        return ProjectResult(False, "프로젝트 수정에 실패했습니다. 잠시 후 다시 시도하세요.")
 
 
 def delete_project(project_id: str, author_id: str) -> ProjectResult:
@@ -105,7 +107,8 @@ def delete_project(project_id: str, author_id: str) -> ProjectResult:
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 삭제되었습니다.", project_id)
     except Exception as exc:
-        return ProjectResult(False, f"프로젝트 삭제에 실패했습니다. ({exc})")
+        logger.exception("Failed to delete project")
+        return ProjectResult(False, "프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.")
 
 
 def list_public_projects(
@@ -186,8 +189,10 @@ def _execute_public_read(operation):
             try:
                 return operation()
             except Exception:
+                logger.exception("Public read failed after JWT recovery")
                 return None
         if _is_public_read_connection_error(exc):
+            logger.warning("Public read failed because of a connection error", exc_info=True)
             return None
         raise
 
@@ -276,21 +281,27 @@ def increment_view_count(project_id: str, anonymous_viewer_id: str) -> ViewCount
 
 def is_project_liked(project_id: str, user_id: str | None) -> bool:
     client = get_supabase_client()
-    if client is None or not user_id:
+    if not user_id:
         return False
+    if client is None:
+        raise ProjectServiceError("좋아요 상태를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
-    response = _execute_public_read(
-        lambda: (
-            client.table("likes")
-            .select("project_id")
-            .eq("project_id", project_id)
-            .eq("user_id", user_id)
-            .limit(1)
-            .execute()
+    try:
+        response = _execute_public_read(
+            lambda: (
+                client.table("likes")
+                .select("project_id")
+                .eq("project_id", project_id)
+                .eq("user_id", user_id)
+                .limit(1)
+                .execute()
+            )
         )
-    )
+    except Exception as exc:
+        logger.exception("Failed to load current user's like state")
+        raise ProjectServiceError("좋아요 상태를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     if response is None:
-        return False
+        raise ProjectServiceError("좋아요 상태를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
     return bool(response.data)
 
@@ -317,7 +328,8 @@ def set_project_liked(project_id: str, user_id: str, liked: bool) -> ProjectResu
     except Exception as exc:
         if liked and "duplicate" in str(exc).lower():
             return ProjectResult(True, "이미 좋아요를 누른 프로젝트입니다.", project_id)
-        return ProjectResult(False, f"좋아요 처리에 실패했습니다. ({exc})", project_id)
+        logger.exception("Failed to update project like")
+        return ProjectResult(False, "좋아요 처리에 실패했습니다. 잠시 후 다시 시도하세요.", project_id)
 
 
 def count_author_stats(projects: list[dict[str, Any]]) -> dict[str, int]:
@@ -459,17 +471,25 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
 @st.cache_data(ttl=60, show_spinner=False)
 def _fetch_public_profiles(author_ids: tuple[str, ...]) -> list[dict[str, Any]]:
     client = get_supabase_client()
-    if client is None or not author_ids:
+    if not author_ids:
         return []
+    if client is None:
+        raise ProjectServiceError("작성자 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
     try:
         response = _execute_public_read(
             lambda: client.table("public_profiles").select("id, name, organization").in_("id", list(author_ids)).execute()
         )
     except Exception:
-        response = _execute_public_read(
-            lambda: client.table("profiles").select("id, name, organization").in_("id", list(author_ids)).execute()
-        )
-    return response.data or [] if response is not None else []
+        try:
+            response = _execute_public_read(
+                lambda: client.table("profiles").select("id, name, organization").in_("id", list(author_ids)).execute()
+            )
+        except Exception as exc:
+            logger.exception("Failed to load public project authors")
+            raise ProjectServiceError("작성자 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
+    if response is None:
+        raise ProjectServiceError("작성자 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
+    return response.data or []
 
 
 def _count_likes_by_project(project_ids: list[str]) -> dict[str, int]:
@@ -479,8 +499,10 @@ def _count_likes_by_project(project_ids: list[str]) -> dict[str, int]:
 @st.cache_data(ttl=15, show_spinner=False)
 def _fetch_like_counts(project_ids: tuple[str, ...]) -> dict[str, int]:
     client = get_supabase_client()
-    if client is None or not project_ids:
+    if not project_ids:
         return {}
+    if client is None:
+        raise ProjectServiceError("좋아요 통계를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
     response = _execute_public_read(
         lambda: (
@@ -491,7 +513,7 @@ def _fetch_like_counts(project_ids: tuple[str, ...]) -> dict[str, int]:
         )
     )
     if response is None:
-        return {}
+        raise ProjectServiceError("좋아요 통계를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
     counter: Counter[str] = Counter()
     for like in response.data or []:

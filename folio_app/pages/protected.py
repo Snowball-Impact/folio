@@ -12,7 +12,7 @@ from folio_app.components.project_form import (
 )
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
-from folio_app.services.profiles import get_profile, update_profile
+from folio_app.services.profiles import ProfileServiceError, get_profile, update_profile
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
@@ -129,9 +129,15 @@ def render_my_page() -> None:
         st.session_state.pop("editing_project_id", None)
         st.rerun()
 
-    profile = get_profile(user["id"])
+    try:
+        profile = get_profile(user["id"])
+    except ProfileServiceError as exc:
+        st.error(str(exc))
+        if st.button("프로필 다시 불러오기", key="retry_my_profile"):
+            st.rerun()
+        return
     if profile is None:
-        st.info("프로필 정보를 불러오는 중 문제가 발생했습니다.")
+        st.info("프로필 정보가 아직 생성되지 않았습니다. 다시 로그인한 뒤 시도하세요.")
         return
 
     if st.session_state.get("editing_profile"):
@@ -303,8 +309,8 @@ def _render_profile_edit_form(user_id: str, profile: dict) -> None:
 
     try:
         update_profile(user_id, name=name, organization=organization.strip(), bio=bio.strip())
-    except Exception as exc:
-        st.error(f"프로필 저장에 실패했습니다. ({exc})")
+    except ProfileServiceError as exc:
+        st.error(str(exc))
         return
 
     st.session_state.pop("editing_profile", None)

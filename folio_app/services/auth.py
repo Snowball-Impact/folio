@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Any
 
 import streamlit as st
@@ -8,6 +9,9 @@ import streamlit as st
 from folio_app.config import get_settings
 from folio_app.services.profiles import ensure_profile, profile_exists_for_email
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
+
+
+logger = logging.getLogger(__name__)
 
 
 SESSION_USER_KEY = "folio_user"
@@ -91,7 +95,7 @@ def sign_in(email: str, password: str) -> AuthResult:
             )
         except Exception:
             # Login has already succeeded. Profile repair can be retried elsewhere.
-            pass
+            logger.exception("Login succeeded but profile repair failed")
         return AuthResult(True, "로그인되었습니다.")
     except Exception as exc:
         return AuthResult(False, _friendly_auth_error("로그인", exc))
@@ -125,7 +129,7 @@ def sign_out() -> None:
         try:
             client.auth.sign_out()
         except Exception:
-            pass
+            logger.warning("Provider sign-out failed; local session will still be cleared", exc_info=True)
 
     st.session_state.pop(SESSION_TOKEN_KEY, None)
     st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
@@ -188,6 +192,7 @@ def ensure_authenticated_session() -> AuthResult:
         client.postgrest.auth(response.session.access_token)
         return AuthResult(True, "로그인 상태를 확인했습니다.")
     except Exception:
+        logger.exception("Failed to rebind authenticated session")
         return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
 
 
@@ -225,4 +230,9 @@ def _friendly_auth_error(action: str, exc: Exception) -> str:
     ):
         return "Supabase 서버에 연결하지 못했습니다. .env의 SUPABASE_URL 또는 네트워크/DNS 상태를 확인하세요."
 
-    return f"{action}에 실패했습니다. 잠시 후 다시 시도하세요. ({message})"
+    logger.warning(
+        "Authentication action failed: %s",
+        action,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
+    return f"{action}에 실패했습니다. 잠시 후 다시 시도하세요."
