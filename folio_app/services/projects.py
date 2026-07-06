@@ -81,10 +81,6 @@ def update_project(project_id: str, author_id: str, payload: dict[str, Any]) -> 
         return ProjectResult(False, f"프로젝트 수정에 실패했습니다. ({exc})")
 
 
-def set_project_visibility(project_id: str, author_id: str, is_public: bool) -> ProjectResult:
-    return update_project(project_id, author_id, {"is_public": is_public})
-
-
 def delete_project(project_id: str, author_id: str) -> ProjectResult:
     client = get_supabase_client()
     if client is None:
@@ -310,8 +306,7 @@ def set_project_liked(project_id: str, user_id: str, liked: bool) -> ProjectResu
         return ProjectResult(False, f"좋아요 처리에 실패했습니다. ({exc})", project_id)
 
 
-def count_author_stats(author_id: str) -> dict[str, int]:
-    projects = list_projects_by_author(author_id)
+def count_author_stats(projects: list[dict[str, Any]]) -> dict[str, int]:
     return {
         "project_count": len(projects),
         "view_count": sum(project.get("view_count", 0) or 0 for project in projects),

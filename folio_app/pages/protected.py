@@ -16,6 +16,7 @@ from folio_app.services.profiles import get_profile, update_profile
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
+    count_author_stats,
     create_project,
     delete_project,
     list_projects_by_author,
@@ -204,10 +205,7 @@ def _render_profile_view(user: dict, profile: dict) -> None:
             st.rerun()
         return
 
-    stats = {
-        "project_count": len(projects),
-        "view_count": sum(project.get("view_count", 0) or 0 for project in projects),
-    }
+    stats = count_author_stats(projects)
 
     name = profile.get("name") or user.get("email") or ""
     email = profile.get("email") or user.get("email") or ""

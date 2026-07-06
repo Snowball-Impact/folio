@@ -75,7 +75,6 @@ def render_hero(
     title: str,
     body: str,
     *,
-    dark: bool = False,
     image_name: Optional[str] = None,
     image_alt: str = "",
     image_html: str = "",
@@ -85,7 +84,7 @@ def render_hero(
     safe_eyebrow = html.escape(eyebrow)
     safe_title = html.escape(title)
     safe_body = html.escape(body)
-    hero_class = "folio-page-hero folio-page-hero-dark" if dark else "folio-page-hero"
+    hero_class = "folio-page-hero"
     if class_name:
         hero_class += f" {class_name}"
     if not image_name and not image_html:

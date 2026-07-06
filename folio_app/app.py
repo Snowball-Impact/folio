@@ -45,7 +45,6 @@ def _sync_browser_auth_storage(cookies: EncryptedCookieManager) -> None:
         cookies.pop("access_token", None)
         cookies.pop("refresh_token", None)
         cookies.save()
-        st.session_state.pop("folio_restore_failed", None)
         return
 
     access_token, refresh_token = get_auth_tokens()
@@ -53,9 +52,6 @@ def _sync_browser_auth_storage(cookies: EncryptedCookieManager) -> None:
         if cookies.get("access_token") != access_token or cookies.get("refresh_token") != refresh_token:
             cookies["access_token"] = access_token
             cookies["refresh_token"] = refresh_token
-            cookies.save()
-        elif cookies.get("restore_failed") == "1":
-            cookies.pop("restore_failed", None)
             cookies.save()
 
 

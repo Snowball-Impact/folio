@@ -27,10 +27,6 @@ def get_current_user() -> dict[str, Any] | None:
     return st.session_state.get(SESSION_USER_KEY)
 
 
-def is_authenticated() -> bool:
-    return get_current_user() is not None
-
-
 def sign_up(email: str, password: str, name: str, organization: str) -> AuthResult:
     client = get_supabase_client()
     if client is None:

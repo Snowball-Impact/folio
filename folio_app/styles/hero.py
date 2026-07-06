@@ -248,32 +248,6 @@ CSS = """
     font-weight: 800;
 }
 
-.folio-page-hero-dark {
-    background: linear-gradient(135deg, #071126, #0f1f3d 70%);
-    border: none;
-    color: #ffffff;
-    margin-bottom: 28px;
-    padding: 34px 28px;
-}
-
-.folio-page-hero-dark h1 {
-    color: #ffffff;
-    font-size: 2rem;
-    font-weight: 800;
-    line-height: 1.2;
-    margin: 0 0 10px;
-    word-break: keep-all;
-}
-
-.folio-page-hero-dark p,
-.folio-page-hero-dark .folio-muted {
-    color: rgba(210, 225, 255, 0.85);
-    font-size: 0.98rem;
-    line-height: 1.58;
-    margin: 0;
-    word-break: keep-all;
-}
-
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .folio-page-hero {
@@ -321,10 +295,6 @@ CSS = """
 
     .folio-page-hero-visual {
         display: none;
-    }
-
-    .folio-page-hero-dark h1 {
-        font-size: 1.65rem;
     }
 }
 """
