@@ -8,8 +8,43 @@ CSS = """
     display: flex;
     flex-wrap: wrap;
     gap: 0;
+    width: auto;
+}
+
+.folio-detail-summary {
+    align-items: center;
+    display: flex;
+    gap: 20px;
+    justify-content: space-between;
+    min-height: 38px;
     width: 100%;
 }
+
+.folio-detail-summary-stats {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 12px;
+}
+
+.folio-detail-summary-stat {
+    align-items: baseline;
+    color: var(--folio-muted);
+    display: inline-flex;
+    gap: 6px;
+}
+
+.folio-detail-summary-stat small { font-size: 0.74rem; font-weight: 700; }
+.folio-detail-summary-stat strong { color: var(--folio-navy); font-size: 0.92rem; }
+
+.folio-detail-visibility-badge {
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    padding: 5px 10px;
+}
+.folio-detail-visibility-badge.is-public { background: #e7f6f2; color: #087568; }
+.folio-detail-visibility-badge.is-private { background: #edf0f5; color: #65748a; }
 
 .folio-detail-meta-item {
     align-items: center;
@@ -53,24 +88,53 @@ CSS = """
     padding-left: 0;
 }
 
-/* Detail section cards */
-.folio-detail-section {
+/* Unified detail content */
+.folio-detail-content-card {
     background: var(--folio-surface);
     border: 1px solid var(--folio-border);
     border-radius: 14px;
-    margin-bottom: 20px;
-    padding: 24px 26px;
     overflow: hidden;
+    padding: 4px 28px;
 }
 
-.folio-detail-section-title {
+.folio-detail-content-heading {
+    border-bottom: 1px solid var(--folio-border);
+    padding: 18px 0 14px;
+}
+
+.folio-detail-content-heading h2 {
     color: var(--folio-navy);
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 800;
-    letter-spacing: -0.01em;
-    margin: 0 0 14px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--folio-subtle);
+    margin: 0;
+}
+
+.folio-detail-section {
+    border-bottom: 1px solid var(--folio-border);
+    padding: 17px 0 18px;
+}
+
+.folio-detail-section:last-child { border-bottom: 0; }
+
+.folio-detail-section-heading {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    margin-bottom: 9px;
+}
+
+.folio-detail-section-heading span {
+    color: var(--folio-blue);
+    font-size: 0.88rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.folio-detail-section-heading h2 {
+    color: var(--folio-navy);
+    font-size: 1.08rem;
+    font-weight: 800;
+    margin: 0;
 }
 
 .folio-detail-section-content {
@@ -81,11 +145,15 @@ CSS = """
 }
 
 .folio-detail-section-content p {
-    margin: 0 0 12px;
+    margin: 0 0 8px;
 }
 
 .folio-detail-section-content p:last-child {
     margin-bottom: 0;
+}
+
+.folio-detail-section-content p:empty {
+    display: none;
 }
 
 .folio-detail-section-content h3,
@@ -131,7 +199,7 @@ CSS = """
     border: 1px solid var(--folio-border) !important;
     border-radius: 16px !important;
     box-sizing: border-box !important;
-    box-shadow: 0 10px 28px rgba(11, 31, 63, 0.06) !important;
+    box-shadow: none !important;
     max-width: 100% !important;
     overflow: hidden !important;
     padding: 18px !important;
@@ -239,13 +307,7 @@ CSS = """
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
-    .folio-detail-section {
-        padding: 20px 22px;
-    }
-
-    .folio-detail-section-title {
-        font-size: 1.05rem;
-    }
+    .folio-detail-content-card { padding: 2px 22px; }
 
     .folio-detail-section-content {
         font-size: 0.94rem;
@@ -253,15 +315,10 @@ CSS = """
 }
 
 @media (max-width: 768px) {
-    .folio-detail-section {
-        margin-bottom: 16px;
-        padding: 18px 16px;
-    }
-
-    .folio-detail-section-title {
-        font-size: 1rem;
-        margin-bottom: 12px;
-    }
+    .folio-detail-content-card { padding: 0 16px; }
+    .folio-detail-section { padding: 16px 0 17px; }
+    .folio-detail-section-heading h2 { font-size: 1rem; }
+    .folio-detail-content-heading { padding: 17px 0 13px; }
 
     .folio-detail-section-content {
         font-size: 0.93rem;
@@ -270,6 +327,8 @@ CSS = """
     .folio-detail-meta-row {
         flex-wrap: wrap;
     }
+
+    .folio-detail-summary { align-items: flex-start; flex-direction: column; gap: 8px; }
 
     .folio-detail-meta-item {
         padding: 4px 8px;

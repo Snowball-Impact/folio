@@ -6,7 +6,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from folio_app.components.layout import render_hero
-from folio_app.components.ui import is_http_url, render_project_cover_html
+from folio_app.components.ui import clean_html, is_http_url, render_project_cover_html
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.project_content import sanitize_project_html
@@ -64,38 +64,32 @@ def render(project_id: str) -> None:
 
     hero_description = project.get("one_liner") or "프로젝트 소개가 없습니다."
     is_public = bool(project.get("is_public"))
-    visibility_label = "🔒 비공개" if not is_public else "🔓 공개"
+    visibility_label = "비공개" if not is_public else "공개"
 
     hero_meta_html = f"""
-        <div class="folio-detail-meta-row">
+        <div class="folio-detail-summary">
+          <div class="folio-detail-meta-row">
             <span class="folio-detail-meta-item folio-detail-author"><small>작성자</small><strong>{html.escape(author_name)}</strong></span>
             {f'<span class="folio-detail-meta-item folio-detail-org"><small>소속</small><strong>{html.escape(author_org)}</strong></span>' if author_org else ''}
             <span class="folio-detail-meta-item folio-detail-date"><small>등록일</small><strong>{created_at[:10] if created_at else '정보 없음'}</strong></span>
+          </div>
+          <div class="folio-detail-summary-stats">
+            <span class="folio-detail-summary-stat" aria-label="조회수 {view_count}"><small>조회</small><strong>{view_count:,}</strong></span>
+            <span class="folio-detail-visibility-badge {'is-private' if not is_public else 'is-public'}">{visibility_label}</span>
+          </div>
         </div>
         """
 
     def _render_hero_footer_actions() -> None:
         if like_error:
             st.error(like_error)
-        meta_col, view_col, like_col, visibility_col = st.columns([3.2, 1, 1, 1], gap="small")
+        meta_col, like_col = st.columns([6, 1.2], gap="medium", vertical_alignment="center")
 
         with meta_col:
             st.markdown(hero_meta_html, unsafe_allow_html=True)
 
-        with view_col:
-            st.markdown(
-                f'<div class="folio-detail-stat" aria-label="조회수 {view_count}"><span>조회수</span><strong>{view_count:,}</strong></div>',
-                unsafe_allow_html=True,
-            )
-
         with like_col:
             _render_detail_like_button(project_id, like_count, user)
-
-        with visibility_col:
-            st.markdown(
-                f'<div class="folio-detail-stat folio-detail-visibility-stat" aria-label="공개 상태 {visibility_label}"><strong>{visibility_label}</strong></div>',
-                unsafe_allow_html=True,
-            )
 
     render_hero(
         "프로젝트 상세",
@@ -119,21 +113,21 @@ def render(project_id: str) -> None:
 
     with content_col:
         sections = [
-            ("📋 문제 정의", project.get("problem")),
-            ("📊 사용 데이터", project.get("dataset")),
-            ("🔍 분석 과정", project.get("process")),
-            ("💡 핵심 인사이트", project.get("insights")),
+            ("문제 정의", project.get("problem")),
+            ("사용 데이터", project.get("dataset")),
+            ("분석 과정", project.get("process")),
+            ("핵심 인사이트", project.get("insights")),
         ]
         if not any(body for _, body in sections):
             st.info("아직 작성된 프로젝트 설명이 없습니다.")
-        for title, body in sections:
-            _render_section(title, body)
+        else:
+            _render_sections(sections)
 
     if side_col is not None:
         with side_col, st.container(border=False, key="project_detail_sidebar"):
             _render_project_sidebar(project, power_bi_url, has_report, has_github)
     else:
-        if st.button("← 목록으로 돌아가기", key="detail_content_back_button"):
+        if st.button("← 홈 갤러리로 돌아가기", key="detail_content_back_button"):
             navigate(_HOME_PAGE)
 
 
@@ -217,14 +211,14 @@ def _render_project_sidebar(
         if has_github:
             st.link_button("GitHub 저장소 보기 ↗", project["github_url"], use_container_width=True)
 
-    if st.button("← 목록으로 돌아가기", key="detail_visual_back_button", use_container_width=True):
+    if st.button("← 홈 갤러리로 돌아가기", key="detail_visual_back_button", use_container_width=True):
         navigate(_HOME_PAGE)
 
 
 def _render_detail_like_button(project_id: str, like_count: int, user: dict | None) -> None:
     if not user:
         if st.button(
-            f"♡ {like_count}",
+            f"♡ 좋아요 {like_count}",
             key="detail_like_action",
             help="로그인 후 좋아요를 누를 수 있습니다.",
             use_container_width=True,
@@ -233,7 +227,7 @@ def _render_detail_like_button(project_id: str, like_count: int, user: dict | No
         return
 
     liked = is_project_liked(project_id, user["id"])
-    label = f"♥ {like_count}" if liked else f"♡ {like_count}"
+    label = f"♥ 좋아요 {like_count}" if liked else f"♡ 좋아요 {like_count}"
     button_type = "primary" if liked else "secondary"
     if st.button(
         label,
@@ -247,19 +241,24 @@ def _render_detail_like_button(project_id: str, like_count: int, user: dict | No
         st.rerun()
 
 
-def _render_section(title: str, body: str | None) -> None:
-    if not body:
-        return
+def _render_sections(sections: list[tuple[str, str | None]]) -> None:
+    section_html = "".join(
+        f'<section class="folio-detail-section">'
+        f'<div class="folio-detail-section-heading"><span>{index:02d}</span>'
+        f'<h2>{html.escape(title)}</h2></div>'
+        f'<div class="folio-detail-section-content">{sanitize_project_html(body)}</div>'
+        '</section>'
+        for index, (title, body) in enumerate(sections, start=1)
+        if body
+    )
     st.markdown(
-        f"""
-        <div class="folio-detail-section">
-            <h3 class="folio-detail-section-title">{html.escape(title)}</h3>
-            <div class="folio-detail-section-content">
-        """,
+        clean_html(
+            '<article class="folio-detail-content-card">'
+            '<header class="folio-detail-content-heading"><h2>프로젝트 리포트</h2></header>'
+            f'{section_html}</article>'
+        ),
         unsafe_allow_html=True,
     )
-    st.markdown(sanitize_project_html(body), unsafe_allow_html=True)
-    st.markdown("</div></div>", unsafe_allow_html=True)
 
 
 def _clear_detail_query() -> None:

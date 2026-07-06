@@ -11,3 +11,9 @@ showSidebarNavigation = false
 
 [browser]
 gatherUsageStats = false
+
+[server]
+# Streamlit 1.58 on Windows can leave the previous Uvicorn process listening
+# during a source reload, causing old and new app versions to share port 8501.
+# Keep one deterministic local server; restart it after code changes.
+fileWatcherType = "none"

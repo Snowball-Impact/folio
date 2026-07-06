@@ -74,7 +74,7 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
         cookies.pop("refresh_token", None)
         cookies.save()
         current_page = st.query_params.get("page") or "Home"
-        if current_page in {"Submit", "My Portfolio", "Profile"}:
+        if current_page in {"Submit", "My Page", "My Portfolio", "Profile"}:
             st.session_state["login_notice"] = result.message
             st.query_params.clear()
             st.query_params["page"] = "Login"
@@ -156,6 +156,7 @@ def main() -> None:
         "Login": render_login,
         "Sign Up": render_signup,
         "Submit": protected.render_submit,
+        "My Page": protected.render_my_page,
         "My Portfolio": protected.render_my_portfolio,
         "Profile": protected.render_profile,
     }

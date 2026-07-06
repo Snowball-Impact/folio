@@ -11,6 +11,7 @@ ROUTABLE_PAGES = {
     "Login",
     "Sign Up",
     "Submit",
+    "My Page",
     "My Portfolio",
     "Profile",
 }

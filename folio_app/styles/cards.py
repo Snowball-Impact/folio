@@ -73,10 +73,11 @@ CSS = """
 }
 
 .folio-auto-cover {
+    aspect-ratio: 16 / 9;
     background: linear-gradient(135deg, #0d3b86, #1768ce);
     box-sizing: border-box;
     color: #ffffff;
-    height: 200px;
+    height: auto;
     margin: 0 -16px;
     overflow: hidden;
     padding: 18px 18px 9px;

@@ -52,8 +52,7 @@ def render_header(initial_page: str | None = None) -> str:
         else:
             logged_in_nav = [
                 ("Submit", "프로젝트 제출"),
-                ("My Portfolio", "내 포트폴리오"),
-                ("Profile", "프로필"),
+                ("My Page", "마이 페이지"),
                 ("__logout__", "로그아웃"),
             ]
             with st.popover("☰"):

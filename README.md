@@ -50,6 +50,10 @@ streamlit run app.py
 
 기본 로컬 주소는 `http://localhost:8501`입니다.
 
+Windows 개발 환경에서는 구·신 Streamlit 프로세스가 같은 포트를 함께 점유하는 문제를 막기 위해
+파일 자동 감시를 끕니다. 코드 수정 후 화면이 갱신되어야 할 때는 실행 중인 서버를 종료하고
+`streamlit run app.py`를 다시 실행합니다.
+
 ## 애플리케이션 진입 구조
 
 FOLIO에는 이름이 같은 `app.py`가 두 개 있지만 역할이 다릅니다.

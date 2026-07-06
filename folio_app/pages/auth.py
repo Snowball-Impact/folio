@@ -92,8 +92,6 @@ def render_login() -> None:
         navigate("Home")
 
     login_notice = st.session_state.pop("login_notice", None)
-    if login_notice:
-        st.info(login_notice)
 
     with st.container(border=False, key="folio_auth_shell"):
         _render_auth_card_header(
@@ -103,24 +101,29 @@ def render_login() -> None:
             "login",
         )
         with st.container(border=False, key="folio_auth_form"):
+            if login_notice:
+                st.info(login_notice)
+
             with st.form("login_form", clear_on_submit=False):
                 email = st.text_input("이메일", placeholder="name@example.com")
                 password = st.text_input("비밀번호", type="password")
-                submitted = st.form_submit_button("로그인", use_container_width=True)
-            if st.button("처음이라면 회원가입하기", key="login_to_signup", use_container_width=True):
+                submitted = st.form_submit_button("로그인", width="stretch")
+
+            login_feedback = st.empty()
+            if submitted:
+                email = _normalize_email(email)
+                with login_feedback.container():
+                    if not email or not password:
+                        st.error("이메일과 비밀번호를 입력하세요.")
+                    else:
+                        result = sign_in(email, password)
+                        if result.ok:
+                            navigate("Home")
+                        else:
+                            st.error(result.message)
+
+            if st.button("처음이라면 회원가입하기", key="login_to_signup", width="stretch"):
                 navigate("Sign Up")
-
-    if submitted:
-        email = _normalize_email(email)
-        if not email or not password:
-            st.error("이메일과 비밀번호를 입력하세요.")
-            return
-
-        result = sign_in(email, password)
-        if result.ok:
-            navigate("Home")
-        else:
-            st.error(result.message)
 
 
 def render_signup() -> None:

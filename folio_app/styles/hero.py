@@ -154,12 +154,12 @@ CSS = """
 }
 
 .st-key-folio_hero_footer_actions > div {
-    background: #f7f9fd;
+    background: var(--folio-surface);
     border: 1px solid var(--folio-border);
     border-top: none;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 10px 24px rgba(11, 31, 63, 0.05);
-    padding: 10px 20px 12px 22px;
+    padding: 12px 20px 14px 22px;
 }
 
 .st-key-folio_hero_footer_actions [data-testid="stColumn"] {
@@ -167,25 +167,27 @@ CSS = """
     padding: 0;
 }
 
-.st-key-folio_hero_footer_actions .folio-detail-meta-row {
-    min-height: 38px;
-}
-
 .st-key-folio_hero_footer_actions .st-key-detail_like_action {
-    align-items: stretch;
+    align-items: center;
     display: flex;
     height: 38px;
-    justify-content: stretch;
+    justify-content: flex-end;
     margin: 0;
+    transform: translateY(5px);
     width: 100%;
 }
 
-.st-key-folio_hero_footer_actions .st-key-detail_like_action .stButton,
-.st-key-folio_hero_footer_actions .st-key-detail_like_action button {
-    height: 38px;
-    margin: 0 !important;
-    min-height: 38px !important;
+.st-key-folio_hero_footer_actions .st-key-detail_like_action .stButton {
+    display: flex;
+    justify-content: flex-end;
     width: 100% !important;
+}
+
+.st-key-folio_hero_footer_actions .st-key-detail_like_action button {
+    height: 32px;
+    margin: 0 !important;
+    min-height: 32px !important;
+    width: auto !important;
 }
 
 /* Like button appearance -- consolidated here since detail_like_action
@@ -194,12 +196,12 @@ CSS = """
     align-items: center;
     background: var(--folio-surface);
     border: 1px solid var(--folio-border);
-    border-radius: 10px;
-    color: var(--folio-navy);
+    border-radius: 999px;
+    color: var(--folio-blue);
     display: inline-flex;
-    font-size: 0.88rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    padding: 0 14px;
+    padding: 0 12px;
     transition: all 0.13s ease;
 }
 
@@ -209,6 +211,8 @@ CSS = """
 }
 
 .st-key-folio_hero_footer_actions .st-key-detail_like_action [data-testid="stTooltipHoverTarget"] {
+    display: flex;
+    justify-content: flex-end;
     width: 100% !important;
 }
 
@@ -220,32 +224,6 @@ CSS = """
 
 .folio-project-detail-hero .folio-page-hero-copy {
     align-self: center;
-}
-
-.folio-detail-stat {
-    align-items: center;
-    background: #ffffff;
-    border: 1px solid var(--folio-border);
-    border-radius: 10px;
-    box-sizing: border-box;
-    display: flex;
-    gap: 8px;
-    height: 38px;
-    justify-content: center;
-    padding: 0 12px;
-    width: 100%;
-}
-
-.folio-detail-stat span {
-    color: var(--folio-muted);
-    font-size: 0.78rem;
-    font-weight: 600;
-}
-
-.folio-detail-stat strong {
-    color: var(--folio-navy);
-    font-size: 0.95rem;
-    font-weight: 800;
 }
 
 /* ── Responsive ── */

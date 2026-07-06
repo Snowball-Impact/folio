@@ -63,8 +63,12 @@ CSS = """
     display: none !important;
 }
 
-.st-key-folio_auth_form .st-key-login_to_signup button {
-    width: calc(100% - 48px) !important;
+.st-key-login_to_signup,
+.st-key-login_to_signup > div,
+.st-key-login_to_signup .stButton,
+.st-key-login_to_signup .stTooltipHoverTarget,
+.st-key-login_to_signup button {
+    width: 100% !important;
 }
 
 .st-key-folio_auth_form .stTextInput:has(input[type="password"]) div[data-baseweb="input"],

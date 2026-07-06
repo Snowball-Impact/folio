@@ -74,7 +74,11 @@ div[data-testid="stForm"] button {
    mounts, popping from a small placeholder to its full toolbar+editor
    size a moment later. Reserving space up front avoids that jump. */
 [class*="form_section_"] [data-testid="stCustomComponentV1"] {
-    min-height: 360px !important;
+    min-height: 300px !important;
+}
+
+[class*="_form_section_content"] [data-testid="stVerticalBlock"] {
+    gap: 0.75rem !important;
 }
 
 [class*="form_section_"] .stTextInput > div,
@@ -128,6 +132,44 @@ div[data-testid="stForm"] button {
 .folio-form-section-heading strong,
 .folio-form-section-heading small {
     display: block;
+}
+
+.folio-form-preview-heading strong {
+    color: var(--folio-navy);
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 800;
+    margin: 0 0 14px;
+}
+
+.folio-form-preview-heading {
+    margin-bottom: 14px;
+}
+
+.folio-form-preview-heading small {
+    color: var(--folio-muted);
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 400;
+    margin-top: 3px;
+}
+
+[class*="_form_section_overview"] [data-testid="stHorizontalBlock"] {
+    align-items: stretch;
+}
+
+[class*="_form_section_overview"] [data-testid="stColumn"]:nth-child(2) {
+    border-left: 1px solid var(--folio-border);
+    padding-left: 28px;
+}
+
+[class*="_form_section_overview"] .folio-home-card {
+    margin: 0 auto;
+    width: 100%;
+}
+
+[class*="_form_section_links"] [data-testid="stHorizontalBlock"] {
+    align-items: flex-start;
 }
 
 .folio-form-section-heading strong {
@@ -188,6 +230,14 @@ div[data-testid="stForm"] button {
 
     [class*="form_section_"] {
         padding: 20px 18px !important;
+    }
+
+    [class*="_form_section_overview"] [data-testid="stColumn"]:nth-child(2) {
+        border-left: 0;
+        border-top: 1px solid var(--folio-border);
+        margin-top: 8px;
+        padding-left: 0;
+        padding-top: 20px;
     }
 }
 """
