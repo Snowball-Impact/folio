@@ -11,43 +11,28 @@ CSS = """
     min-height: 350px;
     overflow: hidden;
     padding: 0 16px 14px;
+    position: relative;
     transition: border-color 0.16s, box-shadow 0.16s, transform 0.16s;
+}
+
+.folio-home-card:hover {
+    border-color: rgba(20, 89, 200, 0.4);
+    box-shadow: 0 8px 28px rgba(11, 31, 63, 0.1);
+    transform: translateY(-2px);
 }
 
 .folio-home-card-compact {
     min-height: 160px;
 }
 
-.folio-card-link,
-.folio-card-link:visited,
-.folio-card-link:active {
-    color: inherit;
-    display: block;
-    text-decoration: none !important;
-}
-
-.folio-card-link:hover,
-.folio-card-link:hover *,
-.folio-card-link *,
-.folio-card-link:visited * {
-    color: inherit;
-    text-decoration: none !important;
-}
-
-.folio-card-link:hover .folio-home-card {
-    border-color: rgba(20, 89, 200, 0.4);
-    box-shadow: 0 8px 28px rgba(11, 31, 63, 0.1);
-    transform: translateY(-2px);
-}
-
-.folio-card-link .folio-home-card p,
-.folio-card-link .folio-home-metrics,
-.folio-card-link .folio-detail-meta {
-    color: var(--folio-muted);
-}
-
-.folio-card-link .folio-tag {
-    color: #0a7a72;
+/* Streamlit's markdown renderer splits an anchor that wraps block-level
+   content (a div) into several smaller anchors, one per inline text run,
+   which leaves the cover art and padding unclickable. This empty anchor
+   is stretched over the whole card instead, so it never wraps a div. */
+.folio-card-link {
+    inset: 0;
+    position: absolute;
+    z-index: 5;
 }
 
 .folio-home-card p {
@@ -73,6 +58,20 @@ CSS = """
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.folio-home-footer {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.folio-home-date {
+    color: var(--folio-muted);
+    flex-shrink: 0;
+    font-size: 0.72rem;
 }
 
 .folio-auto-cover {
@@ -103,8 +102,7 @@ CSS = """
     opacity: 0.72;
 }
 
-.folio-auto-cover h3,
-.folio-card-link .folio-auto-cover h3 {
+.folio-auto-cover h3 {
     color: #ffffff;
     display: -webkit-box;
     font-size: 1.12rem;
@@ -167,11 +165,9 @@ CSS = """
     align-items: center;
     color: var(--folio-muted);
     display: flex;
+    flex-shrink: 0;
     font-size: 0.8rem;
-    gap: 18px;
-    justify-content: flex-end;
-    margin-top: auto;
-    padding-top: 12px;
+    gap: 15px;
     min-width: 0;
 }
 
@@ -181,10 +177,6 @@ CSS = """
     gap: 4px;
     flex-shrink: 0;
     min-width: 0;
-}
-
-.folio-home-metrics span + span {
-    margin-left: 12px;
 }
 
 .folio-home-metrics svg {

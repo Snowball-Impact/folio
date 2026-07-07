@@ -109,25 +109,36 @@ def render_project_card_html(
     author_name = html.escape(author.get("name") or "작성자")
     author_organization = html.escape(author.get("organization") or "")
     author_label = f"{author_name} · {author_organization}" if author_organization else author_name
+    created_at = project.get("created_at") or ""
+    date_html = f'<span class="folio-home-date">{html.escape(str(created_at)[:10])}</span>' if created_at else "<span></span>"
     cover_html = _render_auto_cover(project, compact=compact)
     metrics_html = render_project_metrics(project)
+
+    # Streamlit's markdown renderer will not let <a> wrap block-level content
+    # (e.g. <div>): it silently splits one <a> into several, one per inline
+    # text run, leaving the cover/background unclickable. Instead, an empty
+    # <a> stretched over the whole card (position: absolute; inset: 0;) makes
+    # the entire card clickable while itself containing no block children.
+    overlay_link_html = (
+        f'<a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self" '
+        f'aria-label="{html.escape(project.get("title") or "프로젝트")}"></a>'
+        if href
+        else ""
+    )
 
     card_class = "folio-home-card folio-home-card-compact" if compact else "folio-home-card"
     card_html = f"""
     <div class="{card_class}">
+        {overlay_link_html}
         {cover_html}
         <p class="folio-home-author">{author_label}</p>
         <p>{one_liner}</p>
-        {metrics_html}
+        <div class="folio-home-footer">
+            {date_html}
+            {metrics_html}
+        </div>
     </div>
     """
-    if not href:
-        return clean_html(card_html)
-
-    return clean_html(f"""
-    <a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self">
-        {card_html}
-    </a>
-    """)
+    return clean_html(card_html)
 
 
