@@ -55,6 +55,38 @@ class FilterPublicProjectsTests(unittest.TestCase):
         result[0]["title"] = "변경"
         self.assertEqual(self.projects[0]["title"], "프로젝트 0")
 
+    def test_searches_by_author_name_and_organization(self) -> None:
+        projects = [
+            {"id": "author-match", "title": "A", "author": {"name": "홍길동", "organization": "스노우볼"}},
+            {"id": "org-match", "title": "B", "author": {"name": "김철수", "organization": "폴리오랩"}},
+            {"id": "no-match", "title": "C", "author": {"name": "이영희", "organization": "다른회사"}},
+        ]
+        self.assertEqual(
+            [p["id"] for p in _filter_public_projects(projects, search="홍길동")],
+            ["author-match"],
+        )
+        self.assertEqual(
+            [p["id"] for p in _filter_public_projects(projects, search="폴리오랩")],
+            ["org-match"],
+        )
+
+    def test_searches_by_created_at(self) -> None:
+        projects = [
+            {"id": "on-date", "title": "A", "created_at": "2026-06-23T01:30:22+00:00"},
+            {"id": "other-date", "title": "B", "created_at": "2026-07-07T01:30:22+00:00"},
+        ]
+        self.assertEqual(
+            [p["id"] for p in _filter_public_projects(projects, search="2026-06-23")],
+            ["on-date"],
+        )
+
+    def test_search_does_not_require_author_key(self) -> None:
+        projects = [{"id": "no-author", "title": "제목만 있음"}]
+        self.assertEqual(
+            [p["id"] for p in _filter_public_projects(projects, search="제목만")],
+            ["no-author"],
+        )
+
 
 class ProjectReadFailureTests(unittest.TestCase):
     @patch("folio_app.services.projects._fetch_public_projects")

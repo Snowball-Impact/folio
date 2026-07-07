@@ -53,6 +53,7 @@ class Settings:
     supabase_key: str
     app_url: str
     cookie_password: str
+    ga_measurement_id: str
 
     @property
     def is_supabase_configured(self) -> bool:
@@ -100,4 +101,5 @@ def get_settings() -> Settings:
             "COOKIE_PASSWORD",
             "folio-local-dev-cookie-password",
         ),
+        ga_measurement_id=_read_setting("GA_MEASUREMENT_ID"),
     )

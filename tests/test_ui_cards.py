@@ -27,6 +27,29 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn('aria-label="좋아요 0"', rendered)
         self.assertNotIn("조회 0 · 좋아요 0", rendered)
 
+    def test_author_organization_is_shown_when_present(self) -> None:
+        project = {
+            "id": "project-456",
+            "title": "제목",
+            "author": {"name": "홍길동", "organization": "스노우볼"},
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("홍길동 · 스노우볼", rendered)
+
+    def test_author_line_falls_back_to_name_only_without_organization(self) -> None:
+        project = {
+            "id": "project-789",
+            "title": "제목",
+            "author": {"name": "홍길동"},
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn(">홍길동<", rendered)
+        self.assertNotIn(" · ", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

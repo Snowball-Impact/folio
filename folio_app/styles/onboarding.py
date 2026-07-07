@@ -3,8 +3,33 @@
 CSS = """
 /* ── Onboarding ── */
 .folio-onboarding-hero {
+    grid-template-columns: 1fr;
     margin: 12px auto 18px;
     max-width: 680px;
+    text-align: center;
+}
+
+.folio-onboarding-hero p {
+    margin: 0 auto;
+}
+
+.folio-onboarding-badge {
+    background: rgba(20, 89, 200, 0.1);
+    border-radius: 999px;
+    color: var(--folio-blue);
+    display: inline-block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+    padding: 6px 16px;
+    text-transform: uppercase;
+}
+
+.folio-onboarding-effective {
+    color: var(--folio-muted);
+    font-size: 0.82rem;
+    margin: 10px auto 0;
 }
 
 .st-key-folio_onboarding_card {

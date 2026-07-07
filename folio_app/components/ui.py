@@ -107,6 +107,8 @@ def render_project_card_html(
 
     author = project.get("author") or {}
     author_name = html.escape(author.get("name") or "작성자")
+    author_organization = html.escape(author.get("organization") or "")
+    author_label = f"{author_name} · {author_organization}" if author_organization else author_name
     cover_html = _render_auto_cover(project, compact=compact)
     metrics_html = render_project_metrics(project)
 
@@ -114,7 +116,7 @@ def render_project_card_html(
     card_html = f"""
     <div class="{card_class}">
         {cover_html}
-        <p class="folio-home-author">{author_name}</p>
+        <p class="folio-home-author">{author_label}</p>
         <p>{one_liner}</p>
         {metrics_html}
     </div>

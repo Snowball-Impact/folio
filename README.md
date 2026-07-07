@@ -163,7 +163,10 @@ SUPABASE_URL = "https://your-project-ref.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "your-supabase-publishable-key"
 APP_URL = "https://your-app.streamlit.app"
 COOKIE_PASSWORD = "replace-with-a-long-random-cookie-password"
+GA_MEASUREMENT_ID = "G-XXXXXXXXXX"
 ```
+
+`GA_MEASUREMENT_ID`는 선택 항목이다. 비워두면 Google Analytics 태그가 삽입되지 않는다. 로컬 `.env`에는 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 한다.
 
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 

@@ -118,8 +118,8 @@ def list_public_projects(
     limit: int = 50,
 ) -> list[dict[str, Any]]:
     try:
-        projects = _filter_public_projects(_fetch_public_projects(), search=search, tag=tag)
-        projects = _attach_related_data(projects, sort=sort)
+        projects = _attach_related_data(_fetch_public_projects(), sort=sort)
+        projects = _filter_public_projects(projects, search=search, tag=tag)
     except ProjectServiceError:
         raise
     except Exception as exc:
@@ -414,6 +414,7 @@ def _project_matches_search(project: dict[str, Any], search: str) -> bool:
     if not term:
         return True
 
+    author = project.get("author") or {}
     fields = [
         project.get("title") or "",
         project.get("one_liner") or "",
@@ -422,6 +423,9 @@ def _project_matches_search(project: dict[str, Any], search: str) -> bool:
         project.get("process") or "",
         project.get("insights") or "",
         " ".join(project.get("tags") or []),
+        author.get("name") or "",
+        author.get("organization") or "",
+        project.get("created_at") or "",
     ]
     return any(term in str(field).lower() for field in fields)
 

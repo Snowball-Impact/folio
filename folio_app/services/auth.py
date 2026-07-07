@@ -7,7 +7,12 @@ from typing import Any
 import streamlit as st
 
 from folio_app.config import get_settings
-from folio_app.services.profiles import ensure_profile, profile_exists_for_email
+from folio_app.services.profiles import (
+    ProfileServiceError,
+    complete_onboarding,
+    ensure_profile,
+    profile_exists_for_email,
+)
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
 
 
@@ -31,7 +36,13 @@ def get_current_user() -> dict[str, Any] | None:
     return st.session_state.get(SESSION_USER_KEY)
 
 
-def sign_up(email: str, password: str, name: str, organization: str) -> AuthResult:
+def sign_up(
+    email: str,
+    password: str,
+    name: str,
+    organization: str,
+    consented_policy_version_ids: list[str] | None = None,
+) -> AuthResult:
     client = get_supabase_client()
     if client is None:
         return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
@@ -51,6 +62,7 @@ def sign_up(email: str, password: str, name: str, organization: str) -> AuthResu
                     "data": {
                         "name": name,
                         "organization": organization,
+                        "consented_policy_version_ids": consented_policy_version_ids or [],
                     }
                 },
             }
@@ -63,6 +75,7 @@ def sign_up(email: str, password: str, name: str, organization: str) -> AuthResu
         if response.session:
             _save_auth_session(response.session, response.user.model_dump())
             ensure_profile(response.user.id, email, name, organization)
+            _apply_pending_policy_consents(response.user.id, consented_policy_version_ids or [])
             return AuthResult(True, "회원가입이 완료되었습니다.")
 
         return AuthResult(True, "회원가입 요청을 처리했습니다. 메일함을 확인하세요.")
@@ -98,6 +111,7 @@ def sign_in(email: str, password: str) -> AuthResult:
         except Exception:
             # Login has already succeeded. Profile repair can be retried elsewhere.
             logger.exception("Login succeeded but profile repair failed")
+        _apply_pending_policy_consents(response.user.id, metadata.get("consented_policy_version_ids") or [])
         return AuthResult(True, "로그인되었습니다.")
     except Exception as exc:
         return AuthResult(False, _friendly_auth_error("로그인", exc))
@@ -160,6 +174,7 @@ def restore_session(access_token: str, refresh_token: str) -> AuthResult:
             metadata.get("name", ""),
             metadata.get("organization", ""),
         )
+        _apply_pending_policy_consents(response.user.id, metadata.get("consented_policy_version_ids") or [])
         return AuthResult(True, "로그인 상태를 복원했습니다.")
     except Exception as exc:
         return AuthResult(False, _friendly_auth_error("로그인 복원", exc))
@@ -200,6 +215,16 @@ def ensure_authenticated_session() -> AuthResult:
 
 def should_clear_browser_auth() -> bool:
     return bool(st.session_state.pop(SESSION_CLEAR_BROWSER_AUTH_KEY, False))
+
+
+def _apply_pending_policy_consents(user_id: str, policy_version_ids: list[str]) -> None:
+    if not policy_version_ids:
+        return
+    try:
+        complete_onboarding(user_id, policy_version_ids)
+    except ProfileServiceError:
+        # Onboarding page remains as a fallback if this silent completion fails.
+        logger.exception("Failed to apply signup-time policy consents")
 
 
 def _save_auth_session(session: Any, user: dict[str, Any]) -> None:

@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 import streamlit as st
 from streamlit_cookies_manager import EncryptedCookieManager
 
+from folio_app.components.analytics import render_google_analytics, track_page_view
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
 from folio_app.navigation import ROUTABLE_PAGES
@@ -127,6 +128,8 @@ def main() -> None:
     apply_global_styles()
 
     settings = get_settings()
+    render_google_analytics(settings.ga_measurement_id)
+
     if not settings.is_supabase_configured:
         missing = ", ".join(settings.missing_supabase_settings)
         st.warning(
@@ -161,6 +164,7 @@ def main() -> None:
                 )
                 return
             if onboarding_status.required and not onboarding_status.is_complete:
+                track_page_view("Onboarding", "/?page=onboarding")
                 onboarding.render(onboarding_status)
                 st.markdown(
                     '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
@@ -179,6 +183,13 @@ def main() -> None:
         "My Portfolio": protected.render_my_portfolio,
         "Profile": protected.render_profile,
     }
+
+    project_id_param = st.query_params.get("project_id")
+    page_label = "Project Detail" if selected_page == "Home" and project_id_param else selected_page
+    page_path = f"/?page={selected_page}"
+    if project_id_param:
+        page_path += f"&project_id={project_id_param}"
+    track_page_view(page_label, page_path)
 
     page_handlers.get(selected_page, home.render)()
 

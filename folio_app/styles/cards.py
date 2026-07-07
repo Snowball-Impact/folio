@@ -70,6 +70,9 @@ CSS = """
     font-weight: 700;
     margin: 12px 0 5px !important;
     min-height: auto !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .folio-auto-cover {

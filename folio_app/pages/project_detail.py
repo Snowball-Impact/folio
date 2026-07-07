@@ -5,6 +5,7 @@ import html
 import streamlit as st
 import streamlit.components.v1 as components
 
+from folio_app.components.analytics import track_event
 from folio_app.components.layout import render_hero
 from folio_app.components.ui import clean_html, is_http_url, render_project_cover_html
 from folio_app.navigation import navigate
@@ -48,6 +49,8 @@ def render(project_id: str) -> None:
             _clear_detail_query()
             st.rerun()
         return
+
+    track_event("view_item", {"item_id": project_id, "item_name": project.get("title") or ""})
 
     author = project.get("author") or {}
     created_at = project.get("created_at") or ""
@@ -251,6 +254,8 @@ def _render_detail_like_button(project_id: str, like_count: int, user: dict | No
         result = set_project_liked(project_id, user["id"], not liked)
         if not result.ok:
             st.session_state["detail_like_error"] = result.message
+        else:
+            track_event("like" if not liked else "unlike", {"item_id": project_id})
         st.rerun()
 
 

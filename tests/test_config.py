@@ -50,6 +50,7 @@ class SettingsLoadingTests(unittest.TestCase):
             supabase_key="",
             app_url="http://localhost:8501",
             cookie_password="password",
+            ga_measurement_id="",
         )
         self.assertEqual(
             settings.missing_supabase_settings,

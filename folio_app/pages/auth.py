@@ -1,9 +1,16 @@
-import streamlit as st
+import logging
 from time import time
 
+import streamlit as st
+
+from folio_app.components.analytics import track_event
+from folio_app.components.policy_consent import render_policy_agreement_fields
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user, resend_signup_confirmation, sign_in, sign_up
-from folio_app.services.profiles import profile_exists_for_email
+from folio_app.services.profiles import get_required_policy_versions, profile_exists_for_email
+
+
+logger = logging.getLogger(__name__)
 
 
 RESEND_COOLDOWN_SECONDS = 60
@@ -29,6 +36,21 @@ def _is_valid_email(email: str) -> bool:
 @st.cache_data(ttl=10, show_spinner=False)
 def _cached_profile_exists_for_email(email: str) -> bool:
     return profile_exists_for_email(email)
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def _cached_required_policy_versions() -> dict:
+    return get_required_policy_versions()
+
+
+def _signup_required_policies() -> dict:
+    try:
+        return _cached_required_policy_versions()
+    except Exception:
+        # Signup should not be blocked by a policy-fetch failure; onboarding
+        # after first login remains the fallback for collecting consent.
+        logger.exception("Failed to load policy versions for signup")
+        return {}
 
 
 def _email_already_registered(email: str) -> bool:
@@ -142,6 +164,7 @@ def render_login() -> None:
                     else:
                         result = sign_in(email, password)
                         if result.ok:
+                            track_event("login", {"method": "email"})
                             navigate("Home")
                         else:
                             st.error(result.message)
@@ -185,6 +208,12 @@ def render_signup() -> None:
                 placeholder="개인, 학원, 교육과정, 학교, 기관, 회사명을 입력하세요",
             ).strip()
 
+            required_policies = _signup_required_policies()
+            agreed_policy_ids: list[str] = []
+            if required_policies:
+                st.markdown("#### 필수 동의")
+                agreed_policy_ids = render_policy_agreement_fields(required_policies, key_prefix="signup")
+
             submitted = st.button(
                 "회원가입",
                 use_container_width=True,
@@ -197,6 +226,10 @@ def render_signup() -> None:
                     return
                 if not _is_valid_email(email):
                     st.error("올바른 이메일 주소를 입력하세요.")
+                    return
+                required_policy_ids = [policy["id"] for policy in required_policies.values() if policy.get("id")]
+                if set(agreed_policy_ids) != set(required_policy_ids):
+                    st.error("필수 약관과 개인정보 처리방침에 모두 동의해야 가입할 수 있습니다.")
                     return
                 try:
                     email_registered = _email_already_registered(email)
@@ -215,8 +248,9 @@ def render_signup() -> None:
                     st.error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
                     return
 
-                result = sign_up(email, password, name, organization)
+                result = sign_up(email, password, name, organization, agreed_policy_ids)
                 if result.ok:
+                    track_event("sign_up", {"method": "email"})
                     st.session_state["signup_confirmation_email"] = email
                     st.session_state["resend_confirmation_email"] = email
                     st.session_state.pop("signup_existing_email", None)

@@ -4,6 +4,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from folio_app.components.analytics import track_event
 from folio_app.components.ui import plain_text, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
@@ -94,7 +95,7 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             search_input = st.text_input(
                 "프로젝트 검색",
                 value=initial_search,
-                placeholder="프로젝트명, 태그, 인사이트로 검색",
+                placeholder="프로젝트명, 태그, 작성자, 소속, 등록일로 검색",
                 label_visibility="collapsed",
                 key="browse_search",
             )
@@ -124,6 +125,8 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             st.session_state.pop("browse_search", None)
             navigate(_HOME_PAGE)
         if submitted:
+            if search_input.strip():
+                track_event("search", {"search_term": search_input.strip()})
             navigate(
                 _HOME_PAGE,
                 q=search_input.strip(),

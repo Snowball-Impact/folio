@@ -2,6 +2,7 @@ import html
 
 import streamlit as st
 
+from folio_app.components.analytics import track_event
 from folio_app.components.layout import render_hero
 from folio_app.components.project_form import (
     PROJECT_BODY_TEMPLATE,
@@ -106,6 +107,7 @@ def render_submit() -> None:
     )
 
     if result.ok:
+        track_event("project_submit", {"item_id": result.project_id})
         clear_project_draft(st.session_state, user["id"], draft_id, widget_prefix)
         st.session_state["project_notice"] = result.message
         navigate("Home", project_id=result.project_id)
