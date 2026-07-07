@@ -347,7 +347,7 @@ def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     st.rerun()
 
 
-from folio_app.components.ui import render_tag_chips, render_project_metrics
+from folio_app.components.ui import clean_html, render_tag_chips, render_project_metrics
 
 
 def _render_portfolio_item(project: dict) -> None:
@@ -369,7 +369,7 @@ def _render_portfolio_item(project: dict) -> None:
     liner_html = f"<p class='folio-portfolio-card-liner'>{one_liner}</p>" if one_liner else ""
 
     st.markdown(
-        f"""
+        clean_html(f"""
         <div class="folio-portfolio-card">
             <div class="folio-portfolio-card-main">
                 <p class="folio-portfolio-card-title">{title}</p>
@@ -380,7 +380,7 @@ def _render_portfolio_item(project: dict) -> None:
                 {metrics_html}
             </div>
         </div>
-        """,
+        """),
         unsafe_allow_html=True,
     )
 

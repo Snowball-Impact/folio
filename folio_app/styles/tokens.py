@@ -54,6 +54,8 @@ div:has(> iframe[src*="cookie_manager"]),
 }
 
 .block-container {
+    margin-left: auto !important;
+    margin-right: auto !important;
     max-width: 1280px;
     min-height: 100vh;
     padding-top: 0 !important;

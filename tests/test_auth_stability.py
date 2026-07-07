@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from folio_app.app import _restore_auth_from_cookies
-from folio_app.services.auth import AuthResult
+from folio_app.services.auth import AuthResult, resend_signup_confirmation, sign_up
 from folio_app.services.profiles import ensure_profile, get_onboarding_status
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
 
@@ -42,6 +42,65 @@ class AuthRestoreUXTests(unittest.TestCase):
         self.assertEqual(streamlit.query_params, {"page": "Login"})
         self.assertEqual(streamlit.session_state["login_notice"], "로그인 복원 실패")
         streamlit.rerun.assert_called_once()
+
+
+class SignupStabilityTests(unittest.TestCase):
+    @patch("folio_app.services.auth.get_settings")
+    @patch("folio_app.services.auth.profile_exists_for_email", return_value=True)
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_existing_profile_email_does_not_call_auth_signup(self, get_client, _profile_exists, get_settings) -> None:
+        get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
+        client = MagicMock()
+        get_client.return_value = client
+
+        result = sign_up("user@example.com", "password123", "사용자", "개인")
+
+        self.assertFalse(result.ok)
+        self.assertIn("이미 가입된 이메일", result.message)
+        client.auth.sign_up.assert_not_called()
+
+    @patch("folio_app.services.auth.get_settings")
+    @patch("folio_app.services.auth.profile_exists_for_email", return_value=False)
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_signup_without_session_uses_request_processed_copy(self, get_client, _profile_exists, get_settings) -> None:
+        get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
+        client = MagicMock()
+        client.auth.sign_up.return_value = SimpleNamespace(user=SimpleNamespace(id="user-id"), session=None)
+        get_client.return_value = client
+
+        result = sign_up("user@example.com", "password123", "사용자", "개인")
+
+        self.assertTrue(result.ok)
+        self.assertIn("회원가입 요청을 처리했습니다", result.message)
+
+    @patch("folio_app.services.auth.get_settings")
+    @patch("folio_app.services.auth.profile_exists_for_email", return_value=False)
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_signup_obfuscated_existing_auth_user_is_rejected(self, get_client, _profile_exists, get_settings) -> None:
+        get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
+        client = MagicMock()
+        client.auth.sign_up.return_value = SimpleNamespace(
+            user=SimpleNamespace(id="existing-user-id", identities=[]),
+            session=None,
+        )
+        get_client.return_value = client
+
+        result = sign_up("user@example.com", "password123", "사용자", "개인")
+
+        self.assertFalse(result.ok)
+        self.assertIn("이미 가입된 이메일", result.message)
+
+    @patch("folio_app.services.auth.get_settings")
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_resend_confirmation_uses_request_processed_copy(self, get_client, get_settings) -> None:
+        get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
+        client = MagicMock()
+        get_client.return_value = client
+
+        result = resend_signup_confirmation("user@example.com")
+
+        self.assertTrue(result.ok)
+        self.assertIn("재발송 요청을 처리했습니다", result.message)
 
 
 class SupabaseClientIsolationTests(unittest.TestCase):

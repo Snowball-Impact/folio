@@ -57,13 +57,15 @@ def sign_up(email: str, password: str, name: str, organization: str) -> AuthResu
         )
         if response.user is None:
             return AuthResult(False, "회원가입 응답에서 사용자 정보를 찾을 수 없습니다.")
+        if _sign_up_response_indicates_existing_user(response.user):
+            return AuthResult(False, "이미 가입된 이메일입니다. Login 메뉴에서 로그인하세요.")
 
         if response.session:
             _save_auth_session(response.session, response.user.model_dump())
             ensure_profile(response.user.id, email, name, organization)
             return AuthResult(True, "회원가입이 완료되었습니다.")
 
-        return AuthResult(True, "회원가입이 완료되었습니다. 이메일 인증 후 로그인하세요.")
+        return AuthResult(True, "회원가입 요청을 처리했습니다. 메일함을 확인하세요.")
     except Exception as exc:  # Supabase client raises provider-specific exceptions.
         return AuthResult(False, _friendly_auth_error("회원가입", exc))
 
@@ -118,7 +120,7 @@ def resend_signup_confirmation(email: str) -> AuthResult:
                 },
             }
         )
-        return AuthResult(True, "인증 메일을 다시 보냈습니다. 메일함과 스팸함을 확인하세요.")
+        return AuthResult(True, "인증 메일 재발송 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.")
     except Exception as exc:
         return AuthResult(False, _friendly_auth_error("인증 메일 재발송", exc))
 
@@ -204,6 +206,21 @@ def _save_auth_session(session: Any, user: dict[str, Any]) -> None:
     st.session_state[SESSION_TOKEN_KEY] = session.access_token
     st.session_state[SESSION_REFRESH_TOKEN_KEY] = session.refresh_token
     st.session_state[SESSION_USER_KEY] = user
+
+
+def _sign_up_response_indicates_existing_user(user: Any) -> bool:
+    identities = getattr(user, "identities", None)
+    if identities == []:
+        return True
+
+    if hasattr(user, "model_dump"):
+        try:
+            user_data = user.model_dump()
+        except Exception:
+            return False
+        return user_data.get("identities") == []
+
+    return False
 
 
 def _friendly_auth_error(action: str, exc: Exception) -> str:
