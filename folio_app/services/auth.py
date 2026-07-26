@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 import streamlit as st
+from gotrue.types import CodeExchangeParams, VerifyTokenHashParams
 
 from folio_app.config import get_settings
 from folio_app.services.profiles import (
@@ -24,6 +25,8 @@ SESSION_TOKEN_KEY = "folio_access_token"
 SESSION_REFRESH_TOKEN_KEY = "folio_refresh_token"
 SESSION_CLEAR_BROWSER_AUTH_KEY = "folio_clear_browser_auth"
 SESSION_LOGOUT_IN_PROGRESS_KEY = "folio_logout_in_progress"
+SESSION_PASSWORD_RESET_TOKEN_KEY = "folio_password_reset_access_token"
+SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY = "folio_password_reset_refresh_token"
 
 
 @dataclass(frozen=True)
@@ -139,6 +142,71 @@ def resend_signup_confirmation(email: str) -> AuthResult:
         return AuthResult(False, _friendly_auth_error("인증 메일 재발송", exc))
 
 
+def request_password_reset(email: str) -> AuthResult:
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    settings = get_settings()
+
+    try:
+        client.auth.reset_password_for_email(
+            email,
+            {
+                "redirect_to": settings.password_reset_redirect_url,
+            },
+        )
+        return AuthResult(True, "비밀번호 재설정 메일 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.")
+    except Exception as exc:
+        return AuthResult(False, _friendly_auth_error("비밀번호 재설정", exc))
+
+
+def complete_password_reset(access_token: str, refresh_token: str, new_password: str) -> AuthResult:
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        session_response = client.auth.set_session(access_token, refresh_token)
+        if session_response.session is None:
+            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
+        return _update_password_and_clear_session(client, new_password)
+    except Exception as exc:
+        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
+
+
+def complete_password_reset_with_code(code: str, new_password: str) -> AuthResult:
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        session_response = client.auth.exchange_code_for_session(CodeExchangeParams(auth_code=code))
+        if session_response.session is None:
+            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
+        _bind_password_reset_session(client, session_response.session)
+        return _update_password_and_clear_session(client, new_password)
+    except Exception as exc:
+        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
+
+
+def complete_password_reset_with_token_hash(token_hash: str, new_password: str) -> AuthResult:
+    client = get_supabase_client()
+    if client is None:
+        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        session_response = client.auth.verify_otp(
+            VerifyTokenHashParams(type="recovery", token_hash=token_hash)
+        )
+        if session_response.session is None:
+            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
+        _bind_password_reset_session(client, session_response.session)
+        return _update_password_and_clear_session(client, new_password)
+    except Exception as exc:
+        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
+
+
 def sign_out() -> None:
     client = get_supabase_client()
     if client is not None:
@@ -184,6 +252,13 @@ def get_auth_tokens() -> tuple[str | None, str | None]:
     return (
         st.session_state.get(SESSION_TOKEN_KEY),
         st.session_state.get(SESSION_REFRESH_TOKEN_KEY),
+    )
+
+
+def get_password_reset_tokens() -> tuple[str | None, str | None]:
+    return (
+        st.session_state.get(SESSION_PASSWORD_RESET_TOKEN_KEY),
+        st.session_state.get(SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY),
     )
 
 
@@ -233,6 +308,31 @@ def _save_auth_session(session: Any, user: dict[str, Any]) -> None:
     st.session_state[SESSION_USER_KEY] = user
 
 
+def _update_password_and_clear_session(client: Any, new_password: str) -> AuthResult:
+    client.auth.update_user({"password": new_password})
+    try:
+        client.auth.sign_out()
+    except Exception:
+        logger.warning("Provider sign-out failed after password reset", exc_info=True)
+    st.session_state.pop(SESSION_TOKEN_KEY, None)
+    st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
+    st.session_state.pop(SESSION_USER_KEY, None)
+    st.session_state.pop(SESSION_PASSWORD_RESET_TOKEN_KEY, None)
+    st.session_state.pop(SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY, None)
+    st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
+    clear_supabase_client()
+    return AuthResult(True, "비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.")
+
+
+def _bind_password_reset_session(client: Any, session: Any) -> None:
+    access_token = getattr(session, "access_token", "")
+    refresh_token = getattr(session, "refresh_token", "")
+    if access_token and refresh_token:
+        st.session_state[SESSION_PASSWORD_RESET_TOKEN_KEY] = access_token
+        st.session_state[SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY] = refresh_token
+        client.auth.set_session(access_token, refresh_token)
+
+
 def _sign_up_response_indicates_existing_user(user: Any) -> bool:
     identities = getattr(user, "identities", None)
     if identities == []:
@@ -252,8 +352,20 @@ def _friendly_auth_error(action: str, exc: Exception) -> str:
     message = str(exc)
     normalized = message.lower()
 
-    if "email rate limit exceeded" in normalized:
+    if "email rate limit exceeded" in normalized or "rate limit" in normalized or "over_email_send_rate_limit" in normalized:
         return "인증 메일 발송 요청이 잠시 제한되었습니다. 잠시 후 다시 시도하세요."
+    if (
+        "redirect" in normalized
+        and (
+            "not allowed" in normalized
+            or "invalid" in normalized
+            or "uri" in normalized
+            or "url" in normalized
+        )
+    ):
+        return "Supabase Redirect URLs에 현재 앱 주소가 허용되어 있지 않습니다. Authentication URL Configuration을 확인하세요."
+    if "error sending" in normalized or "smtp" in normalized or "email provider" in normalized:
+        return "인증 메일 발송 서버 설정에 문제가 있습니다. Supabase SMTP 또는 이메일 템플릿 설정을 확인하세요."
     if "invalid email" in normalized or "email address" in normalized:
         return "올바른 이메일 주소를 입력하세요."
     if "already registered" in normalized or "user already registered" in normalized:
@@ -262,6 +374,12 @@ def _friendly_auth_error(action: str, exc: Exception) -> str:
         return "이메일 인증이 아직 완료되지 않았습니다. 인증 메일을 확인하세요."
     if "invalid login credentials" in normalized:
         return "이메일 또는 비밀번호를 확인하세요."
+    if "otp" in normalized or "token" in normalized or "expired" in normalized:
+        return "비밀번호 재설정 링크가 만료되었거나 이미 사용되었습니다. 다시 요청하세요."
+    if "same password" in normalized or "different from the old password" in normalized:
+        return "기존 비밀번호와 다른 새 비밀번호를 입력하세요."
+    if "password" in normalized and ("weak" in normalized or "short" in normalized or "length" in normalized):
+        return "비밀번호 보안 조건을 만족하지 못했습니다. 더 긴 비밀번호를 입력하세요."
     if "refresh token" in normalized:
         return "저장된 로그인 정보가 만료되었습니다. 다시 로그인하세요."
     if (

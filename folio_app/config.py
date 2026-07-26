@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+from urllib.parse import urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 import streamlit as st
@@ -70,8 +71,18 @@ class Settings:
 
     @property
     def login_redirect_url(self) -> str:
-        separator = "&" if "?" in self.app_url else "?"
-        return f"{self.app_url}{separator}page=Login&verified=1"
+        return _append_query_params(self.app_url, "page=Login&verified=1")
+
+    @property
+    def password_reset_redirect_url(self) -> str:
+        return _append_query_params(self.app_url, "page=Login&reset=1")
+
+
+def _append_query_params(base_url: str, query_params: str) -> str:
+    parsed = urlsplit(base_url)
+    path = parsed.path or "/"
+    query = f"{parsed.query}&{query_params}" if parsed.query else query_params
+    return urlunsplit((parsed.scheme, parsed.netloc, path, query, parsed.fragment))
 
 
 def get_settings() -> Settings:

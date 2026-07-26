@@ -6,7 +6,17 @@ import streamlit as st
 from folio_app.components.analytics import track_event
 from folio_app.components.policy_consent import render_policy_agreement_fields
 from folio_app.navigation import navigate
-from folio_app.services.auth import get_current_user, resend_signup_confirmation, sign_in, sign_up
+from folio_app.services.auth import (
+    complete_password_reset,
+    complete_password_reset_with_code,
+    complete_password_reset_with_token_hash,
+    get_current_user,
+    get_password_reset_tokens,
+    request_password_reset,
+    resend_signup_confirmation,
+    sign_in,
+    sign_up,
+)
 from folio_app.services.profiles import get_required_policy_versions, profile_exists_for_email
 
 
@@ -91,6 +101,13 @@ def _render_password_confirm_feedback(password: str, password_confirm: str) -> N
         st.error("비밀번호 확인이 일치하지 않습니다.")
 
 
+def _query_value(name: str) -> str:
+    value = st.query_params.get(name, "")
+    if isinstance(value, list):
+        return str(value[0]) if value else ""
+    return str(value or "")
+
+
 def _signup_missing_required_fields(
     email: str,
     password: str,
@@ -128,13 +145,108 @@ def _render_signup_login_link() -> None:
         navigate("Login")
 
 
+def _render_login_secondary_actions(default_email: str = "") -> None:
+    with st.container(border=False, key="login_secondary_actions"):
+        reset_col, signup_col = st.columns(2)
+        with reset_col:
+            if st.button("비밀번호 찾기", key="login_password_reset_toggle", use_container_width=True):
+                st.session_state["show_password_reset"] = not st.session_state.get("show_password_reset", False)
+        with signup_col:
+            if st.button("회원가입하기", key="login_to_signup", use_container_width=True):
+                navigate("Sign Up")
+
+    if st.session_state.get("show_password_reset"):
+        _render_password_reset_form(default_email)
+
+
+def _render_password_reset_form(default_email: str = "") -> None:
+    with st.container(border=False, key="password_reset_panel"):
+        st.caption("가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.")
+        reset_email = _normalize_email(
+            st.text_input(
+                "재설정 메일을 받을 이메일",
+                value=default_email if _is_valid_email(default_email) else "",
+                placeholder="name@example.com",
+                key="password_reset_email",
+            )
+        )
+        if reset_email and not _is_valid_email(reset_email):
+            st.error("이메일 형식을 확인하세요. 예: name@example.com")
+
+        if st.button(
+            "재설정 메일 받기",
+            key="password_reset_submit",
+            use_container_width=True,
+        ):
+            if not _is_valid_email(reset_email):
+                st.error("재설정 메일을 받을 이메일을 올바르게 입력하세요.")
+                return
+            result = request_password_reset(reset_email)
+            if result.ok:
+                st.success(result.message)
+            else:
+                st.error(result.message)
+
+
+def _render_password_update_form() -> None:
+    saved_access_token, saved_refresh_token = get_password_reset_tokens()
+    access_token = saved_access_token or _query_value("access_token")
+    refresh_token = saved_refresh_token or _query_value("refresh_token")
+    reset_code = _query_value("code")
+    recovery_type = _query_value("type")
+    token_hash = _query_value("token_hash") or _query_value("token")
+    if recovery_type and recovery_type != "recovery":
+        token_hash = ""
+    if not reset_code and not token_hash and (not access_token or not refresh_token):
+        st.error(
+            "비밀번호 재설정 인증값이 링크에 없습니다. Supabase Reset Password 이메일 템플릿의 버튼 링크에 "
+            "`token_hash={{ .TokenHash }}&type=recovery`가 포함되어 있는지 확인하세요."
+        )
+        if st.button("로그인으로 돌아가기", key="password_reset_missing_back", use_container_width=True):
+            st.query_params.clear()
+            st.query_params["page"] = "Login"
+            st.rerun()
+        return
+
+    st.info("새 비밀번호를 입력하세요. 변경 후 새 비밀번호로 다시 로그인할 수 있습니다.")
+    with st.form("password_update_form", clear_on_submit=False):
+        new_password = st.text_input("새 비밀번호", type="password", placeholder="8자 이상 입력")
+        new_password_confirm = st.text_input("새 비밀번호 확인", type="password")
+        submitted = st.form_submit_button("비밀번호 변경", type="primary", use_container_width=True)
+
+    if not submitted:
+        return
+    if len(new_password) < 8:
+        st.error("비밀번호는 최소 8자 이상으로 입력하세요.")
+        return
+    if new_password != new_password_confirm:
+        st.error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
+        return
+
+    if saved_access_token and saved_refresh_token:
+        result = complete_password_reset(saved_access_token, saved_refresh_token, new_password)
+    elif reset_code:
+        result = complete_password_reset_with_code(reset_code, new_password)
+    elif token_hash:
+        result = complete_password_reset_with_token_hash(token_hash, new_password)
+    else:
+        result = complete_password_reset(access_token, refresh_token, new_password)
+    if result.ok:
+        st.session_state["login_notice"] = result.message
+        st.query_params.clear()
+        st.query_params["page"] = "Login"
+        st.rerun()
+    else:
+        st.error(result.message)
+
+
 def _resend_cooldown_remaining() -> int:
     available_at = st.session_state.get("resend_confirmation_available_at", 0)
     return max(0, int(available_at - time()))
 
 
 def render_login() -> None:
-    if get_current_user() is not None:
+    if get_current_user() is not None and _query_value("reset") != "1":
         navigate("Home")
 
     login_notice = st.session_state.pop("login_notice", None)
@@ -149,6 +261,9 @@ def render_login() -> None:
         with st.container(border=False, key="folio_auth_form"):
             if login_notice:
                 st.info(login_notice)
+            if _query_value("reset") == "1":
+                _render_password_update_form()
+                return
 
             with st.form("login_form", clear_on_submit=False):
                 email = st.text_input("이메일", placeholder="name@example.com")
@@ -169,8 +284,7 @@ def render_login() -> None:
                         else:
                             st.error(result.message)
 
-            if st.button("처음이라면 회원가입하기", key="login_to_signup", width="stretch"):
-                navigate("Sign Up")
+            _render_login_secondary_actions(email)
 
 
 def render_signup() -> None:
@@ -284,11 +398,14 @@ def render_signup() -> None:
 
                     resend_submitted = st.button(
                         "인증 메일 다시 보내기",
-                        disabled=not _is_valid_email(resend_email) or cooldown_remaining > 0,
+                        disabled=cooldown_remaining > 0,
                         use_container_width=True,
                     )
 
                     if resend_submitted:
+                        if not _is_valid_email(resend_email):
+                            st.error("재발송할 이메일을 올바르게 입력하세요.")
+                            return
                         result = resend_signup_confirmation(resend_email)
                         if result.ok:
                             st.session_state["resend_confirmation_available_at"] = time() + RESEND_COOLDOWN_SECONDS

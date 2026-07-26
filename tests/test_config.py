@@ -56,3 +56,27 @@ class SettingsLoadingTests(unittest.TestCase):
             settings.missing_supabase_settings,
             ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY"),
         )
+
+    def test_password_reset_redirect_uses_reset_query(self) -> None:
+        settings = Settings(
+            supabase_url="https://example.supabase.co",
+            supabase_key="publishable-key",
+            app_url="http://localhost:8501",
+            cookie_password="password",
+            ga_measurement_id="",
+        )
+        self.assertEqual(settings.login_redirect_url, "http://localhost:8501/?page=Login&verified=1")
+        self.assertEqual(settings.password_reset_redirect_url, "http://localhost:8501/?page=Login&reset=1")
+
+    def test_redirect_url_preserves_existing_query(self) -> None:
+        settings = Settings(
+            supabase_url="https://example.supabase.co",
+            supabase_key="publishable-key",
+            app_url="https://example.com/app?source=email",
+            cookie_password="password",
+            ga_measurement_id="",
+        )
+        self.assertEqual(
+            settings.password_reset_redirect_url,
+            "https://example.com/app?source=email&page=Login&reset=1",
+        )

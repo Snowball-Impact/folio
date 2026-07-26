@@ -63,14 +63,6 @@ CSS = """
     display: none !important;
 }
 
-.st-key-login_to_signup,
-.st-key-login_to_signup > div,
-.st-key-login_to_signup .stButton,
-.st-key-login_to_signup .stTooltipHoverTarget,
-.st-key-login_to_signup button {
-    width: 100% !important;
-}
-
 .st-key-folio_auth_form .stTextInput:has(input[type="password"]) div[data-baseweb="input"],
 .st-key-folio_auth_form .stTextInput:has(input[type="password"]) div[data-baseweb="input"] > div {
     background: var(--folio-surface) !important;
@@ -137,6 +129,53 @@ CSS = """
     margin: 18px 0;
 }
 
+.st-key-login_secondary_actions {
+    margin-top: 12px;
+}
+
+.st-key-login_secondary_actions [data-testid="stHorizontalBlock"] {
+    display: grid !important;
+    gap: 8px !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+}
+
+.st-key-login_secondary_actions [data-testid="stColumn"] {
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+.st-key-login_password_reset_toggle .stButton > button,
+.st-key-login_to_signup .stButton > button {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0;
+    box-shadow: none !important;
+    color: var(--folio-muted) !important;
+    font-size: 0.9rem;
+    font-weight: 700;
+    min-height: auto;
+    padding: 4px 0;
+    text-decoration: none;
+}
+
+.st-key-login_password_reset_toggle .stButton > button:hover,
+.st-key-login_to_signup .stButton > button:hover {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--folio-blue) !important;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.st-key-password_reset_panel {
+    background: #f8fbff;
+    border: 1px solid var(--folio-border);
+    border-radius: 10px;
+    margin-top: 8px;
+    padding: 14px;
+}
+
 /* Auth submit buttons */
 .st-key-folio_auth_shell .stButton > button,
 .st-key-folio_auth_shell .stFormSubmitButton > button {
@@ -148,6 +187,32 @@ CSS = """
     font-weight: 700;
     min-height: 44px;
     padding: 0 1.2rem;
+}
+
+.st-key-folio_auth_shell .st-key-login_password_reset_toggle .stButton > button,
+.st-key-folio_auth_shell .st-key-login_to_signup .stButton > button {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: var(--folio-muted) !important;
+    min-height: auto;
+}
+
+.st-key-folio_auth_shell .st-key-login_password_reset_toggle .stButton > button:hover,
+.st-key-folio_auth_shell .st-key-login_to_signup .stButton > button:hover {
+    color: var(--folio-blue) !important;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+}
+
+.st-key-password_reset_panel .stButton > button {
+    background: var(--folio-blue);
+    border: 1px solid var(--folio-blue);
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(20, 89, 200, 0.2);
+    color: #ffffff;
+    font-weight: 700;
+    min-height: 42px;
 }
 
 .st-key-folio_auth_shell .stButton > button:hover,

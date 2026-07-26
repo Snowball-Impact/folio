@@ -1,6 +1,7 @@
 from uuid import UUID, uuid4
 
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_cookies_manager import EncryptedCookieManager
 
 from folio_app.components.analytics import render_google_analytics, track_page_view
@@ -34,6 +35,39 @@ def _render_verified_notice() -> None:
     if st.button("확인", key="clear_verified_notice"):
         st.query_params.clear()
         st.rerun()
+
+
+def _capture_password_recovery_fragment() -> None:
+    components.html(
+        """
+        <script>
+        (function() {
+            var parentWindow = window.parent;
+            var hash = parentWindow.location.hash || "";
+            if (!hash || hash.indexOf("type=recovery") === -1) {
+                return;
+            }
+
+            var source = new URLSearchParams(hash.slice(1));
+            var accessToken = source.get("access_token");
+            var refreshToken = source.get("refresh_token");
+            if (!accessToken || !refreshToken) {
+                return;
+            }
+
+            var target = new URL(parentWindow.location.href);
+            target.hash = "";
+            target.searchParams.set("page", "Login");
+            target.searchParams.set("reset", "1");
+            target.searchParams.set("access_token", accessToken);
+            target.searchParams.set("refresh_token", refreshToken);
+            parentWindow.location.replace(target.toString());
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
 
 
 def _get_cookie_manager(settings) -> EncryptedCookieManager:
@@ -75,6 +109,9 @@ def _ensure_visitor_id(cookies: EncryptedCookieManager) -> str:
 
 
 def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
+    if st.query_params.get("reset") == "1":
+        return
+
     if get_current_user() is not None:
         return
 
@@ -114,6 +151,24 @@ def _normalize_legacy_routes() -> None:
         st.rerun()
 
 
+def _normalize_password_reset_routes() -> None:
+    if st.query_params.get("reset") == "1":
+        return
+    if not st.query_params.get("code"):
+        return
+    if st.query_params.get("verified") == "1":
+        return
+
+    preserved = {key: st.query_params.get(key) for key in st.query_params}
+    st.query_params.clear()
+    st.query_params["page"] = "Login"
+    st.query_params["reset"] = "1"
+    for key, value in preserved.items():
+        if key not in {"page", "reset"} and value:
+            st.query_params[key] = value
+    st.rerun()
+
+
 def _handle_logout_query() -> None:
     logout = st.query_params.get("logout")
     if logout == "1" or logout == ["1"]:
@@ -129,6 +184,7 @@ def main() -> None:
 
     settings = get_settings()
     render_google_analytics(settings.ga_measurement_id)
+    _capture_password_recovery_fragment()
 
     if not settings.is_supabase_configured:
         missing = ", ".join(settings.missing_supabase_settings)
@@ -146,6 +202,7 @@ def main() -> None:
     _sync_browser_auth_storage(cookies)
     _restore_auth_from_cookies(cookies)
     _normalize_legacy_routes()
+    _normalize_password_reset_routes()
     _render_verified_notice()
 
     selected_page = render_header(initial_page=_initial_page_from_query())
