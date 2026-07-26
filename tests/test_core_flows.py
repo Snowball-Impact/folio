@@ -12,6 +12,7 @@ from folio_app.pages.auth import (
     _should_show_signup_login_link,
     _signup_missing_required_fields,
 )
+from folio_app.pages.project_detail import _share_button_html, _track_share_open
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
 
 
@@ -130,6 +131,43 @@ class URLNormalizationTests(unittest.TestCase):
 
     def test_non_http_url_is_rejected(self) -> None:
         self.assertIsNone(normalize_optional_url("javascript:alert(1)"))
+
+
+class ProjectShareLinkTests(unittest.TestCase):
+    def test_share_button_copies_canonical_project_detail_url(self) -> None:
+        markup = _share_button_html("project-123")
+
+        self.assertIn('searchParams.set("page", "Home")', markup)
+        self.assertIn('searchParams.set("project_id", projectId)', markup)
+        self.assertIn('searchParams.set("utm_source", "folio")', markup)
+        self.assertIn('searchParams.set("utm_medium", "share")', markup)
+        self.assertIn('searchParams.set("utm_campaign", "project_share")', markup)
+        self.assertIn('"project-123"', markup)
+        self.assertIn("navigator.clipboard.writeText", markup)
+
+    @patch("folio_app.pages.project_detail.track_event")
+    @patch("folio_app.pages.project_detail.st.session_state", new_callable=dict)
+    @patch(
+        "folio_app.pages.project_detail.st.query_params",
+        {"utm_medium": "share", "utm_campaign": "project_share"},
+    )
+    def test_share_open_event_is_tracked_once_per_session(self, session_state, track_event_mock) -> None:
+        _track_share_open("project-123")
+        _track_share_open("project-123")
+
+        track_event_mock.assert_called_once_with(
+            "project_share_open",
+            {"item_id": "project-123", "source": "copied_link"},
+        )
+        self.assertTrue(session_state["tracked_share_open_project-123"])
+
+    @patch("folio_app.pages.project_detail.track_event")
+    @patch("folio_app.pages.project_detail.st.session_state", new_callable=dict)
+    @patch("folio_app.pages.project_detail.st.query_params", {"utm_medium": "organic"})
+    def test_share_open_event_requires_share_utm(self, _session_state, track_event_mock) -> None:
+        _track_share_open("project-123")
+
+        track_event_mock.assert_not_called()
 
 
 if __name__ == "__main__":
