@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from folio_app.components.layout import _header_nav_items
 from folio_app.components.project_form import parse_project_body
 from folio_app.navigation import navigate
 from folio_app.pages.auth import (
@@ -15,6 +16,23 @@ from folio_app.services.projects import normalize_optional_url, normalize_power_
 
 
 class NavigationTests(unittest.TestCase):
+    def test_header_nav_items_for_logged_out_users(self) -> None:
+        self.assertEqual(
+            _header_nav_items(False),
+            [("Home", "홈 갤러리"), ("Login", "로그인")],
+        )
+
+    def test_header_nav_items_for_logged_in_users(self) -> None:
+        self.assertEqual(
+            _header_nav_items(True),
+            [
+                ("Home", "홈 갤러리"),
+                ("Submit", "프로젝트 제출"),
+                ("My Page", "마이 페이지"),
+                ("__logout__", "로그아웃"),
+            ],
+        )
+
     @patch("folio_app.navigation.st.rerun", side_effect=RuntimeError("rerun"))
     @patch("folio_app.navigation.st.query_params", new_callable=dict)
     def test_navigation_replaces_query_and_omits_empty_values(self, query_params, _rerun) -> None:

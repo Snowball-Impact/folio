@@ -46,27 +46,33 @@ def render_header(initial_page: str | None = None) -> str:
             if st.button("홈으로 이동", key="nav_brand_home"):
                 navigate("Home")
 
-        if user is None:
-            if st.button("로그인", key="nav_Login"):
-                navigate("Login")
-        else:
-            logged_in_nav = [
-                ("Submit", "프로젝트 제출"),
-                ("My Page", "마이 페이지"),
-                ("__logout__", "로그아웃"),
-            ]
-            with st.popover("☰"):
-                for option, label in logged_in_nav:
-                    is_active = option == current_page and option != "__logout__"
-                    if st.button(label, key=f"nav_{option}", use_container_width=True, disabled=is_active):
-                        if option == "__logout__":
-                            st.query_params.clear()
-                            st.query_params["logout"] = "1"
-                            st.rerun()
-                        else:
-                            navigate(option)
+        with st.container(border=False, key="folio_header_nav"):
+            nav_items = _header_nav_items(user is not None)
+            for option, label in nav_items:
+                is_active = option == current_page and option != "__logout__"
+                if st.button(label, key=f"nav_{option}", disabled=is_active):
+                    if option == "__logout__":
+                        st.query_params.clear()
+                        st.query_params["logout"] = "1"
+                        st.rerun()
+                    else:
+                        navigate(option)
 
     return selected
+
+
+def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
+    if not is_logged_in:
+        return [
+            ("Home", "홈 갤러리"),
+            ("Login", "로그인"),
+        ]
+    return [
+        ("Home", "홈 갤러리"),
+        ("Submit", "프로젝트 제출"),
+        ("My Page", "마이 페이지"),
+        ("__logout__", "로그아웃"),
+    ]
 
 
 def render_hero(
