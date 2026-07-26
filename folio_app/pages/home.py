@@ -55,21 +55,61 @@ def _render_hero() -> None:
     primary_href = "?page=Submit" if get_current_user() is not None else "?page=Login"
     st.markdown(
         f"""
-        <section class="folio-home-hero">
-            <div class="folio-home-copy">
-                <div class="folio-home-eyebrow">Data Portfolio Platform</div>
-                <h1>AI 시대에는<br><em>휴먼 인사이트</em>가 자산이다.</h1>
-                <p>발표로 끝나지 않는 프로젝트.<br>데이터 분석 결과를 커리어 자산으로 만드세요.</p>
-                <div class="folio-home-actions">
-                    <a class="folio-home-primary-cta" href="{primary_href}">내 분석 프로젝트 등록하기</a>
+        <section class="folio-home-hero-shell">
+            <div class="folio-home-hero-viewport">
+                <div class="folio-home-hero-track">
+                    <section class="folio-home-hero">
+                        <div class="folio-home-copy">
+                            <div class="folio-home-eyebrow">Data Portfolio Platform</div>
+                            <h1>AI 시대에는<br><em>휴먼 인사이트</em>가 자산이다.</h1>
+                            <p>발표로 끝나지 않는 프로젝트.<br>데이터 분석 결과를 커리어 자산으로 만드세요.</p>
+                            <div class="folio-home-actions">
+                                <a class="folio-home-primary-cta" href="{primary_href}">내 분석 프로젝트 등록하기</a>
+                            </div>
+                        </div>
+                        <div class="folio-hero-preview">
+                            <img
+                                class="folio-hero-preview-image"
+                                src="{hero_preview_src}"
+                                alt="데이터 분석 대시보드와 인사이트 미리보기"
+                            />
+                        </div>
+                    </section>
+                    <section class="folio-home-hero folio-home-guide-hero">
+                        <div class="folio-home-copy">
+                            <div class="folio-home-eyebrow">Collective Insight</div>
+                            <h1>인사이트는<br><em>공유할수록 깊어집니다.</em></h1>
+                            <p>프로젝트를 공유하고, 피드백을 받아 더 깊은 인사이트로 발전시키세요.</p>
+                        </div>
+                        <div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">
+                            <div class="folio-home-guide-step">
+                                <div class="folio-home-guide-node">01</div>
+                                <div class="folio-home-guide-card">
+                                    <strong>공유</strong>
+                                    <p>분석 결과와 대시보드를 모두에게 엽니다.</p>
+                                </div>
+                            </div>
+                            <div class="folio-home-guide-step">
+                                <div class="folio-home-guide-node">02</div>
+                                <div class="folio-home-guide-card">
+                                    <strong>피드백</strong>
+                                    <p>댓글과 반응으로 새로운 관점을 발견합니다.</p>
+                                </div>
+                            </div>
+                            <div class="folio-home-guide-step">
+                                <div class="folio-home-guide-node">03</div>
+                                <div class="folio-home-guide-card">
+                                    <strong>발전</strong>
+                                    <p>모인 관점을 반영해 프로젝트를 더 날카롭게 다듬습니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
-            <div class="folio-hero-preview">
-                <img
-                    class="folio-hero-preview-image"
-                    src="{hero_preview_src}"
-                    alt="데이터 분석 대시보드와 인사이트 미리보기"
-                />
+            <div class="folio-home-hero-dots" aria-hidden="true">
+                <span></span>
+                <span></span>
             </div>
         </section>
         """,

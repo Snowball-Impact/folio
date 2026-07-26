@@ -2,6 +2,42 @@
 
 CSS = """
 /* ── Home Hero (light) ── */
+.folio-home-hero-shell {
+    margin-top: 16px;
+    position: relative;
+}
+
+.folio-home-hero-viewport {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.folio-home-hero-track {
+    animation: folio-home-hero-slide 10s ease-in-out infinite;
+    display: flex;
+    width: 200%;
+}
+
+.folio-home-hero-shell:hover .folio-home-hero-track {
+    animation-play-state: paused;
+}
+
+@keyframes folio-home-hero-slide {
+    0%,
+    42% {
+        transform: translateX(0);
+    }
+
+    50%,
+    92% {
+        transform: translateX(-50%);
+    }
+
+    100% {
+        transform: translateX(0);
+    }
+}
+
 .folio-home-hero {
     align-items: center;
     background: var(--folio-surface);
@@ -9,11 +45,123 @@ CSS = """
     border-radius: 16px;
     color: var(--folio-navy);
     display: grid;
+    flex: 0 0 50%;
     gap: 24px;
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-    margin-top: 16px;
     min-height: 248px;
     padding: 52px 28px 44px;
+    width: 50%;
+}
+
+.folio-home-guide-hero {
+    grid-template-columns: minmax(0, 0.92fr) minmax(280px, 1fr);
+}
+
+.folio-home-guide-flow {
+    align-items: stretch;
+    display: grid;
+    gap: 0;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: relative;
+}
+
+.folio-home-guide-flow::before {
+    background: linear-gradient(90deg, rgba(20, 89, 200, 0), rgba(20, 89, 200, 0.32), rgba(20, 89, 200, 0));
+    content: "";
+    height: 2px;
+    left: 12%;
+    position: absolute;
+    right: 12%;
+    top: 31px;
+}
+
+.folio-home-guide-step {
+    display: grid;
+    gap: 12px;
+    justify-items: center;
+    min-width: 0;
+    position: relative;
+    text-align: center;
+}
+
+.folio-home-guide-node {
+    align-items: center;
+    background: var(--folio-blue);
+    border: 5px solid #eef5ff;
+    border-radius: 999px;
+    box-shadow: 0 10px 24px rgba(20, 89, 200, 0.18);
+    color: #ffffff;
+    display: flex;
+    font-size: 0.78rem;
+    font-weight: 800;
+    height: 64px;
+    justify-content: center;
+    letter-spacing: 0.04em;
+    position: relative;
+    width: 64px;
+    z-index: 1;
+}
+
+.folio-home-guide-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+    border: 1px solid rgba(20, 89, 200, 0.12);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(11, 31, 63, 0.06);
+    min-height: 126px;
+    padding: 18px 16px;
+    width: calc(100% - 10px);
+}
+
+.folio-home-guide-card strong {
+    color: var(--folio-navy);
+    display: block;
+    font-size: 1.04rem;
+    margin-bottom: 8px;
+}
+
+.folio-home-guide-card p {
+    color: var(--folio-muted);
+    font-size: 0.88rem;
+    line-height: 1.48;
+    margin: 0;
+    word-break: keep-all;
+}
+
+.folio-home-hero-dots {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 12px;
+}
+
+.folio-home-hero-dots span {
+    animation: folio-home-hero-dot 10s ease-in-out infinite;
+    background: #c9d7ea;
+    border-radius: 999px;
+    display: block;
+    height: 6px;
+    transform: scaleX(0.72);
+    transition: background 0.2s ease, transform 0.2s ease;
+    width: 30px;
+}
+
+.folio-home-hero-dots span:nth-child(2) {
+    animation-delay: -5s;
+}
+
+@keyframes folio-home-hero-dot {
+    0%,
+    42% {
+        background: var(--folio-blue);
+        transform: scaleX(1);
+    }
+
+    50%,
+    100% {
+        background: #c9d7ea;
+        transform: scaleX(0.72);
+    }
 }
 
 .folio-home-eyebrow {
@@ -304,6 +452,37 @@ CSS = """
 
     .folio-hero-preview {
         display: none;
+    }
+
+    .folio-home-guide-hero {
+        grid-template-columns: 1fr;
+    }
+
+    .folio-home-guide-flow {
+        gap: 10px;
+        grid-template-columns: 1fr;
+    }
+
+    .folio-home-guide-flow::before {
+        bottom: 20px;
+        height: auto;
+        left: 32px;
+        right: auto;
+        top: 20px;
+        width: 2px;
+    }
+
+    .folio-home-guide-step {
+        align-items: center;
+        grid-template-columns: 64px minmax(0, 1fr);
+        justify-items: stretch;
+        text-align: left;
+    }
+
+    .folio-home-guide-card {
+        min-height: 0;
+        padding: 13px 14px;
+        width: auto;
     }
 
     .folio-page-hero h1 {
