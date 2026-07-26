@@ -36,7 +36,7 @@ CSS = """
     border: none !important;
     border-radius: 12px !important;
     box-shadow: none !important;
-    margin: 28px 0 24px !important;
+    margin: 28px 0 12px !important;
     padding: 26px 28px 24px !important;
 }
 
@@ -103,7 +103,7 @@ CSS = """
 /* ── Responsive ── */
 @media (max-width: 860px) {
     .st-key-folio_browse_panel {
-        margin: 22px 0 18px !important;
+        margin: 22px 0 9px !important;
         padding: 22px 18px 20px !important;
     }
 

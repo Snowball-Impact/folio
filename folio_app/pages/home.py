@@ -62,7 +62,7 @@ def _render_hero() -> None:
                         <div class="folio-home-copy">
                             <div class="folio-home-eyebrow">Data Portfolio Platform</div>
                             <h1>AI 시대에는<br><em>휴먼 인사이트</em>가 자산이다.</h1>
-                            <p>발표로 끝나지 않는 프로젝트.<br>데이터 분석 결과를 커리어 자산으로 만드세요.</p>
+                            <p>분석은 끝나지 않습니다. 인사이트는 계속 깊어집니다.</p>
                             <div class="folio-home-actions">
                                 <a class="folio-home-primary-cta" href="{primary_href}">내 분석 프로젝트 등록하기</a>
                             </div>
@@ -80,6 +80,9 @@ def _render_hero() -> None:
                             <div class="folio-home-eyebrow">Collective Insight</div>
                             <h1>인사이트는<br><em>공유할수록 깊어집니다.</em></h1>
                             <p>프로젝트를 공유하고, 피드백을 받아 더 깊은 인사이트로 발전시키세요.</p>
+                            <div class="folio-home-actions">
+                                <a class="folio-home-primary-cta" href="{primary_href}">내 분석 프로젝트 등록하기</a>
+                            </div>
                         </div>
                         <div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">
                             <div class="folio-home-guide-step">
@@ -100,7 +103,7 @@ def _render_hero() -> None:
                                 <div class="folio-home-guide-node">03</div>
                                 <div class="folio-home-guide-card">
                                     <strong>발전</strong>
-                                    <p>모인 관점을 반영해 프로젝트를 더 날카롭게 다듬습니다.</p>
+                                    <p>다양한 관점이 모여 인사이트를 개선합니다.</p>
                                 </div>
                             </div>
                         </div>

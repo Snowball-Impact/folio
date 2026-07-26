@@ -3,7 +3,7 @@
 CSS = """
 /* ── Home Hero (light) ── */
 .folio-home-hero-shell {
-    margin-top: 16px;
+    margin-top: -8px;
     position: relative;
 }
 
@@ -48,17 +48,18 @@ CSS = """
     flex: 0 0 50%;
     gap: 24px;
     grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-    min-height: 248px;
-    padding: 52px 28px 44px;
+    min-height: 210px;
+    padding: 26px 28px 34px;
     width: 50%;
 }
 
 .folio-home-guide-hero {
-    grid-template-columns: minmax(0, 0.92fr) minmax(280px, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
 }
 
 .folio-home-guide-flow {
     align-items: stretch;
+    align-self: center;
     display: grid;
     gap: 0;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -72,12 +73,13 @@ CSS = """
     left: 12%;
     position: absolute;
     right: 12%;
-    top: 31px;
+    top: 27px;
 }
 
 .folio-home-guide-step {
     display: grid;
     gap: 12px;
+    grid-template-rows: 56px 1fr;
     justify-items: center;
     min-width: 0;
     position: relative;
@@ -94,45 +96,54 @@ CSS = """
     display: flex;
     font-size: 0.78rem;
     font-weight: 800;
-    height: 64px;
+    height: 56px;
     justify-content: center;
     letter-spacing: 0.04em;
     position: relative;
-    width: 64px;
+    width: 56px;
     z-index: 1;
 }
 
 .folio-home-guide-card {
+    align-content: start;
     background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
     border: 1px solid rgba(20, 89, 200, 0.12);
     border-radius: 12px;
     box-shadow: 0 12px 28px rgba(11, 31, 63, 0.06);
-    min-height: 126px;
-    padding: 18px 16px;
+    box-sizing: border-box;
+    display: grid;
+    height: 122px;
+    padding: 14px 12px;
     width: calc(100% - 10px);
 }
 
 .folio-home-guide-card strong {
     color: var(--folio-navy);
     display: block;
-    font-size: 1.04rem;
-    margin-bottom: 8px;
+    font-size: 0.98rem;
+    line-height: 1.25;
+    margin-bottom: 6px;
 }
 
 .folio-home-guide-card p {
     color: var(--folio-muted);
-    font-size: 0.88rem;
-    line-height: 1.48;
+    font-size: 0.8rem;
+    line-height: 1.38;
     margin: 0;
     word-break: keep-all;
 }
 
 .folio-home-hero-dots {
     align-items: center;
+    bottom: 14px;
     display: flex;
     gap: 8px;
     justify-content: center;
-    margin-top: 12px;
+    left: 50%;
+    pointer-events: none;
+    position: absolute;
+    transform: translateX(-50%);
+    z-index: 2;
 }
 
 .folio-home-hero-dots span {
@@ -169,16 +180,24 @@ CSS = """
     font-size: 1.35rem;
     font-weight: 700;
     letter-spacing: 0.12em;
-    margin-bottom: 14px;
+    line-height: 1;
+    margin: 0;
     text-transform: uppercase;
+}
+
+.folio-home-copy {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .folio-home-copy h1 {
     color: var(--folio-navy);
     font-size: 2.6rem;
     font-weight: 800;
-    line-height: 1.13;
-    margin: 0 0 16px;
+    line-height: 1.05;
+    margin: 0;
     text-wrap: balance;
     word-break: keep-all;
 }
@@ -191,7 +210,7 @@ CSS = """
 .folio-home-copy p {
     color: var(--folio-muted);
     font-size: 0.98rem;
-    line-height: 1.65;
+    line-height: 1.48;
     margin: 0;
     max-width: 460px;
     word-break: keep-all;
@@ -202,7 +221,7 @@ CSS = """
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
-    margin-top: 24px;
+    margin-top: 10px;
 }
 
 .folio-home-actions a {
@@ -259,7 +278,7 @@ CSS = """
     display: grid;
     gap: 18px;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 0.78fr);
-    margin-top: 16px;
+    margin-top: -8px;
     margin-bottom: 20px;
     min-height: 220px;
     overflow: hidden;
@@ -432,8 +451,8 @@ CSS = """
 @media (max-width: 860px) {
     .folio-home-hero {
         grid-template-columns: 1fr;
-        min-height: 200px;
-        padding: 32px 8px 28px;
+        min-height: 180px;
+        padding: 24px 8px 34px;
     }
 
     .folio-home-copy h1 {
@@ -466,7 +485,7 @@ CSS = """
     .folio-home-guide-flow::before {
         bottom: 20px;
         height: auto;
-        left: 32px;
+        left: 28px;
         right: auto;
         top: 20px;
         width: 2px;
@@ -474,7 +493,8 @@ CSS = """
 
     .folio-home-guide-step {
         align-items: center;
-        grid-template-columns: 64px minmax(0, 1fr);
+        grid-template-columns: 56px minmax(0, 1fr);
+        grid-template-rows: 1fr;
         justify-items: stretch;
         text-align: left;
     }
