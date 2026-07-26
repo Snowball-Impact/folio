@@ -49,6 +49,41 @@ CSS = """
     word-break: keep-all;
 }
 
+.folio-home-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.folio-home-actions a {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    font-size: 0.94rem;
+    font-weight: 600;
+    min-height: 42px;
+    text-decoration: none !important;
+    transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, transform 0.14s ease;
+    white-space: nowrap;
+}
+
+.folio-home-primary-cta {
+    background: var(--folio-blue);
+    border: 1px solid var(--folio-blue);
+    box-shadow: 0 12px 28px rgba(20, 89, 200, 0.2);
+    color: #ffffff !important;
+    padding: 0 20px;
+}
+
+.folio-home-primary-cta:hover {
+    background: #0f4aab;
+    border-color: #0f4aab;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+}
+
 .folio-hero-preview {
     align-items: center;
     display: flex;
@@ -255,6 +290,16 @@ CSS = """
 
     .folio-home-copy h1 {
         font-size: 1.9rem;
+    }
+
+    .folio-home-actions {
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .folio-home-actions a {
+        font-size: 0.88rem;
+        min-height: 40px;
     }
 
     .folio-hero-preview {

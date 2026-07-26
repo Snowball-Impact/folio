@@ -8,6 +8,7 @@ from folio_app.components.analytics import track_event
 from folio_app.components.ui import plain_text, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
+from folio_app.services.auth import get_current_user
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
@@ -51,6 +52,7 @@ def render() -> None:
 
 def _render_hero() -> None:
     hero_preview_src = _hero_preview_src()
+    primary_href = "?page=Submit" if get_current_user() is not None else "?page=Login"
     st.markdown(
         f"""
         <section class="folio-home-hero">
@@ -58,6 +60,9 @@ def _render_hero() -> None:
                 <div class="folio-home-eyebrow">Data Portfolio Platform</div>
                 <h1>AI 시대에는<br><em>휴먼 인사이트</em>가 자산이다.</h1>
                 <p>발표로 끝나지 않는 프로젝트.<br>데이터 분석 결과를 커리어 자산으로 만드세요.</p>
+                <div class="folio-home-actions">
+                    <a class="folio-home-primary-cta" href="{primary_href}">내 분석 프로젝트 등록하기</a>
+                </div>
             </div>
             <div class="folio-hero-preview">
                 <img
