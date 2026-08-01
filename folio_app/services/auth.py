@@ -5,7 +5,7 @@ import logging
 from typing import Any
 
 import streamlit as st
-from gotrue.types import CodeExchangeParams, VerifyTokenHashParams
+from supabase_auth.types import CodeExchangeParams, VerifyTokenHashParams
 
 from folio_app.config import get_settings
 from folio_app.services.profiles import (
