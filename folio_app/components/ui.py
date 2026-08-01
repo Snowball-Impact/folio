@@ -29,7 +29,7 @@ def render_tag_chips(tags: list[str]) -> str:
     return f"<div class='folio-tags'>{chips}</div>"
 
 
-def _cover_variant(project: dict, variant_count: int = 6) -> int:
+def _cover_variant(project: dict, variant_count: int = 24) -> int:
     seed = str(project.get("id") or project.get("title") or "folio")
     digest = hashlib.sha256(seed.encode("utf-8")).digest()
     return int.from_bytes(digest[:2], "big") % variant_count
@@ -108,6 +108,7 @@ def render_project_card_html(
     compact: bool = False,
     fallback_text: str = "",
     href: str | None = None,
+    preview_url: str | None = None,
 ) -> str:
     one_liner = html.escape(project.get("one_liner") or fallback_text or project.get("insights") or "")
     if not one_liner:
@@ -151,12 +152,24 @@ def render_project_card_html(
         if href
         else ""
     )
+    preview_html = (
+        f"""
+        <div class="folio-home-card-preview" data-folio-preview-src="{html.escape(preview_url, quote=True)}">
+            <div class="folio-home-card-preview-label">대시보드 미리보기</div>
+        </div>
+        """
+        if preview_url
+        else ""
+    )
 
     card_class = "folio-home-card folio-home-card-compact" if compact else "folio-home-card"
+    if preview_url:
+        card_class += " folio-home-card-has-preview"
     card_html = f"""
     <div class="{card_class}">
         {overlay_link_html}
         {cover_html}
+        {preview_html}
         <div class="folio-home-card-overlay">
             <div class="folio-home-card-title-zone">
                 <h3 class="folio-home-card-title">{title_html}</h3>

@@ -69,6 +69,29 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn(">홍길동<", rendered)
         self.assertNotIn(" · ", rendered)
 
+    def test_card_includes_hover_preview_when_preview_url_is_present(self) -> None:
+        project = {
+            "id": "project-preview",
+            "title": "미리보기 프로젝트",
+        }
+
+        rendered = render_project_card_html(project, preview_url="https://example.com/report")
+
+        self.assertIn("folio-home-card-has-preview", rendered)
+        self.assertIn("folio-home-card-preview", rendered)
+        self.assertIn('data-folio-preview-src="https://example.com/report"', rendered)
+
+    def test_card_omits_hover_preview_without_preview_url(self) -> None:
+        project = {
+            "id": "project-no-preview",
+            "title": "미리보기 없는 프로젝트",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertNotIn("folio-home-card-has-preview", rendered)
+        self.assertNotIn("folio-home-card-preview", rendered)
+
 
 if __name__ == "__main__":
     unittest.main()

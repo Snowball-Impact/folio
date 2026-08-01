@@ -11,11 +11,15 @@ CSS = """
     overflow: hidden;
     padding: 0;
     position: relative;
-    transition: transform 0.16s ease;
+    transform-origin: center center;
+    transition: box-shadow 0.18s ease, transform 0.18s ease;
+    z-index: 1;
 }
 
-.folio-home-card:hover {
-    transform: translateY(-4px);
+.folio-gallery-rail .folio-home-card:hover {
+    box-shadow: 0 26px 58px rgba(11, 31, 63, 0.26);
+    transform: translateY(-8px) scale(1.5);
+    z-index: 30;
 }
 
 .folio-home-card-compact {
@@ -29,7 +33,7 @@ CSS = """
 .folio-card-link {
     inset: 0;
     position: absolute;
-    z-index: 5;
+    z-index: 8;
 }
 
 .folio-home-card p {
@@ -120,8 +124,9 @@ CSS = """
     display: flex;
     gap: 18px;
     overflow-x: auto;
+    overflow-y: visible;
     overscroll-behavior-x: contain;
-    padding: 6px 0 16px;
+    padding: 30px 0 36px;
     scroll-padding-left: 4px;
     scroll-snap-type: x proximity;
 }
@@ -201,6 +206,14 @@ CSS = """
     scroll-snap-align: start;
 }
 
+.folio-gallery-rail .folio-home-card:first-child {
+    transform-origin: left center;
+}
+
+.folio-gallery-rail .folio-home-card:last-child {
+    transform-origin: right center;
+}
+
 .folio-home-card .folio-home-card-title {
     color: #ffffff !important;
     display: -webkit-box;
@@ -259,7 +272,10 @@ CSS = """
 
 .folio-auto-cover {
     aspect-ratio: 16 / 9;
-    background: linear-gradient(135deg, #0d3b86, #1768ce);
+    --folio-cover-bg: linear-gradient(135deg, #19a7ce, #76d7c4);
+    background:
+        radial-gradient(circle at 86% 16%, rgba(255, 255, 255, 0.28), transparent 28%),
+        var(--folio-cover-bg);
     box-sizing: border-box;
     color: #ffffff;
     height: auto;
@@ -272,21 +288,71 @@ CSS = """
     transition: box-shadow 0.16s ease, filter 0.16s ease;
 }
 
-.folio-home-card:hover .folio-auto-cover {
+.folio-gallery-rail .folio-home-card:hover .folio-auto-cover {
     filter: saturate(1.08) contrast(1.03);
 }
 
 .folio-home-card .folio-auto-cover::after {
     background: linear-gradient(
         180deg,
-        rgba(11, 31, 63, 0.02) 0%,
-        rgba(11, 31, 63, 0.28) 34%,
-        rgba(11, 31, 63, 0.92) 100%
+        rgba(11, 31, 63, 0.08) 0%,
+        rgba(11, 31, 63, 0.22) 42%,
+        rgba(11, 31, 63, 0.78) 100%
     );
     content: "";
     inset: 0;
     position: absolute;
     z-index: 1;
+}
+
+.folio-home-card-preview {
+    background: rgba(11, 31, 63, 0.92);
+    inset: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    position: absolute;
+    transform: scale(1.015);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 2;
+}
+
+.folio-home-card-has-preview:hover .folio-home-card-preview,
+.folio-home-card-has-preview:focus-within .folio-home-card-preview {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.folio-home-card-preview-frame {
+    border: 0;
+    height: 100%;
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    width: 100%;
+}
+
+.folio-home-card-preview-label {
+    align-items: center;
+    background: linear-gradient(180deg, rgba(11, 31, 63, 0.18), rgba(11, 31, 63, 0.72));
+    color: rgba(255, 255, 255, 0.86);
+    display: flex;
+    font-size: 13px;
+    font-weight: 800;
+    inset: 0;
+    justify-content: center;
+    letter-spacing: 0.02em;
+    position: absolute;
+    z-index: 1;
+}
+
+.folio-home-card-preview.is-loaded .folio-home-card-preview-label {
+    opacity: 0;
+}
+
+.folio-home-card-has-preview:hover .folio-home-card-overlay,
+.folio-home-card-has-preview:focus-within .folio-home-card-overlay {
+    background: linear-gradient(180deg, rgba(11, 31, 63, 0.08) 0%, rgba(11, 31, 63, 0.12) 42%, rgba(11, 31, 63, 0.88) 100%);
 }
 
 .folio-home-card-overlay {
@@ -305,7 +371,7 @@ CSS = """
     position: absolute;
     right: 0;
     top: 0;
-    z-index: 3;
+    z-index: 4;
 }
 
 .folio-home-card-title-zone {
@@ -432,31 +498,89 @@ CSS = """
 }
 
 .folio-auto-cover-pattern {
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-radius: 50%;
-    height: 112px;
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px);
+    background-size: 18px 18px;
+    border-radius: 26px;
+    height: 126px;
+    opacity: 0.5;
     position: absolute;
-    right: -28px;
-    top: -30px;
-    width: 112px;
+    right: -18px;
+    top: -22px;
+    transform: rotate(8deg);
+    width: 156px;
 }
 
 .folio-auto-cover-pattern::after {
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.16);
     border-radius: 50%;
     content: "";
-    height: 70px;
-    left: 20px;
+    height: 86px;
+    left: 54px;
     position: absolute;
-    top: 20px;
-    width: 70px;
+    top: 34px;
+    width: 86px;
 }
 
-.folio-auto-cover-1 { background: linear-gradient(135deg, #086b72, #0ba3a0); }
-.folio-auto-cover-2 { background: linear-gradient(135deg, #4932a8, #705ad7); }
-.folio-auto-cover-3 { background: linear-gradient(135deg, #8a3c18, #d46a2b); }
-.folio-auto-cover-4 { background: linear-gradient(135deg, #155e43, #2c9972); }
-.folio-auto-cover-5 { background: linear-gradient(135deg, #7a2455, #bb4380); }
+.folio-auto-cover-0 .folio-auto-cover-pattern,
+.folio-auto-cover-2 .folio-auto-cover-pattern,
+.folio-auto-cover-4 .folio-auto-cover-pattern,
+.folio-auto-cover-6 .folio-auto-cover-pattern,
+.folio-auto-cover-8 .folio-auto-cover-pattern,
+.folio-auto-cover-10 .folio-auto-cover-pattern,
+.folio-auto-cover-12 .folio-auto-cover-pattern,
+.folio-auto-cover-14 .folio-auto-cover-pattern,
+.folio-auto-cover-16 .folio-auto-cover-pattern,
+.folio-auto-cover-18 .folio-auto-cover-pattern,
+.folio-auto-cover-20 .folio-auto-cover-pattern,
+.folio-auto-cover-22 .folio-auto-cover-pattern {
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
+    background-size: 14px 14px;
+}
+
+.folio-auto-cover-1 .folio-auto-cover-pattern,
+.folio-auto-cover-3 .folio-auto-cover-pattern,
+.folio-auto-cover-5 .folio-auto-cover-pattern,
+.folio-auto-cover-7 .folio-auto-cover-pattern,
+.folio-auto-cover-9 .folio-auto-cover-pattern,
+.folio-auto-cover-11 .folio-auto-cover-pattern,
+.folio-auto-cover-13 .folio-auto-cover-pattern,
+.folio-auto-cover-15 .folio-auto-cover-pattern,
+.folio-auto-cover-17 .folio-auto-cover-pattern,
+.folio-auto-cover-19 .folio-auto-cover-pattern,
+.folio-auto-cover-21 .folio-auto-cover-pattern,
+.folio-auto-cover-23 .folio-auto-cover-pattern {
+    background: repeating-radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.24) 0 2px, transparent 2px 15px);
+    border-radius: 50%;
+}
+
+.folio-auto-cover-0,
+.folio-auto-cover-1 { --folio-cover-bg: linear-gradient(135deg, #256fd8, #62c9e8); }
+.folio-auto-cover-2,
+.folio-auto-cover-3 { --folio-cover-bg: linear-gradient(135deg, #1496a8, #76d7c4); }
+.folio-auto-cover-4,
+.folio-auto-cover-5 { --folio-cover-bg: linear-gradient(135deg, #12846f, #8fd6b3); }
+.folio-auto-cover-6,
+.folio-auto-cover-7 { --folio-cover-bg: linear-gradient(135deg, #3f9967, #a8d977); }
+.folio-auto-cover-8,
+.folio-auto-cover-9 { --folio-cover-bg: linear-gradient(135deg, #8aa83d, #d7d96f); }
+.folio-auto-cover-10,
+.folio-auto-cover-11 { --folio-cover-bg: linear-gradient(135deg, #d19a2a, #f1cf68); }
+.folio-auto-cover-12,
+.folio-auto-cover-13 { --folio-cover-bg: linear-gradient(135deg, #d4743f, #f2b36f); }
+.folio-auto-cover-14,
+.folio-auto-cover-15 { --folio-cover-bg: linear-gradient(135deg, #c95c5c, #ee9a8f); }
+.folio-auto-cover-16,
+.folio-auto-cover-17 { --folio-cover-bg: linear-gradient(135deg, #c65b85, #eda5bd); }
+.folio-auto-cover-18,
+.folio-auto-cover-19 { --folio-cover-bg: linear-gradient(135deg, #a35fb7, #d4a3df); }
+.folio-auto-cover-20,
+.folio-auto-cover-21 { --folio-cover-bg: linear-gradient(135deg, #6d63cc, #a9a6e8); }
+.folio-auto-cover-22,
+.folio-auto-cover-23 { --folio-cover-bg: linear-gradient(135deg, #486fc5, #96b2e8); }
 
 .folio-home-metrics {
     align-items: center;
@@ -521,6 +645,11 @@ CSS = """
 
     .folio-gallery-rail .folio-home-card {
         flex-basis: min(82vw, 320px);
+    }
+
+    .folio-gallery-rail .folio-home-card:hover {
+        box-shadow: 0 14px 30px rgba(11, 31, 63, 0.18);
+        transform: translateY(-3px) scale(1.03);
     }
 }
 """

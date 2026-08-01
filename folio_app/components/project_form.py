@@ -31,6 +31,9 @@ PROJECT_BODY_TEMPLATE = """<h2>문제 정의</h2>
 <p><span style="color: rgb(138, 152, 173);">예시: 분석 결과 출석률이 높은 수강생일수록 수료와 취업 연계 가능성이 함께 높아지는 경향을 확인했습니다. 따라서 교육 운영팀은 중도 이탈 위험이 높은 수강생을 조기에 발견하고 개입하는 방안을 우선 검토할 필요가 있습니다.</span></p>
 """
 
+PROJECT_TITLE_MAX_CHARS = 48
+PROJECT_ONE_LINER_MAX_CHARS = 56
+
 
 def render_project_body_editor(key: str, value: str) -> str:
     st.caption("자유롭게 작성하세요. 섹션 제목을 유지하면 상세 화면에서 내용이 더 깔끔하게 나뉩니다.")
@@ -193,12 +196,15 @@ def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], li
     if not _project_body_has_content(form_data["project_body"], parsed_body):
         missing.append("프로젝트 본문")
 
+    text_errors = _validate_text_lengths(form_data)
     url_error = _validate_optional_urls(
         form_data["power_bi_url"],
         form_data["report_url"],
         form_data["github_url"],
         form_data["thumbnail_url"],
     )
+    if text_errors:
+        url_error = "\n".join([*text_errors, *([url_error] if url_error else [])])
     return parsed_body, missing, url_error
 
 
@@ -244,30 +250,34 @@ def render_project_form(
         """
         <div class="folio-project-form-intro">
             <strong>프로젝트 정보를 작성해 주세요.</strong>
-            <span><b>*</b> 표시는 필수 입력 항목입니다.</span>
+            <span>작성 내용은 현재 세션에 자동 임시 저장됩니다.</span>
+            <small><b>*</b> 필수 입력</small>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    st.caption("작성 내용은 현재 세션에 자동 임시 저장됩니다. 브라우저 새로고침이나 종료 시에는 사라질 수 있습니다.")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
-        overview_col, preview_col = st.columns(2, gap="large")
+        overview_col, preview_col = st.columns([3, 2], gap="large")
         with overview_col:
             st.markdown(
-                '<div class="folio-form-section-heading"><span>1</span><div><strong>기본 정보</strong><small>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</small></div></div>',
+                '<div class="folio-form-section-heading"><div><strong>기본 정보</strong><small>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</small></div></div>',
                 unsafe_allow_html=True,
             )
             title_input = st.text_input(
                 "프로젝트명 *",
                 value=title,
                 placeholder="예: 서울시 청년 취업 데이터 분석",
+                help=f"홈 갤러리 카드 제목 영역에 맞춰 최대 {PROJECT_TITLE_MAX_CHARS}자까지 입력할 수 있습니다.",
+                max_chars=PROJECT_TITLE_MAX_CHARS,
                 key=f"{key_prefix}_title",
             )
             one_liner_input = st.text_input(
                 "프로젝트 한 줄 소개",
                 value=one_liner,
                 placeholder="핵심 메시지를 한 문장으로 적어주세요.",
+                help=f"홈 갤러리 카드 요약 영역에 맞춰 최대 {PROJECT_ONE_LINER_MAX_CHARS}자까지 입력할 수 있습니다.",
+                max_chars=PROJECT_ONE_LINER_MAX_CHARS,
                 key=f"{key_prefix}_one_liner",
             )
             tags_input = st.text_input(
@@ -286,21 +296,21 @@ def render_project_form(
 
         with preview_col:
             st.markdown(
-                '<div class="folio-form-preview-heading"><strong>카드 미리보기</strong><small>홈 화면에 표시될 모습을 실시간으로 확인하세요.</small></div>',
+                '<div class="folio-form-preview-heading"><strong>카드 미리보기</strong></div>',
                 unsafe_allow_html=True,
             )
             _render_project_preview(title_input, one_liner_input, tags_input, "")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
         st.markdown(
-            '<div class="folio-form-section-heading"><span>2</span><div><strong>프로젝트 내용</strong><small>분석의 배경과 과정, 핵심 인사이트를 기록하세요.</small></div></div>',
+            '<div class="folio-form-section-heading"><div><strong>프로젝트 내용</strong><small>분석의 배경과 과정, 핵심 인사이트를 기록하세요.</small></div></div>',
             unsafe_allow_html=True,
         )
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
     with st.container(border=True, key=f"{key_prefix}_form_section_links"):
         st.markdown(
-            '<div class="folio-form-section-heading"><span>3</span><div><strong>관련 결과물 링크</strong><small>관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.</small></div></div>',
+            '<div class="folio-form-section-heading"><div><strong>관련 결과물 링크</strong><small>관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.</small></div></div>',
             unsafe_allow_html=True,
         )
         power_bi_col, github_col, etc_col = st.columns(3, gap="medium")
@@ -423,6 +433,15 @@ def _validate_optional_urls(
     if invalid_fields:
         return f"{', '.join(invalid_fields)}은 http:// 또는 https://로 시작해야 합니다."
     return None
+
+
+def _validate_text_lengths(form_data: dict[str, str]) -> list[str]:
+    errors = []
+    if len(form_data.get("title", "")) > PROJECT_TITLE_MAX_CHARS:
+        errors.append(f"프로젝트명은 최대 {PROJECT_TITLE_MAX_CHARS}자까지 입력할 수 있습니다.")
+    if len(form_data.get("one_liner", "")) > PROJECT_ONE_LINER_MAX_CHARS:
+        errors.append(f"프로젝트 한 줄 소개는 최대 {PROJECT_ONE_LINER_MAX_CHARS}자까지 입력할 수 있습니다.")
+    return errors
 
 
 def _normalize_tag_preview(value: str) -> list[str]:

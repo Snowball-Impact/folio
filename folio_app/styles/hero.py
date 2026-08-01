@@ -274,46 +274,58 @@ CSS = """
 
 /* ── Page Hero (sub-pages) ── */
 .folio-page-hero {
-    align-items: start;
+    align-items: center;
     background: var(--folio-surface);
     border: 1px solid var(--folio-border);
     border-radius: 16px;
     display: grid;
     gap: 18px;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.78fr);
+    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
     margin-top: -8px;
     margin-bottom: 20px;
     min-height: 220px;
     overflow: hidden;
-    padding: 22px 20px;
+    padding: 28px 42px 34px;
 }
 
 .folio-page-hero-copy {
+    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
     padding-left: 2px;
+}
+
+.folio-page-hero-copy::after {
+    content: "";
+    display: block;
+    height: 50px;
+    margin-top: 8px;
 }
 
 .folio-page-hero-eyebrow {
     color: var(--folio-blue);
-    font-size: 1.05rem;
-    font-weight: 800;
+    font-size: 1.2rem;
+    font-weight: 700;
     letter-spacing: 0.12em;
-    margin-bottom: 14px;
+    line-height: 1;
+    margin-bottom: 0;
     text-transform: uppercase;
 }
 
 .folio-page-hero h1 {
     color: var(--folio-navy);
-    font-size: 2.15rem;
+    font-size: 2.45rem;
     font-weight: 800;
-    line-height: 1.16;
-    margin: 0 0 12px;
+    line-height: 1.22;
+    margin: 0;
     word-break: keep-all;
 }
 
 .folio-page-hero p {
     color: var(--folio-muted);
-    font-size: 0.92rem;
-    line-height: 1.55;
+    font-size: 0.98rem;
+    line-height: 1.65;
     margin: 0;
     max-width: 440px;
     word-break: keep-all;
@@ -321,27 +333,33 @@ CSS = """
 
 .folio-page-hero-visual {
     align-items: flex-start;
+    aspect-ratio: 16 / 9;
     background: var(--folio-subtle);
     border-radius: 20px;
+    box-sizing: border-box;
     display: flex;
     justify-content: flex-end;
+    justify-self: end;
     padding: 6px;
+    width: min(100%, 440px);
 }
 
 .folio-page-hero-visual img,
 .folio-page-hero-cover-image {
+    aspect-ratio: 16 / 9;
     border: 1px solid rgba(20, 89, 200, 0.08);
     border-radius: 18px;
     box-shadow: 0 12px 32px rgba(11, 31, 63, 0.08);
     display: block;
-    height: 236px;
+    height: 100%;
     object-fit: cover;
-    width: min(100%, 420px);
+    width: 100%;
 }
 
 .folio-page-hero-visual .folio-auto-cover {
+    aspect-ratio: 16 / 9;
+    height: 100%;
     margin: 0;
-    height: 236px;
     width: 100%;
     border-radius: 16px;
 }
@@ -353,7 +371,7 @@ CSS = """
 /* Hero footer actions styling */
 .st-key-folio_hero_footer_actions {
     margin-top: -20px;
-    margin-bottom: 24px;
+    margin-bottom: 21px;
     position: relative;
     z-index: 2;
 }
@@ -364,7 +382,8 @@ CSS = """
     border-top: none;
     border-radius: 0 0 16px 16px;
     box-shadow: 0 10px 24px rgba(11, 31, 63, 0.05);
-    padding: 12px 20px 14px 22px;
+    padding: 12px 42px 14px;
+    transform: translateY(-3px);
 }
 
 .st-key-folio_hero_footer_actions [data-testid="stColumn"] {
@@ -372,13 +391,52 @@ CSS = """
     padding: 0;
 }
 
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls {
+    width: 100%;
+}
+
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls [data-testid="stHorizontalBlock"] {
+    align-items: center;
+    gap: 6px !important;
+    justify-content: flex-end;
+    flex-wrap: nowrap !important;
+    width: max-content;
+    margin-left: auto;
+}
+
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls [data-testid="stColumn"] {
+    flex: 0 0 auto !important;
+    min-width: 0 !important;
+    width: auto !important;
+}
+
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls [data-testid="stElementContainer"],
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls [data-testid="stCustomComponentV1"],
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls .stButton,
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls [data-testid="stMarkdownContainer"] {
+    align-items: center;
+    display: flex;
+    justify-content: flex-end;
+    margin: 0 !important;
+    min-height: 36px;
+}
+
+.st-key-folio_hero_footer_actions .st-key-detail_footer_controls iframe {
+    display: block;
+}
+
+.st-key-folio_hero_footer_actions .folio-detail-action-meta,
+.st-key-folio_hero_footer_actions .folio-detail-summary {
+    min-height: 36px;
+}
+
 .st-key-folio_hero_footer_actions .st-key-detail_like_action {
     align-items: center;
     display: flex;
-    height: 38px;
+    height: 36px;
     justify-content: flex-end;
     margin: 0;
-    transform: translateY(5px);
+    transform: none;
     width: 100%;
 }
 
@@ -404,7 +462,7 @@ CSS = """
     border-radius: 999px;
     color: var(--folio-blue);
     display: inline-flex;
-    font-size: 0.78rem;
+    font-size: 12px;
     font-weight: 600;
     padding: 0 12px;
     transition: all 0.13s ease;
@@ -425,10 +483,32 @@ CSS = """
     border-radius: 16px 16px 0 0;
     margin-bottom: 0;
     min-height: 0;
+    padding-bottom: 22px;
+    padding-top: 22px;
 }
 
 .folio-project-detail-hero .folio-page-hero-copy {
     align-self: center;
+}
+
+.folio-project-detail-hero .folio-page-hero-copy::after {
+    display: none;
+}
+
+.folio-project-detail-hero .folio-page-hero-eyebrow {
+    font-size: 1.05rem;
+    font-weight: 800;
+    margin-bottom: 14px;
+}
+
+.folio-project-detail-hero h1 {
+    font-size: 2.15rem;
+    line-height: 1.16;
+}
+
+.folio-project-detail-hero p {
+    font-size: 0.92rem;
+    line-height: 1.55;
 }
 
 /* ── Responsive ── */
@@ -446,7 +526,8 @@ CSS = """
 
     .folio-page-hero-visual img,
     .folio-page-hero-cover-image {
-        height: 200px;
+        aspect-ratio: 16 / 9;
+        height: 100%;
         width: 100%;
     }
 }

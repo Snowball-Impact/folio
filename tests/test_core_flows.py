@@ -28,7 +28,7 @@ class NavigationTests(unittest.TestCase):
             _header_nav_items(True),
             [
                 ("Home", "홈 갤러리"),
-                ("Submit", "프로젝트 제출"),
+                ("Submit", "프로젝트 등록"),
                 ("My Page", "마이 페이지"),
                 ("__logout__", "로그아웃"),
             ],

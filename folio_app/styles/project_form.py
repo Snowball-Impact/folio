@@ -17,6 +17,7 @@ div[data-testid="stForm"] button {
 .folio-project-form-intro {
     align-items: center;
     display: flex;
+    gap: 14px;
     justify-content: space-between;
     margin: 4px 0 18px;
 }
@@ -28,7 +29,21 @@ div[data-testid="stForm"] button {
 
 .folio-project-form-intro span {
     color: var(--folio-muted);
+    flex: 1 1 auto;
     font-size: 0.82rem;
+    text-align: right;
+}
+
+.folio-project-form-intro small {
+    background: var(--folio-subtle);
+    border: 1px solid var(--folio-border);
+    border-radius: 999px;
+    color: var(--folio-muted);
+    flex: 0 0 auto;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    white-space: nowrap;
 }
 
 .folio-project-form-intro b {
@@ -110,28 +125,16 @@ div[data-testid="stForm"] button {
 }
 
 .folio-form-section-heading {
+    display: block;
+    margin-bottom: 16px;
+}
+
+.folio-form-section-heading > div {
     align-items: center;
     display: flex;
-    gap: 12px;
-    margin-bottom: 18px;
-}
-
-.folio-form-section-heading > span {
-    align-items: center;
-    background: var(--folio-subtle);
-    border-radius: 50%;
-    color: var(--folio-blue);
-    display: inline-flex;
-    flex: 0 0 32px;
-    font-size: 0.86rem;
-    font-weight: 800;
-    height: 32px;
-    justify-content: center;
-}
-
-.folio-form-section-heading strong,
-.folio-form-section-heading small {
-    display: block;
+    gap: 18px;
+    justify-content: space-between;
+    min-width: 0;
 }
 
 .folio-form-preview-heading strong {
@@ -174,19 +177,40 @@ div[data-testid="stForm"] button {
 
 .folio-form-section-heading strong {
     color: var(--folio-navy);
+    flex: 0 0 auto;
     font-size: 1rem;
 }
 
 .folio-form-section-heading small {
     color: var(--folio-muted);
+    flex: 1 1 auto;
     font-size: 0.82rem;
-    margin-top: 2px;
+    margin-top: 0;
+    text-align: right;
+    word-break: keep-all;
 }
 
 [class*="form_section_"] .stTextInput input,
 [class*="form_section_"] .stTextArea textarea,
 [class*="form_section_"] [data-baseweb="select"] > div {
     background: var(--folio-bg) !important;
+}
+
+[class*="_form_section_overview"] [data-testid="stVerticalBlock"] {
+    gap: 0.78rem !important;
+}
+
+[class*="_form_section_overview"] .stTextInput {
+    margin-bottom: 2px !important;
+}
+
+[class*="_form_section_overview"] .stTextInput div[data-baseweb="input"] {
+    min-height: 42px !important;
+}
+
+[class*="_form_section_overview"] .stTextInput input {
+    font-size: 0.88rem !important;
+    min-height: 42px !important;
 }
 
 /* Visibility toggle card (rendered when show_visibility_setting=True) */
@@ -226,6 +250,20 @@ div[data-testid="stForm"] button {
         align-items: flex-start;
         flex-direction: column;
         gap: 5px;
+    }
+
+    .folio-project-form-intro span {
+        text-align: left;
+    }
+
+    .folio-form-section-heading > div {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .folio-form-section-heading small {
+        text-align: left;
     }
 
     [class*="form_section_"] {

@@ -10,11 +10,11 @@ CSS = """
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    margin-bottom: 4px;
+    gap: 10px;
+    margin-bottom: 0;
     max-width: 100%;
     min-width: 0;
-    padding: 12px 12px 16px;
+    padding: 8px 10px;
     width: 100%;
 }
 
@@ -23,11 +23,11 @@ CSS = """
     border-color: var(--folio-border) !important;
     border-radius: 14px !important;
     box-sizing: border-box !important;
-    margin-bottom: 14px;
+    margin-bottom: 10px;
     max-width: 100% !important;
     min-width: 0 !important;
     overflow: clip;
-    padding: 16px 18px !important;
+    padding: 12px 14px !important;
     width: 100% !important;
 }
 
@@ -46,8 +46,9 @@ CSS = """
 .folio-portfolio-card-footer {
     align-items: flex-start;
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    gap: 12px;
+    justify-content: space-between;
     max-width: 100%;
     min-width: 0;
     width: 100%;
@@ -68,17 +69,17 @@ CSS = """
 
 .folio-portfolio-card-title {
     color: var(--folio-navy);
-    font-size: 0.98rem;
-    font-weight: 700;
-    margin: 0 0 5px;
+    font-size: 14px;
+    font-weight: 800;
+    margin: 0 0 4px;
     word-break: keep-all;
 }
 
 .folio-portfolio-card-liner {
     color: var(--folio-muted);
-    font-size: 0.86rem;
+    font-size: 13px;
     line-height: 1.5;
-    margin: 0 0 8px;
+    margin: 0;
     word-break: keep-all;
 }
 
@@ -87,9 +88,10 @@ CSS = """
     color: var(--folio-muted);
     display: flex;
     flex-wrap: wrap;
-    font-size: 0.82rem;
-    gap: 12px;
-    justify-content: flex-start;
+    flex: 0 0 auto;
+    font-size: 12px;
+    gap: 10px;
+    justify-content: flex-end;
     margin: 0;
 }
 
@@ -109,6 +111,17 @@ CSS = """
     width: 16px;
 }
 
+[class*="st-key-portfolio_item_"] [data-testid="stColumn"]:last-child [data-testid="stVerticalBlock"] {
+    gap: 6px !important;
+}
+
+[class*="st-key-portfolio_item_"] [data-testid="stColumn"]:last-child button {
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    min-height: 32px !important;
+    padding: 0 12px !important;
+}
+
 /* ── Responsive ── */
 @media (max-width: 860px) {
     .folio-portfolio-card {
@@ -117,6 +130,7 @@ CSS = """
 
     .folio-portfolio-card-footer {
         align-items: flex-start;
+        flex-direction: column;
     }
 
     .folio-portfolio-card-footer .folio-tags,

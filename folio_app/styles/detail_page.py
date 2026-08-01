@@ -14,37 +14,38 @@ CSS = """
 .folio-detail-summary {
     align-items: center;
     display: flex;
-    gap: 20px;
-    justify-content: space-between;
-    min-height: 38px;
+    min-height: 36px;
     width: 100%;
 }
 
-.folio-detail-summary-stats {
+.folio-detail-action-meta {
     align-items: center;
     display: flex;
-    flex: 0 0 auto;
-    gap: 12px;
-}
-
-.folio-detail-summary-stat {
-    align-items: baseline;
-    color: var(--folio-muted);
-    display: inline-flex;
     gap: 6px;
+    justify-content: flex-end;
+    min-height: 36px;
+    width: 100%;
 }
 
-.folio-detail-summary-stat small { font-size: 0.74rem; font-weight: 700; }
-.folio-detail-summary-stat strong { color: var(--folio-navy); font-size: 0.92rem; }
-
-.folio-detail-visibility-badge {
+.folio-detail-action-chip {
+    align-items: center;
+    background: var(--folio-surface);
+    border: 1px solid var(--folio-border);
     border-radius: 999px;
-    font-size: 0.74rem;
-    font-weight: 800;
-    padding: 5px 10px;
+    color: var(--folio-blue);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 700;
+    height: 32px;
+    justify-content: center;
+    line-height: 1;
+    min-width: 64px;
+    padding: 0 12px;
+    white-space: nowrap;
 }
-.folio-detail-visibility-badge.is-public { background: #e7f6f2; color: #087568; }
-.folio-detail-visibility-badge.is-private { background: #edf0f5; color: #65748a; }
+
+.folio-detail-action-chip.is-public { background: #e7f6f2; border-color: #d2eee8; color: #087568; }
+.folio-detail-action-chip.is-private { background: #edf0f5; border-color: #d8dee9; color: #65748a; }
 
 .folio-detail-meta-item {
     align-items: center;
@@ -94,58 +95,43 @@ CSS = """
     border: 1px solid var(--folio-border);
     border-radius: 14px;
     overflow: hidden;
-    padding: 4px 28px;
+    padding: 8px 28px 18px;
 }
 
 .folio-detail-content-heading {
     border-bottom: 1px solid var(--folio-border);
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 900px;
     padding: 18px 0 14px;
 }
 
 .folio-detail-content-heading h2 {
     color: var(--folio-navy);
-    font-size: 1.2rem;
+    font-size: 20px;
     font-weight: 800;
     margin: 0;
 }
 
 .folio-detail-section {
     border-bottom: 1px solid var(--folio-border);
-    padding: 17px 0 18px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 900px;
+    padding: 22px 0 24px;
 }
 
 .folio-detail-section:last-child { border-bottom: 0; }
 
-.folio-detail-section-heading {
-    align-items: center;
-    display: flex;
-    gap: 10px;
-    margin-bottom: 9px;
-}
-
-.folio-detail-section-heading span {
-    color: var(--folio-blue);
-    font-size: 0.88rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-}
-
-.folio-detail-section-heading h2 {
-    color: var(--folio-navy);
-    font-size: 1.08rem;
-    font-weight: 800;
-    margin: 0;
-}
-
 .folio-detail-section-content {
     color: var(--folio-navy);
-    font-size: 0.96rem;
-    line-height: 1.7;
+    font-size: 14px;
+    line-height: 1.78;
     word-break: keep-all;
 }
 
 .folio-detail-section-content p {
-    margin: 0 0 8px;
+    margin: 0 0 12px;
 }
 
 .folio-detail-section-content p:last-child {
@@ -203,7 +189,7 @@ CSS = """
     box-shadow: none !important;
     max-width: 100% !important;
     overflow: hidden !important;
-    padding: 18px !important;
+    padding: 22px !important;
     width: 100% !important;
 }
 
@@ -213,20 +199,21 @@ CSS = """
 
 .folio-visual-heading {
     border-bottom: 1px solid var(--folio-border);
-    margin-bottom: 16px;
+    margin: 0 auto 18px;
+    max-width: 900px;
     padding-bottom: 14px;
 }
 
 .folio-visual-heading h2 {
     color: var(--folio-navy);
-    font-size: 1.2rem;
+    font-size: 20px;
     font-weight: 800;
     margin: 0;
 }
 
 .folio-visual-heading p {
     color: var(--folio-muted);
-    font-size: 0.84rem;
+    font-size: 13px;
     line-height: 1.45;
     margin: 4px 0 0;
     word-break: keep-all;
@@ -248,9 +235,11 @@ CSS = """
 .st-key-project_detail_visual [data-testid="stCustomComponentV1"],
 .st-key-project_detail_visual .stLinkButton {
     box-sizing: border-box !important;
-    max-width: 100% !important;
+    max-width: 900px !important;
     min-width: 0 !important;
     width: 100% !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 .folio-sidebar-heading {
@@ -291,7 +280,7 @@ CSS = """
 .st-key-project_detail_sidebar [data-testid="stCaptionContainer"],
 .st-key-project_detail_visual [data-testid="stCaptionContainer"] {
     color: var(--folio-muted);
-    font-size: 0.78rem;
+    font-size: 12px;
     line-height: 1.45;
 }
 
@@ -299,12 +288,12 @@ CSS = """
 .st-key-project_detail_visual .stLinkButton > a {
     background: #ffffff !important;
     border: 1px solid var(--folio-border) !important;
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     box-shadow: none !important;
     color: var(--folio-navy) !important;
-    font-size: 0.86rem !important;
+    font-size: 13px !important;
     font-weight: 700 !important;
-    min-height: 40px !important;
+    min-height: 34px !important;
     transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease !important;
     width: 100% !important;
 }
@@ -358,7 +347,6 @@ CSS = """
 @media (max-width: 768px) {
     .folio-detail-content-card { padding: 0 16px; }
     .folio-detail-section { padding: 16px 0 17px; }
-    .folio-detail-section-heading h2 { font-size: 1rem; }
     .folio-detail-content-heading { padding: 17px 0 13px; }
 
     .folio-detail-section-content {

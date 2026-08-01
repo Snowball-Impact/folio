@@ -17,6 +17,7 @@ class ProjectFormTests(unittest.TestCase):
     def test_validation_reports_invalid_optional_url(self) -> None:
         form_data = {
             "title": "프로젝트",
+            "one_liner": "",
             "project_body": "## 문제 정의\n내용",
             "power_bi_url": "",
             "report_url": "javascript:alert(1)",
@@ -26,6 +27,23 @@ class ProjectFormTests(unittest.TestCase):
         _, missing, url_error = validate_project_form(form_data)
         self.assertEqual(missing, [])
         self.assertIn("보고서 URL", url_error or "")
+
+    def test_validation_reports_text_that_exceeds_card_limits(self) -> None:
+        form_data = {
+            "title": "가" * 49,
+            "one_liner": "나" * 57,
+            "project_body": "## 문제 정의\n내용",
+            "power_bi_url": "",
+            "report_url": "",
+            "github_url": "",
+            "thumbnail_url": "",
+        }
+
+        _, missing, url_error = validate_project_form(form_data)
+
+        self.assertEqual(missing, [])
+        self.assertIn("프로젝트명은 최대 48자", url_error or "")
+        self.assertIn("프로젝트 한 줄 소개는 최대 56자", url_error or "")
 
     def test_build_payload_preserves_private_visibility(self) -> None:
         form_data = {

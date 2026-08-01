@@ -16,6 +16,7 @@ from folio_app.services.projects import (
     clear_project_caches,
     list_popular_tags,
     list_public_projects,
+    normalize_power_bi_embed_url,
 )
 
 _HERO_PREVIEW_PATH = Path(__file__).resolve().parent.parent / "static" / "hero-preview.png"
@@ -65,7 +66,7 @@ def render() -> None:
 
 def _render_hero() -> None:
     hero_preview_src = _hero_preview_src()
-    primary_href = "?page=Submit" if get_current_user() is not None else "?page=Login"
+    primary_href = "?page=Submit"
     st.markdown(
         f"""
         <section class="folio-home-hero-shell">
@@ -77,7 +78,7 @@ def _render_hero() -> None:
                             <h1>AI 시대에는 <em>휴먼 인사이트</em>가 자산이다.</h1>
                             <p>데이터, AI, 웹 앱 프로젝트를 기록하고 공유하세요.</p>
                             <div class="folio-home-actions">
-                                <a class="folio-home-primary-cta" href="{primary_href}">내 프로젝트 등록하기</a>
+                                <a class="folio-home-primary-cta" href="{primary_href}" target="_self">내 프로젝트 등록하기</a>
                             </div>
                         </div>
                         <div class="folio-hero-preview">
@@ -94,7 +95,7 @@ def _render_hero() -> None:
                             <h1>인사이트는 <em>공유할수록 깊어집니다.</em></h1>
                             <p>프로젝트를 공유하고, 댓글과 반응으로 더 나은 결과물로 발전시키세요.</p>
                             <div class="folio-home-actions">
-                                <a class="folio-home-primary-cta" href="{primary_href}">내 프로젝트 등록하기</a>
+                                <a class="folio-home-primary-cta" href="{primary_href}" target="_self">내 프로젝트 등록하기</a>
                             </div>
                         </div>
                         <div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">
@@ -198,6 +199,7 @@ def _render_project_rails(rails: list[tuple[str, str, str, list[dict]]]) -> None
     for rail_key, title, description, projects in rails:
         _render_project_rail(rail_key, title, description, projects)
     _render_rail_scroll_script()
+    _render_card_preview_script()
 
 
 def _render_project_rail(rail_key: str, title: str, description: str, projects: list[dict]) -> None:
@@ -268,6 +270,59 @@ def _render_rail_scroll_script() -> None:
     )
 
 
+def _render_card_preview_script() -> None:
+    components.html(
+        """
+        <script>
+        (function() {
+            var parentDocument = window.parent.document;
+            if (parentDocument.__folioCardPreviewBound) {
+                return;
+            }
+            parentDocument.__folioCardPreviewBound = true;
+
+            function mountPreview(preview) {
+                if (!preview || preview.dataset.folioPreviewMounted === "1") {
+                    return;
+                }
+                var src = preview.getAttribute("data-folio-preview-src");
+                if (!src) {
+                    return;
+                }
+                preview.dataset.folioPreviewMounted = "1";
+                preview.classList.add("is-loaded");
+                var iframe = parentDocument.createElement("iframe");
+                iframe.className = "folio-home-card-preview-frame";
+                iframe.title = "프로젝트 대시보드 미리보기";
+                iframe.src = src;
+                iframe.loading = "lazy";
+                iframe.referrerPolicy = "no-referrer-when-downgrade";
+                iframe.setAttribute("allowfullscreen", "true");
+                preview.appendChild(iframe);
+            }
+
+            parentDocument.addEventListener("mouseenter", function(event) {
+                var card = event.target.closest(".folio-home-card-has-preview");
+                if (!card) {
+                    return;
+                }
+                mountPreview(card.querySelector(".folio-home-card-preview"));
+            }, true);
+
+            parentDocument.addEventListener("focusin", function(event) {
+                var card = event.target.closest(".folio-home-card-has-preview");
+                if (!card) {
+                    return;
+                }
+                mountPreview(card.querySelector(".folio-home-card-preview"));
+            });
+        })();
+        </script>
+        """,
+        height=0,
+    )
+
+
 def _render_count_up_script() -> None:
     components.html(
         """
@@ -309,10 +364,12 @@ def _render_count_up_script() -> None:
 
 
 def _project_card_html(project: dict) -> str:
+    preview_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
     html_content = render_project_card_html(
         project,
         compact=False,
         fallback_text=plain_text(project.get("insights")) or "",
         href=f"?page={_HOME_PAGE}&project_id={project['id']}",
+        preview_url=preview_url,
     )
     return html_content

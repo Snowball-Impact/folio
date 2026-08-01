@@ -221,7 +221,6 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
             f"""
             <div class="folio-profile-identity">
                 <div class="folio-profile-identity-copy">
-                    <span class="folio-profile-kicker">MY PROFILE</span>
                     <dl class="folio-profile-fields">
                         <div>
                             <dt>작성자</dt>
@@ -239,18 +238,17 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
                 </div>
             </div>
             <div class="folio-profile-about">
-                <span>ABOUT</span>
                 <p class="folio-profile-bio{' is-empty' if not bio else ''}">{html.escape(bio_label)}</p>
+            </div>
+            <div class="folio-profile-stats">
+                <span><small>전체 프로젝트</small><strong>{stats["project_count"]}</strong></span>
+                <span><small>공개 프로젝트</small><strong>{public_count}</strong></span>
+                <span><small>누적 조회</small><strong>{stats["view_count"]:,}</strong></span>
+                <span><small>총 좋아요</small><strong>{like_count:,}</strong></span>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("전체 프로젝트", stats["project_count"])
-        m2.metric("공개 프로젝트", public_count)
-        m3.metric("누적 조회", f"{stats['view_count']:,}")
-        m4.metric("총 좋아요", f"{like_count:,}")
 
         if st.button("프로필 편집", key="start_edit_profile", icon=":material/edit:"):
             st.session_state["editing_profile"] = True
@@ -259,9 +257,7 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
     st.markdown(
         """
         <div class="folio-profile-section-heading">
-            <div>
-                <span>MY PORTFOLIO</span>
-            </div>
+            <h2>내 프로젝트</h2>
             <p>등록한 프로젝트를 확인하고 수정하거나 삭제할 수 있습니다.</p>
         </div>
         """,
@@ -286,13 +282,12 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
         with st.container(border=False, key="profile_empty_projects"):
             st.markdown(
                 """
-                <div class="folio-profile-empty-icon">＋</div>
-                <h3>첫 프로젝트를 포트폴리오에 담아보세요</h3>
-                <p>분석 과정과 인사이트를 기록하면 이곳에 활동이 쌓입니다.</p>
+                <h3>아직 등록한 프로젝트가 없습니다.</h3>
+                <p>첫 프로젝트를 등록하면 이곳에서 관리할 수 있습니다.</p>
                 """,
                 unsafe_allow_html=True,
             )
-            if st.button("프로젝트 등록하기", key="profile_create_project", type="primary"):
+            if st.button("프로젝트 등록", key="profile_create_project", type="primary"):
                 navigate("Submit")
 def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     with st.container(border=True, key="profile_edit_card"):
