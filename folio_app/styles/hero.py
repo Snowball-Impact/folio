@@ -46,23 +46,25 @@ CSS = """
     color: var(--folio-navy);
     display: grid;
     flex: 0 0 50%;
-    gap: 24px;
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
-    min-height: 210px;
-    padding: 26px 28px 34px;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
+    min-height: 220px;
+    padding: 28px 42px 34px;
     width: 50%;
 }
 
 .folio-home-guide-hero {
-    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+    grid-template-columns: minmax(0, 0.82fr) minmax(520px, 1fr);
 }
 
 .folio-home-guide-flow {
     align-items: stretch;
     align-self: center;
     display: grid;
-    gap: 0;
+    gap: 8px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-self: end;
+    width: 85%;
     position: relative;
 }
 
@@ -112,23 +114,23 @@ CSS = """
     box-shadow: 0 12px 28px rgba(11, 31, 63, 0.06);
     box-sizing: border-box;
     display: grid;
-    height: 122px;
-    padding: 14px 12px;
-    width: calc(100% - 10px);
+    height: 98px;
+    padding: 11px 10px;
+    width: 100%;
 }
 
 .folio-home-guide-card strong {
     color: var(--folio-navy);
     display: block;
-    font-size: 0.98rem;
+    font-size: 0.88rem;
     line-height: 1.25;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .folio-home-guide-card p {
     color: var(--folio-muted);
-    font-size: 0.8rem;
-    line-height: 1.38;
+    font-size: 14px;
+    line-height: 1.32;
     margin: 0;
     word-break: keep-all;
 }
@@ -177,7 +179,7 @@ CSS = """
 
 .folio-home-eyebrow {
     color: var(--folio-blue);
-    font-size: 1.35rem;
+    font-size: 1.2rem;
     font-weight: 700;
     letter-spacing: 0.12em;
     line-height: 1;
@@ -189,16 +191,17 @@ CSS = """
     align-items: flex-start;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
 }
 
 .folio-home-copy h1 {
     color: var(--folio-navy);
-    font-size: 2.6rem;
+    font-size: 2.45rem;
     font-weight: 800;
-    line-height: 1.05;
+    line-height: 1.22;
     margin: 0;
-    text-wrap: balance;
+    text-wrap: nowrap;
+    white-space: nowrap;
     word-break: keep-all;
 }
 
@@ -210,7 +213,7 @@ CSS = """
 .folio-home-copy p {
     color: var(--folio-muted);
     font-size: 0.98rem;
-    line-height: 1.48;
+    line-height: 1.65;
     margin: 0;
     max-width: 460px;
     word-break: keep-all;
@@ -221,7 +224,7 @@ CSS = """
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
-    margin-top: 10px;
+    margin-top: 8px;
 }
 
 .folio-home-actions a {
@@ -263,10 +266,10 @@ CSS = """
     box-shadow: 0 16px 48px rgba(11, 31, 63, 0.11);
     display: block;
     height: auto;
-    max-height: 230px;
+    max-height: 246px;
     max-width: 100%;
     object-fit: cover;
-    width: min(100%, 400px);
+    width: min(100%, 440px);
 }
 
 /* ── Page Hero (sub-pages) ── */
@@ -457,6 +460,8 @@ CSS = """
 
     .folio-home-copy h1 {
         font-size: 1.9rem;
+        text-wrap: balance;
+        white-space: normal;
     }
 
     .folio-home-actions {

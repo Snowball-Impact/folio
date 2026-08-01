@@ -35,20 +35,28 @@ def _cover_variant(project: dict, variant_count: int = 6) -> int:
     return int.from_bytes(digest[:2], "big") % variant_count
 
 
-def _render_auto_cover(project: dict, *, compact: bool = False) -> str:
+def _render_auto_cover(
+    project: dict,
+    *,
+    compact: bool = False,
+    show_title: bool = True,
+    show_tags: bool = True,
+) -> str:
     title = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
     tag_html = "".join(
         f"<span>#{html.escape(str(tag))}</span>"
         for tag in (project.get("tags") or [])[:2]
     )
+    title_block = f"<h3>{title}</h3>" if show_title else ""
+    tags_block = f'<div class="folio-auto-cover-tags">{tag_html}</div>' if show_tags else ""
     compact_class = " folio-auto-cover-compact" if compact else ""
     return clean_html(f"""
     <div class="folio-auto-cover folio-auto-cover-{_cover_variant(project)}{compact_class}">
         <div class="folio-auto-cover-pattern" aria-hidden="true"></div>
         <div class="folio-auto-cover-content">
-            <span class="folio-auto-cover-eyebrow">DATA PORTFOLIO</span>
-            <h3>{title}</h3>
-            <div class="folio-auto-cover-tags">{tag_html}</div>
+            <span class="folio-auto-cover-eyebrow">PROJECT PORTFOLIO</span>
+            {title_block}
+            {tags_block}
         </div>
     </div>
     """)
@@ -110,9 +118,27 @@ def render_project_card_html(
     author_organization = html.escape(author.get("organization") or "")
     author_label = f"{author_name} · {author_organization}" if author_organization else author_name
     created_at = project.get("created_at") or ""
-    date_html = f'<span class="folio-home-date">{html.escape(str(created_at)[:10])}</span>' if created_at else "<span></span>"
-    cover_html = _render_auto_cover(project, compact=compact)
+    date_label = html.escape(str(created_at)[:10]) if created_at else ""
+    footer_meta_html = clean_html(f"""
+    <div class="folio-home-footer-meta">
+        <span class="folio-home-date">{date_label}</span>
+        <span class="folio-home-author">{author_label}</span>
+    </div>
+    """)
+    title_html = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
+    cover_html = _render_auto_cover(project, compact=compact, show_title=False, show_tags=False)
     metrics_html = render_project_metrics(project)
+    tags = [str(tag) for tag in (project.get("tags") or [])]
+    visible_tags = tags[:4]
+    tag_html = "".join(f"<span>#{html.escape(tag)}</span>" for tag in visible_tags)
+    hidden_count = max(len(tags) - len(visible_tags), 0)
+    if hidden_count:
+        tag_list = ", ".join(tags)
+        tag_html += (
+            f'<span class="folio-home-card-tag-more" '
+            f'title="{html.escape(tag_list, quote=True)}">+{hidden_count}</span>'
+        )
+    tags_block = f'<div class="folio-home-card-tags">{tag_html}</div>' if tag_html else ""
 
     # Streamlit's markdown renderer will not let <a> wrap block-level content
     # (e.g. <div>): it silently splits one <a> into several, one per inline
@@ -131,14 +157,21 @@ def render_project_card_html(
     <div class="{card_class}">
         {overlay_link_html}
         {cover_html}
-        <p class="folio-home-author">{author_label}</p>
-        <p>{one_liner}</p>
-        <div class="folio-home-footer">
-            {date_html}
-            {metrics_html}
+        <div class="folio-home-card-overlay">
+            <div class="folio-home-card-title-zone">
+                <h3 class="folio-home-card-title">{title_html}</h3>
+            </div>
+            <div class="folio-home-card-summary-zone">
+                <p class="folio-home-card-summary">{one_liner}</p>
+            </div>
+            <div class="folio-home-card-tags-zone">
+                {tags_block}
+            </div>
+            <div class="folio-home-footer">
+                {footer_meta_html}
+                {metrics_html}
+            </div>
         </div>
     </div>
     """
     return clean_html(card_html)
-
-

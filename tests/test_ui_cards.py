@@ -8,11 +8,11 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         project = {"id": "project-123", "title": "분석 프로젝트"}
         self.assertEqual(_cover_variant(project), _cover_variant(dict(project)))
 
-    def test_cover_contains_escaped_title_and_two_tags(self) -> None:
+    def test_card_contains_four_tags_and_more_count_tooltip(self) -> None:
         project = {
             "id": "project-123",
             "title": "고객 <이탈> 분석",
-            "tags": ["Python", "고객&분석", "세 번째"],
+            "tags": ["Python", "고객&분석", "세 번째", "네 번째", "다섯 번째"],
             "one_liner": "프로젝트 설명",
         }
 
@@ -21,11 +21,30 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn("고객 &lt;이탈&gt; 분석", rendered)
         self.assertIn("#Python", rendered)
         self.assertIn("#고객&amp;분석", rendered)
-        self.assertNotIn("세 번째", rendered)
+        self.assertIn("#세 번째", rendered)
+        self.assertIn("#네 번째", rendered)
+        self.assertIn("+1", rendered)
+        self.assertIn('title="Python, 고객&amp;분석, 세 번째, 네 번째, 다섯 번째"', rendered)
+        self.assertNotIn("#다섯 번째", rendered)
         self.assertEqual(rendered.count("고객 &lt;이탈&gt; 분석"), 1)
         self.assertIn('aria-label="조회수 0"', rendered)
         self.assertIn('aria-label="좋아요 0"', rendered)
         self.assertNotIn("조회 0 · 좋아요 0", rendered)
+
+    def test_card_keeps_summary_and_empty_tag_zones_separate(self) -> None:
+        project = {
+            "id": "project-no-tags",
+            "title": "태그 없는 프로젝트",
+            "one_liner": "요약만 있는 프로젝트",
+            "tags": [],
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-home-card-summary-zone", rendered)
+        self.assertIn("folio-home-card-tags-zone", rendered)
+        self.assertIn("요약만 있는 프로젝트", rendered)
+        self.assertNotIn("folio-home-card-tags\"><span", rendered)
 
     def test_author_organization_is_shown_when_present(self) -> None:
         project = {

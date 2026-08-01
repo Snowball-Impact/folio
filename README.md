@@ -2,7 +2,7 @@
 
 발표로 끝나지 않는 프로젝트.
 
-FOLIO는 데이터 분석 프로젝트를 포트폴리오 자산으로 축적하고 공유하는 Streamlit + Supabase 기반 MVP입니다.
+FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 자산으로 축적하고 공유하는 Streamlit + Supabase 기반 MVP입니다.
 
 ## 현재 구현 범위
 

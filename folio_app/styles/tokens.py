@@ -56,7 +56,7 @@ div:has(> iframe[src*="cookie_manager"]),
 .block-container {
     margin-left: auto !important;
     margin-right: auto !important;
-    max-width: 1280px;
+    max-width: 1440px;
     min-height: 100vh;
     padding-top: 0 !important;
     /* section.stMain is a column flexbox with align-items:center, so
@@ -91,11 +91,52 @@ h1, h2, h3 {
 
 /* ── Footer ── */
 .folio-footer {
+    align-items: center;
     border-top: 1px solid var(--folio-border);
     color: var(--folio-muted);
+    display: flex;
+    gap: 16px;
     font-size: 0.82rem;
+    justify-content: space-between;
     margin-top: 52px;
     padding: 22px 0;
-    text-align: center;
+    text-align: left;
 }
+
+.folio-footer p {
+    margin: 0;
+}
+
+.folio-footer-links {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 14px;
+    justify-content: flex-end;
+    margin-top: 0;
+}
+
+.folio-footer-links a,
+.folio-footer-links span {
+    color: var(--folio-muted);
+    font-size: 0.8rem;
+    text-decoration: none;
+}
+
+.folio-footer-links a:hover {
+    color: var(--folio-blue);
+    text-decoration: underline;
+}
+
+@media (max-width: 720px) {
+    .folio-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .folio-footer-links {
+        justify-content: flex-start;
+    }
+}
+
 """

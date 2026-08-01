@@ -8,7 +8,7 @@ from folio_app.components.analytics import render_google_analytics, track_page_v
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
 from folio_app.navigation import ROUTABLE_PAGES
-from folio_app.pages import gallery, home, onboarding, protected
+from folio_app.pages import gallery, home, onboarding, policy, protected
 from folio_app.pages.auth import render_login, render_signup
 from folio_app.services.profiles import get_onboarding_status
 from folio_app.services.auth import (
@@ -18,6 +18,18 @@ from folio_app.services.auth import (
     should_clear_browser_auth,
 )
 from folio_app.styles import apply_global_styles
+
+_FOOTER_HTML = """
+<footer class="folio-footer">
+    <p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p>
+    <nav class="folio-footer-links" aria-label="서비스 정책 및 문의">
+        <a href="?page=Policy&type=privacy">개인정보처리방침</a>
+        <a href="?page=Policy&type=terms">이용약관</a>
+        <a href="mailto:ggmaeng@gmail.com">문의 이메일</a>
+        <a href="mailto:ggmaeng@gmail.com?subject=FOLIO%20%EC%BD%98%ED%85%90%EC%B8%A0%20%EC%8B%A0%EA%B3%A0%2F%EC%82%AD%EC%A0%9C%20%EC%9A%94%EC%B2%AD">콘텐츠 신고/삭제 안내</a>
+    </nav>
+</footer>
+"""
 
 
 def _initial_page_from_query() -> str | None:
@@ -35,6 +47,10 @@ def _render_verified_notice() -> None:
     if st.button("확인", key="clear_verified_notice"):
         st.query_params.clear()
         st.rerun()
+
+
+def _render_footer() -> None:
+    st.markdown(_FOOTER_HTML, unsafe_allow_html=True)
 
 
 def _capture_password_recovery_fragment() -> None:
@@ -215,18 +231,12 @@ def main() -> None:
                 st.error(onboarding_status.error_message)
                 if st.button("다시 시도", key="retry_onboarding_status"):
                     st.rerun()
-                st.markdown(
-                    '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
-                    unsafe_allow_html=True,
-                )
+                _render_footer()
                 return
             if onboarding_status.required and not onboarding_status.is_complete:
                 track_page_view("Onboarding", "/?page=onboarding")
                 onboarding.render(onboarding_status)
-                st.markdown(
-                    '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
-                    unsafe_allow_html=True,
-                )
+                _render_footer()
                 return
             st.session_state[onboarding_done_key] = True
 
@@ -238,6 +248,7 @@ def main() -> None:
         "Submit": protected.render_submit,
         "My Page": protected.render_my_page,
         "My Portfolio": protected.render_my_portfolio,
+        "Policy": policy.render,
         "Profile": protected.render_profile,
     }
 
@@ -250,7 +261,4 @@ def main() -> None:
 
     page_handlers.get(selected_page, home.render)()
 
-    st.markdown(
-        '<footer class="folio-footer"><p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p></footer>',
-        unsafe_allow_html=True,
-    )
+    _render_footer()

@@ -194,7 +194,8 @@ CSS = """
     border-bottom: 2px solid var(--folio-subtle);
 }
 
-.st-key-project_detail_sidebar {
+.st-key-project_detail_sidebar,
+.st-key-project_detail_visual {
     background: var(--folio-surface) !important;
     border: 1px solid var(--folio-border) !important;
     border-radius: 16px !important;
@@ -206,7 +207,33 @@ CSS = """
     width: 100% !important;
 }
 
-.st-key-project_detail_sidebar [data-testid="stVerticalBlock"] {
+.st-key-project_detail_visual {
+    margin-bottom: 18px !important;
+}
+
+.folio-visual-heading {
+    border-bottom: 1px solid var(--folio-border);
+    margin-bottom: 16px;
+    padding-bottom: 14px;
+}
+
+.folio-visual-heading h2 {
+    color: var(--folio-navy);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.folio-visual-heading p {
+    color: var(--folio-muted);
+    font-size: 0.84rem;
+    line-height: 1.45;
+    margin: 4px 0 0;
+    word-break: keep-all;
+}
+
+.st-key-project_detail_sidebar [data-testid="stVerticalBlock"],
+.st-key-project_detail_visual [data-testid="stVerticalBlock"] {
     box-sizing: border-box;
     gap: 12px;
     max-width: 100%;
@@ -216,7 +243,10 @@ CSS = """
 
 .st-key-project_detail_sidebar [data-testid="stElementContainer"],
 .st-key-project_detail_sidebar [data-testid="stCustomComponentV1"],
-.st-key-project_detail_sidebar .stLinkButton {
+.st-key-project_detail_sidebar .stLinkButton,
+.st-key-project_detail_visual [data-testid="stElementContainer"],
+.st-key-project_detail_visual [data-testid="stCustomComponentV1"],
+.st-key-project_detail_visual .stLinkButton {
     box-sizing: border-box !important;
     max-width: 100% !important;
     min-width: 0 !important;
@@ -235,13 +265,21 @@ CSS = """
     margin: 0;
 }
 
+.folio-sidebar-heading h3 {
+    color: var(--folio-navy);
+    font-size: 1.02rem;
+    font-weight: 800;
+    margin: 0;
+}
+
 .folio-sidebar-heading.folio-sidebar-resources {
     border-top: 1px solid var(--folio-border);
     margin-top: 10px;
     padding-top: 18px;
 }
 
-.st-key-project_detail_sidebar iframe {
+.st-key-project_detail_sidebar iframe,
+.st-key-project_detail_visual iframe {
     box-sizing: border-box;
     border-radius: 12px;
     display: block;
@@ -250,13 +288,15 @@ CSS = """
     width: 100%;
 }
 
-.st-key-project_detail_sidebar [data-testid="stCaptionContainer"] {
+.st-key-project_detail_sidebar [data-testid="stCaptionContainer"],
+.st-key-project_detail_visual [data-testid="stCaptionContainer"] {
     color: var(--folio-muted);
     font-size: 0.78rem;
     line-height: 1.45;
 }
 
-.st-key-project_detail_sidebar .stLinkButton > a {
+.st-key-project_detail_sidebar .stLinkButton > a,
+.st-key-project_detail_visual .stLinkButton > a {
     background: #ffffff !important;
     border: 1px solid var(--folio-border) !important;
     border-radius: 10px !important;
@@ -269,7 +309,8 @@ CSS = """
     width: 100% !important;
 }
 
-.st-key-project_detail_sidebar .stLinkButton > a:hover {
+.st-key-project_detail_sidebar .stLinkButton > a:hover,
+.st-key-project_detail_visual .stLinkButton > a:hover {
     background: rgba(20, 89, 200, 0.05) !important;
     border-color: rgba(20, 89, 200, 0.35) !important;
     color: var(--folio-blue) !important;

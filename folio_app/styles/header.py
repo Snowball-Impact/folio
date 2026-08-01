@@ -29,7 +29,7 @@ CSS = """
     justify-content: space-between !important;
     margin-bottom: 0 !important;
     min-height: 64px !important;
-    padding: 0 20px !important;
+    padding: 0 42px !important;
     position: sticky;
     top: 0;
     z-index: 999;
