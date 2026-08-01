@@ -98,7 +98,7 @@ CSS = """
 
 .folio-gallery-rail-head h3 {
     color: var(--folio-navy);
-    font-size: 16px;
+    font-size: 24px;
     font-weight: 800;
     letter-spacing: 0;
     margin: 0;
@@ -508,6 +508,10 @@ CSS = """
         align-items: flex-start;
         flex-direction: column;
         gap: 4px;
+    }
+
+    .folio-gallery-rail-head h3 {
+        font-size: 14px;
     }
 
     .folio-gallery-rail {

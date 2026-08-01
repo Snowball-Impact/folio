@@ -3,64 +3,86 @@
 CSS = """
 /* ── Browse Panel ── */
 .folio-search-container {
-    align-items: flex-end;
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 18px;
+    align-items: center;
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) 36px;
+    margin-bottom: 12px;
+    min-height: 36px;
+    position: relative;
+    text-align: center;
 }
 
-.folio-search-title {
+.folio-search-heading {
+    grid-column: 2;
+    min-width: 0;
+}
+
+.st-key-folio_browse_panel .folio-search-title {
     color: var(--folio-navy);
-    font-size: 1.3rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 32px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    word-break: keep-all !important;
 }
 
-.folio-search-subtitle {
-    color: var(--folio-muted);
-    font-size: 0.85rem;
-    line-height: 1.45;
-    margin-top: 3px;
-    word-break: keep-all;
-}
-
-.folio-search-count {
-    color: var(--folio-muted);
-    font-size: 0.88rem;
-    font-weight: 700;
-    padding-bottom: 2px;
+.st-key-folio_browse_panel .folio-search-title-count {
+    color: var(--folio-blue);
+    display: inline-block;
+    font-size: 1.08em;
+    font-weight: 900;
+    min-width: 2.2ch;
+    text-align: right;
 }
 
 .st-key-folio_browse_panel {
-    background: #eaf1ff !important;
-    border: none !important;
+    background: #f3f7ff !important;
+    border: 1px solid rgba(188, 207, 236, 0.58) !important;
     border-radius: 12px !important;
     box-shadow: none !important;
-    margin: 28px 0 12px !important;
-    padding: 26px 28px 24px !important;
+    margin: 28px 0 0 !important;
+    padding: 26px 42px 24px !important;
 }
 
 .st-key-folio_browse_panel > [data-testid="stVerticalBlock"] {
     gap: 0 !important;
 }
 
-.st-key-folio_browse_panel .stTextInput > div > div > input {
+.st-key-folio_browse_panel .stTextInput div[data-baseweb="input"] {
+    align-items: center !important;
     background: var(--folio-surface) !important;
     border: 1px solid var(--folio-border) !important;
     border-radius: 10px !important;
-    min-height: 46px;
-    padding: 12px 16px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    height: 42px !important;
+    min-height: 42px !important;
 }
 
-.st-key-folio_browse_panel .stTextInput > div > div > input:focus {
+.st-key-folio_browse_panel .stTextInput > div > div > input {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+    height: 40px !important;
+    line-height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 16px !important;
+}
+
+.st-key-folio_browse_panel .stTextInput div[data-baseweb="input"]:focus-within {
     background: var(--folio-surface) !important;
     border-color: var(--folio-blue) !important;
     box-shadow: 0 0 0 3px rgba(20, 89, 200, 0.1) !important;
 }
 
 .st-key-folio_browse_panel [data-testid="stHorizontalBlock"] {
-    align-items: flex-end;
-    gap: 14px !important;
+    align-items: center;
+    gap: 10px !important;
 }
 
 .st-key-folio_browse_panel .stButton > button {
@@ -74,11 +96,33 @@ CSS = """
     padding: 0 14px;
 }
 
+.st-key-folio_browse_panel [data-testid="stForm"] > div {
+    gap: 10px !important;
+}
+
+.st-key-folio_browse_panel .folio-popular-tag-label {
+    align-items: center;
+    background: rgba(20, 89, 200, 0.08);
+    border: 1px solid rgba(20, 89, 200, 0.14);
+    border-radius: 999px;
+    box-sizing: border-box;
+    color: #1459c8;
+    display: inline-flex;
+    font-size: 0.78rem;
+    font-weight: 800;
+    height: 32px;
+    justify-content: center;
+    line-height: 1;
+    padding: 0 12px;
+    white-space: nowrap;
+    width: 100%;
+}
+
 .st-key-folio_browse_panel .stFormSubmitButton > button[kind="primaryFormSubmit"] {
     background: var(--folio-blue) !important;
     border-color: var(--folio-blue) !important;
     color: #ffffff !important;
-    min-height: 46px !important;
+    min-height: 42px !important;
 }
 
 .st-key-folio_browse_panel .stFormSubmitButton > button[kind="primaryFormSubmit"]:hover {
@@ -109,6 +153,15 @@ CSS = """
 
     .folio-search-container {
         align-items: flex-start;
+    }
+
+    .st-key-folio_browse_panel .folio-search-title {
+        font-size: 14px !important;
+    }
+
+    .folio-popular-tag-label {
+        margin-top: 2px;
+        width: auto;
     }
 }
 """

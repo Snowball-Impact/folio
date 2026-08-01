@@ -461,12 +461,24 @@ CSS = """
     .folio-home-copy h1 {
         font-size: 1.9rem;
         text-wrap: balance;
+        text-align: center;
         white-space: normal;
     }
 
+    .folio-home-copy {
+        align-items: center;
+        text-align: center;
+    }
+
+    .folio-home-copy p {
+        text-align: center;
+    }
+
     .folio-home-actions {
+        justify-content: center;
         gap: 10px;
         margin-top: 20px;
+        width: 100%;
     }
 
     .folio-home-actions a {
@@ -483,17 +495,11 @@ CSS = """
     }
 
     .folio-home-guide-flow {
-        gap: 10px;
-        grid-template-columns: 1fr;
+        display: none;
     }
 
     .folio-home-guide-flow::before {
-        bottom: 20px;
-        height: auto;
-        left: 28px;
-        right: auto;
-        top: 20px;
-        width: 2px;
+        display: none;
     }
 
     .folio-home-guide-step {

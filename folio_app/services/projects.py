@@ -173,12 +173,13 @@ def _filter_public_projects(
     return filtered
 
 
-def list_popular_tags(limit: int = 8) -> list[str]:
+def list_popular_tags(limit: int | None = 10) -> list[str]:
     counter: Counter[str] = Counter()
     for project in _fetch_public_projects():
         counter.update(project.get("tags") or [])
 
-    return [tag for tag, _ in counter.most_common(limit)]
+    ranked_tags = counter.most_common(limit) if limit is not None else counter.most_common()
+    return [tag for tag, _ in ranked_tags]
 
 
 def _execute_public_read(operation):
