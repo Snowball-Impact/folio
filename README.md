@@ -14,7 +14,10 @@ FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 �
 - Quill 자유 입력 본문과 기본 정보 옆 실시간 카드 미리보기 기반 프로젝트 작성
 - 홈 화면 안의 태그 중심 프로젝트 탐색
 - 검색, 태그 필터, 최신순/조회수순/좋아요순 정렬
+- 최근 등록순·조회순·좋아요순 홈 카드 레일
+- 홈 카드 hover 기반 Power BI 미리보기
 - Home 안에서 `project_id` 쿼리 기반 상세 페이지 렌더링
+- 경기청년 갭이어 2026과 Snowball Impact를 소개하는 서비스 소개 페이지
 - 세션별 중복 증가를 방지하는 조회수 RPC 연동
 - `likes` 테이블 기반 좋아요 추가·취소 및 좋아요순 정렬
 - Power BI iframe 또는 embed URL 표시
@@ -50,9 +53,8 @@ streamlit run app.py
 
 기본 로컬 주소는 `http://localhost:8501`입니다.
 
-Windows 개발 환경에서는 구·신 Streamlit 프로세스가 같은 포트를 함께 점유하는 문제를 막기 위해
-파일 자동 감시를 끕니다. 코드 수정 후 화면이 갱신되어야 할 때는 실행 중인 서버를 종료하고
-`streamlit run app.py`를 다시 실행합니다.
+Windows 개발 환경에서는 `.streamlit/config.toml`의 `runOnSave = true`와 `fileWatcherType = "auto"`를 사용합니다.
+수정이 반영되지 않거나 같은 포트에 여러 서버가 떠 있는 것처럼 보이면 `8501` 리스너를 확인한 뒤 서버를 하나만 남겨 재시작합니다.
 
 ## 애플리케이션 진입 구조
 
@@ -86,6 +88,7 @@ folio_app/app.py
 |---|---|---|
 | `/` 또는 `?page=Home` | 홈, 검색, 태그 필터, 프로젝트 목록 | `pages/home.py:render()` |
 | `?page=Home&project_id=...` | 프로젝트 상세 | `pages/project_detail.py:render()` |
+| `?page=About` | 서비스 소개 | `pages/about.py:render()` |
 | `?page=Login` | 로그인 | `pages/auth.py:render_login()` |
 | `?page=Sign+Up` | 회원가입, 인증 메일 재발송 | `pages/auth.py:render_signup()` |
 | `?page=Submit` | 프로젝트 등록 | `pages/protected.py:render_submit()` |
@@ -114,6 +117,7 @@ folio_app/app.py
 | 파일 | 역할 |
 |---|---|
 | `folio_app/pages/home.py` | 홈 히어로, 검색·태그·정렬 폼, 공개 프로젝트 카드 목록 렌더링 |
+| `folio_app/pages/about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO 소개와 VISION 렌더링 |
 | `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, Power BI, 첨부 링크 렌더링 |
 | `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
 | `folio_app/pages/onboarding.py` | 최초 로그인 사용자의 프로필 확인과 약관·개인정보 동의 UI |
@@ -126,6 +130,9 @@ folio_app/app.py
 | 파일 | 역할 |
 |---|---|
 | `folio_app/components/layout.py` | 공통 헤더·메뉴, 페이지 히어로, 정적 이미지 로딩 |
+| `folio_app/components/assets.py` | 정적 이미지를 Streamlit HTML에서 사용할 data URI로 변환 |
+| `folio_app/components/dashboard.py` | Power BI 등 상세 대표 결과물 iframe 렌더링 |
+| `folio_app/components/share.py` | 링크 복사 버튼과 상세 액션 그룹 렌더링 |
 | `folio_app/components/project_form.py` | 등록·수정 공용 폼, Quill 편집기, 본문 섹션 파싱, URL 검증, 카드 미리보기 |
 | `folio_app/components/ui.py` | 태그, 프로젝트 카드 HTML, 일반 텍스트 변환 등 공통 UI 유틸리티 |
 | `folio_app/components/__init__.py` | `components` 패키지 초기화 파일 |
@@ -182,11 +189,12 @@ Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용�
 - 주요 설계 결정: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - 개발 정책과 교훈: [`docs/ENGINEERING_PLAYBOOK.md`](docs/ENGINEERING_PLAYBOOK.md)
 - 작업 전 현재 컨텍스트: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
+- 디자인 시스템: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
 - 제품/기획 개요: [`docs/PRD.md`](docs/PRD.md)
-- 현재 화면 구조: [`docs/WIREFRAME.MD`](docs/WIREFRAME.MD)
 - Supabase 설정: [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
+- 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)
 
-현재 우선순위는 실제 Supabase 통합 검증, 오류 처리 보강, 작성 초안 보호, 테스트와 문서 보강 순입니다. 상세 기준은 `docs/PROJECT_CONTEXT.md`를 따릅니다.
+현재 우선순위와 작업 기준은 `docs/PROJECT_CONTEXT.md`를 따릅니다.
 
 ## 개발 메모
 

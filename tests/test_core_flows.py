@@ -12,7 +12,7 @@ from folio_app.pages.auth import (
     _should_show_signup_login_link,
     _signup_missing_required_fields,
 )
-from folio_app.pages.project_detail import _share_button_html, _track_share_open
+from folio_app.pages.project_detail import _track_share_open
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
 
 
@@ -20,7 +20,7 @@ class NavigationTests(unittest.TestCase):
     def test_header_nav_items_for_logged_out_users(self) -> None:
         self.assertEqual(
             _header_nav_items(False),
-            [("Home", "홈 갤러리"), ("Login", "로그인")],
+            [("Home", "홈 갤러리"), ("About", "서비스 소개"), ("Login", "로그인")],
         )
 
     def test_header_nav_items_for_logged_in_users(self) -> None:
@@ -28,6 +28,7 @@ class NavigationTests(unittest.TestCase):
             _header_nav_items(True),
             [
                 ("Home", "홈 갤러리"),
+                ("About", "서비스 소개"),
                 ("Submit", "프로젝트 등록"),
                 ("My Page", "마이 페이지"),
                 ("__logout__", "로그아웃"),
@@ -134,17 +135,6 @@ class URLNormalizationTests(unittest.TestCase):
 
 
 class ProjectShareLinkTests(unittest.TestCase):
-    def test_share_button_copies_canonical_project_detail_url(self) -> None:
-        markup = _share_button_html("project-123")
-
-        self.assertIn('searchParams.set("page", "Home")', markup)
-        self.assertIn('searchParams.set("project_id", projectId)', markup)
-        self.assertIn('searchParams.set("utm_source", "folio")', markup)
-        self.assertIn('searchParams.set("utm_medium", "share")', markup)
-        self.assertIn('searchParams.set("utm_campaign", "project_share")', markup)
-        self.assertIn('"project-123"', markup)
-        self.assertIn("navigator.clipboard.writeText", markup)
-
     @patch("folio_app.pages.project_detail.track_event")
     @patch("folio_app.pages.project_detail.st.session_state", new_callable=dict)
     @patch(

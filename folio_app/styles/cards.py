@@ -49,41 +49,6 @@ CSS = """
     -webkit-line-clamp: 2;
 }
 
-.folio-gallery-heading {
-    align-items: flex-end;
-    display: flex;
-    gap: 18px;
-    justify-content: space-between;
-    margin: 28px 0 22px;
-}
-
-.folio-gallery-heading {
-    display: none;
-}
-
-.folio-gallery-heading h2 {
-    color: var(--folio-navy);
-    font-size: 1.57rem;
-    font-weight: 800;
-    letter-spacing: 0;
-    margin: 0;
-}
-
-.folio-gallery-heading p {
-    color: var(--folio-muted);
-    font-size: 1.12rem;
-    line-height: 1.45;
-    margin: 3px 0 0;
-    word-break: keep-all;
-}
-
-.folio-gallery-heading span {
-    color: var(--folio-muted);
-    flex-shrink: 0;
-    font-size: 1.09rem;
-    font-weight: 800;
-}
-
 .folio-gallery-rail-section {
     margin-bottom: 2px;
     overflow: hidden;
@@ -616,12 +581,6 @@ CSS = """
 @media (max-width: 860px) {
     .folio-home-card {
         min-height: 0;
-    }
-
-    .folio-gallery-heading {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 6px;
     }
 
     .folio-gallery-rail-section {

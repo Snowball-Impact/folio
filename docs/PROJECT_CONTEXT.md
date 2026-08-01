@@ -26,10 +26,14 @@ folio_app/
   config.py               # 환경변수 로드 (get_settings)
   navigation.py           # 내부 이동 공통 헬퍼와 허용 라우트
   components/
+    assets.py             # static 이미지 data URI 헬퍼
+    dashboard.py          # 상세 대표 결과물 iframe 컴포넌트
     layout.py             # render_header(), render_hero()
+    share.py              # 공유 버튼, 상세 액션 그룹 HTML 컴포넌트
     ui.py                 # clean_html(), 공통 UI 헬퍼
     project_form.py       # 프로젝트 등록/수정 폼
   pages/
+    about.py              # 서비스 소개 페이지
     home.py               # 홈 + 탐색 허브 + 상세 뷰
     project_detail.py     # 상세 렌더링 (home에서 project_id 쿼리로 호출)
     auth.py               # render_login(), render_signup()
@@ -45,6 +49,8 @@ folio_app/
     supabase_client.py    # Streamlit 세션별 Supabase client
   static/
     hero-preview.png      # 홈 히어로 우측 미리보기 이미지
+    hero-preview-home.jpg # 홈 히어로 전용 경량 미리보기 이미지
+    gapyear-hero-banner.jpg, snowball-impact.png, vision-snowball.png # 서비스 소개 페이지 이미지
 ```
 
 ---
@@ -60,6 +66,7 @@ folio_app/
 | 프로젝트 등록 / 수정 / 삭제 | `protected.py`, `project_form.py` | |
 | 홈 탐색 (검색, 태그, 정렬) | `home.py` | Gallery 페이지 없음, Home이 탐색 허브 |
 | 프로젝트 상세 | `project_detail.py` | `?project_id=` 쿼리로 Home 안에서 렌더링 |
+| 서비스 소개 | `about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
 | 좋아요 | `projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
 | 푸터 | `app.py` | Copyright © 2026 Snowball Impact |
 
@@ -72,6 +79,7 @@ folio_app/
 | page 값 | 화면 | 비고 |
 |---------|------|------|
 | Home (기본) | 홈 + 탐색 허브 | `?project_id=` 있으면 상세 |
+| About | 서비스 소개 | 공개 페이지 |
 | Login | 로그인 | |
 | Sign Up | 회원가입 | nav에 노출 안 됨, 링크로만 접근 |
 | Submit | 프로젝트 등록 | 로그인 필요 |
@@ -91,8 +99,8 @@ folio_app/
 **현재 구현**: `navigation.py`의 `navigate()`가 `st.query_params` + `st.rerun()` 패턴을 통합한다. 공개 프로젝트 카드 전체 클릭은 탐색 UX를 위해 HTML 링크를 허용한다.
 
 ```python
-# 비로그인 nav: 홈, 로그인
-# 로그인 nav:   홈, 프로젝트 제출, 마이 페이지, 로그아웃
+# 비로그인 nav: 홈 갤러리, 서비스 소개, 로그인
+# 로그인 nav:   홈 갤러리, 서비스 소개, 프로젝트 등록, 마이 페이지, 로그아웃
 ```
 
 헤더는 `st.container(key="folio_header")`와 `.st-key-folio_header` 선택자로 스코프 지정.
@@ -434,3 +442,59 @@ Streamlit은 `st.markdown()`/`st.html()`로 넣은 `<script>`를 보안상 실�
 기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이에 맞춰 `docs/PRD.md`의 제품 설명, 타깃 사용자, 차별화, 성공 지표를 갱신했다.
 
 #189 댓글 기능은 구조화 피드백 질문·유형·알림까지 한 번에 구현하지 않고, 먼저 단순 댓글과 1단계 대댓글로 실증한다. 1차 포함 범위는 댓글 작성·조회·삭제, 대댓글 작성, 작성자 배지, 댓글 수 표시다. 댓글 수정, 피드백 유형, 작성자 질문, 알림, 관리자 댓글 관리는 실제 사용 반응 확인 후 후속 이슈로 분리한다.
+
+### 완료: 홈 갤러리·상세·등록·마이페이지 UI 정리 (2026-08-01)
+
+FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 UI로 맞췄다. 사용자는 장식적인 컴포넌트보다 필요한 정보만 정돈된 화면을 선호한다. 앞으로 새 화면을 만들 때도 과한 카드 중첩, 설명성 UI, 불필요한 장식보다 정보 위계와 정렬을 우선한다.
+
+- **홈 갤러리**
+  - 프로젝트 목록은 최근 등록순, 조회순, 좋아요순 3개 카드 레일 구조를 유지한다.
+  - 카드 hover 시 대표 Power BI iframe을 lazy mount해 OTT 패널처럼 샘플을 보여준다.
+  - hover 확대는 홈 갤러리 레일에만 적용하고, 등록 페이지 카드 미리보기에는 적용하지 않는다.
+  - 카드 썸네일은 16:9를 유지하고, 자동 커버는 24종 색/패턴 베리에이션을 사용한다. 너무 알록달록하거나 어두운 팔레트는 피하고, 원래의 선명한 미디어 타일 느낌을 기준으로 둔다.
+- **프로젝트 상세**
+  - 히어로 썸네일은 16:9로 고정한다.
+  - 조회수, 공개 상태, 링크 복사는 `components/share.py`의 `project_action_group_html()` 한 custom component 안에 묶고, 좋아요만 Streamlit button으로 옆에 둔다. 서로 다른 Streamlit wrapper/iframe이 gap과 vertical alignment를 따로 계산하지 않게 하기 위함이다.
+  - 대표 결과물 섹션의 설명 문구를 제거하고, 대시보드/보고서/GitHub 링크는 결과물 하단 액션으로 단순화한다.
+  - 리포트 본문 앞에 하드코딩된 `01 문제 정의` 같은 제목은 붙이지 않는다. 에디터에서 넘어온 본문만 출력한다.
+- **프로젝트 등록**
+  - 네비게이션 라벨은 `프로젝트 등록`을 사용한다.
+  - 섹션 제목은 왼쪽, 설명은 오른쪽에 한 행으로 배치하고 모바일에서는 세로로 쌓는다.
+  - 카드 미리보기 설명은 제거하고, 실제 홈 카드에서 보일 내용만 확인하게 한다.
+  - 프로젝트명은 48자, 한 줄 소개는 56자, 태그는 최대 10개 기준으로 제한한다. 제목/소개 입력에는 카드 노출 기준 툴팁을 둔다.
+- **마이페이지**
+  - 프로필 영역은 중앙 정렬한다.
+  - 작성자, 소속, 이메일 값은 20px로 키워 가독성을 확보한다.
+  - 프로젝트 목록은 `내 프로젝트` 중심으로 간결하게 정리한다.
+- **히어로 통일**
+  - 홈 갤러리, 프로젝트 등록, 마이페이지 히어로는 홈 화면의 여백과 카피 구조를 기준으로 맞춘다.
+  - CTA가 없는 서브페이지는 보이지 않는 CTA 높이 스페이서를 사용해 홈 히어로와 시각 기준선을 맞춘다. 이 방식은 향후 더 좋은 공통 hero API로 정리할 수 있다.
+  - 홈 히어로 CTA는 로그인 새 창이 아니라 현재 창에서 `?page=Submit`으로 이동한다.
+  - 홈 히어로 첫 번째 이미지는 `hero-preview-home.jpg` 경량 이미지를 사용한다. 리팩토링 후 조각 HTML을 합치는 구조에서는 여러 줄 `<img>` 태그가 Markdown에서 raw text처럼 보일 수 있으므로, 최종 이미지 태그는 한 줄 HTML로 조합한다.
+
+### 완료: 서비스 소개 페이지와 UI 리팩토링 후속 안정화 (2026-08-01)
+
+- **서비스 소개 페이지**
+  - `About` 라우트와 헤더 nav를 추가했다.
+  - 페이지 순서는 히어로(경기청년 갭이어 이미지/캡션) → Snowball Impact 팀 소개 → FOLIO 서비스 소개 → VISION으로 구성한다.
+  - 경기천년체는 가독성 문제로 사용하지 않는다. 경기청년 갭이어 2026 지원 사실은 문구와 이미지로 설명하되, 과한 배지/태그형 장식은 쓰지 않는다.
+- **컴포넌트 분리**
+  - static 이미지 인코딩은 `components/assets.py`로 모았다.
+  - 공유 버튼/상세 액션 그룹은 `components/share.py`로 분리했다.
+  - Power BI 임베드는 `components/dashboard.py`로 분리했다.
+  - 상세 리포트 섹션, visual context, 홈 레일 spec처럼 테스트 가능한 순수 helper를 늘렸다.
+- **후속 안정화**
+  - 중복 Streamlit 서버가 8501 포트에 여러 개 떠 있으면 최신 코드/세션/네트워크 상태가 꼬일 수 있다. 공개 프로젝트가 안 보이거나 수정 반영이 이상하면 먼저 `netstat -ano | Select-String ":8501"`로 리스너 수를 확인한다.
+  - 홈 히어로 이미지는 리팩토링 후 태그가 노출된 적이 있으므로, 조각 HTML을 바꾸면 최종 문자열에 `raw_img_multiline` 형태가 남지 않는지 확인한다.
+  - 상세 히어로 footer는 조회/공개/링크복사를 한 컴포넌트로 묶은 구조를 유지한다. 다시 별도 `st.columns()`로 분리하면 같은 정렬 문제가 재발한다.
+
+관련 이슈와 커밋:
+
+- #185 메인 히어로 CTA 추가: 완료 처리.
+- #186 프로젝트 썸네일에 결과물 미리보기 적용: 완료 처리.
+- 로컬 커밋: `65199cd Polish gallery detail form and profile UI`.
+
+검증:
+
+- `python -m compileall -q app.py folio_app tests`
+- `python -m unittest tests.test_core_flows tests.test_project_form tests.test_ui_cards tests.test_view_count -v`

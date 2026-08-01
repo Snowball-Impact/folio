@@ -7,6 +7,7 @@ import streamlit as st
 
 ROUTABLE_PAGES = {
     "Home",
+    "About",
     "Gallery",
     "Login",
     "Sign Up",

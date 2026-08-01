@@ -3,7 +3,7 @@ import re
 
 import streamlit as st
 
-from folio_app.components.ui import plain_text, render_project_card_html
+from folio_app.components.ui import clean_html, plain_text, render_project_card_html
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
 
@@ -246,24 +246,12 @@ def render_project_form(
     show_visibility_setting: bool = False,
     secondary_label: str | None = None,
 ) -> tuple[dict[str, str], bool, bool]:
-    st.markdown(
-        """
-        <div class="folio-project-form-intro">
-            <strong>프로젝트 정보를 작성해 주세요.</strong>
-            <span>작성 내용은 현재 세션에 자동 임시 저장됩니다.</span>
-            <small><b>*</b> 필수 입력</small>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    _render_project_form_intro()
 
     with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
         overview_col, preview_col = st.columns([3, 2], gap="large")
         with overview_col:
-            st.markdown(
-                '<div class="folio-form-section-heading"><div><strong>기본 정보</strong><small>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</small></div></div>',
-                unsafe_allow_html=True,
-            )
+            _render_form_section_heading("기본 정보", "프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.")
             title_input = st.text_input(
                 "프로젝트명 *",
                 value=title,
@@ -302,17 +290,11 @@ def render_project_form(
             _render_project_preview(title_input, one_liner_input, tags_input, "")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
-        st.markdown(
-            '<div class="folio-form-section-heading"><div><strong>프로젝트 내용</strong><small>분석의 배경과 과정, 핵심 인사이트를 기록하세요.</small></div></div>',
-            unsafe_allow_html=True,
-        )
+        _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
     with st.container(border=True, key=f"{key_prefix}_form_section_links"):
-        st.markdown(
-            '<div class="folio-form-section-heading"><div><strong>관련 결과물 링크</strong><small>관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.</small></div></div>',
-            unsafe_allow_html=True,
-        )
+        _render_form_section_heading("관련 결과물 링크", "관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.")
         power_bi_col, github_col, etc_col = st.columns(3, gap="medium")
         with power_bi_col:
             power_bi_url_input = st.text_input(
@@ -410,6 +392,33 @@ def render_project_form(
         },
         submitted,
         cancelled,
+    )
+
+
+def _render_project_form_intro() -> None:
+    st.markdown(
+        """
+        <div class="folio-project-form-intro">
+            <strong>프로젝트 정보를 작성해 주세요.</strong>
+            <span>작성 내용은 현재 세션에 자동 임시 저장됩니다.</span>
+            <small><b>*</b> 필수 입력</small>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_form_section_heading(title: str, body: str) -> None:
+    st.markdown(
+        clean_html(f"""
+        <div class="folio-form-section-heading">
+            <div>
+                <strong>{html.escape(title)}</strong>
+                <small>{html.escape(body)}</small>
+            </div>
+        </div>
+        """),
+        unsafe_allow_html=True,
     )
 
 

@@ -8,6 +8,7 @@ a fixed order and injects the result once via st.html().
 import streamlit as st
 
 from folio_app.styles import (
+    about,
     auth,
     browse_panel,
     buttons_inputs,
@@ -27,6 +28,7 @@ _SECTIONS = (
     tokens,
     header,
     hero,
+    about,
     buttons_inputs,
     browse_panel,
     cards,

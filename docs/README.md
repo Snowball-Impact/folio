@@ -1,39 +1,37 @@
 # FOLIO 문서 안내
 
-문서는 목적에 따라 제품·설계·운영·작업 기록으로 나뉜다.
+문서는 현재 작업에 필요한 기준 문서만 루트에 둔다. 초안, 완료 기록, 오래된 와이어프레임은 `legacy/`에 보관한다.
 
-## 포트폴리오용 설계 문서
+## 먼저 읽을 문서
 
 | 문서 | 설명 |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 시스템 구성, 계층, 인증·캐시·배포 구조와 Mermaid 다이어그램 |
-| [USER_FLOWS.md](USER_FLOWS.md) | 회원가입, 온보딩, 프로젝트 등록·탐색·관리 사용자 여정 |
-| [DATA_MODEL.md](DATA_MODEL.md) | ERD, 관계·삭제 규칙, RLS 행렬, trigger와 RPC |
-| [DECISIONS.md](DECISIONS.md) | 기술·제품 선택의 맥락과 결과를 ADR 형식으로 기록 |
-| [ENGINEERING_PLAYBOOK.md](ENGINEERING_PLAYBOOK.md) | 개발 정책, 검증 기준, 시행착오에서 얻은 교훈 |
-| [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 과정에서 관찰한 역량과 성장 기준을 날짜별로 기록 |
+| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | 현재 코드 구조, 기능 상태, 최근 작업 기록 |
+| [ENGINEERING_PLAYBOOK.md](ENGINEERING_PLAYBOOK.md) | 작업 원칙, 검증 기준, 반복 실수 방지 규칙 |
+| [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) | 현재 UI 취향, 토큰, 컴포넌트 사용 기준 |
 
-## 제품과 화면
+## 제품과 설계
 
 | 문서 | 설명 |
 |---|---|
 | [PRD.md](PRD.md) | 제품 문제, 사용자, MVP 범위와 성공 기준 |
-| [WIREFRAME.MD](WIREFRAME.MD) | 현재 화면 구조와 UI 규칙 |
-| [PROJECT_DETAIL_PAGE_IMPROVEMENTS.md](PROJECT_DETAIL_PAGE_IMPROVEMENTS.md) | 프로젝트 상세 화면 개선 기록 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 시스템 구성, 계층, 인증·캐시·배포 구조 |
+| [USER_FLOWS.md](USER_FLOWS.md) | 회원가입, 온보딩, 프로젝트 등록·탐색·관리 사용자 여정 |
+| [DATA_MODEL.md](DATA_MODEL.md) | ERD, 관계·삭제 규칙, RLS 행렬, trigger와 RPC |
+| [DECISIONS.md](DECISIONS.md) | 주요 기술·제품 결정 기록 |
 
-## 개발과 운영
+## 운영과 검증
 
 | 문서 | 설명 |
 |---|---|
-| [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) | 새 작업을 시작할 때 가장 먼저 읽는 현재 컨텍스트 |
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
-| [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase를 사용한 통합 검증 결과 및 미검증 범위 |
+| [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
+| [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
 
-## 완료 기록
+## Legacy
 
-| 문서 | 설명 |
+| 위치 | 설명 |
 |---|---|
-| [WEEK1_BUILD_CHECKLIST.md](WEEK1_BUILD_CHECKLIST.md) | 인증·프로필·앱 기반 구축 기록 |
-| [WEEK2_BUILD_CHECKLIST.md](WEEK2_BUILD_CHECKLIST.md) | 프로젝트 CRUD·탐색·상세·좋아요 구축 기록 |
+| [legacy/](legacy/) | 초안, 완료 체크리스트, 이전 와이어프레임, 과거 상세 개선 기록 |
 
-완료 기록은 당시 상태를 보존한다. 현재 구조와 작업 원칙이 충돌하면 `PROJECT_CONTEXT.md`, 실제 코드, 스키마 순으로 확인한 뒤 문서를 갱신한다.
+`legacy/` 문서는 당시 맥락 보존용이다. 현재 구현 기준과 충돌하면 `PROJECT_CONTEXT.md`, 실제 코드, 스키마 순으로 확인한다.

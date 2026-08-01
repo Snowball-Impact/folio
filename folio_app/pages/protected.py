@@ -11,6 +11,7 @@ from folio_app.components.project_form import (
     render_project_form,
     validate_project_form,
 )
+from folio_app.components.ui import clean_html, render_project_metrics, render_tag_chips
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.project_drafts import (
@@ -342,9 +343,6 @@ def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     st.session_state.pop("editing_profile", None)
     st.success("프로필이 업데이트됐습니다.")
     st.rerun()
-
-
-from folio_app.components.ui import clean_html, render_tag_chips, render_project_metrics
 
 
 def _render_portfolio_item(project: dict) -> None:

@@ -169,18 +169,6 @@ CSS = """
     font-style: italic;
 }
 
-/* Sidebar section titles */
-.folio-sidebar-section-title {
-    color: var(--folio-navy);
-    font-size: 1rem;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-    margin: 0 0 14px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--folio-subtle);
-}
-
-.st-key-project_detail_sidebar,
 .st-key-project_detail_visual {
     background: var(--folio-surface) !important;
     border: 1px solid var(--folio-border) !important;
@@ -219,7 +207,6 @@ CSS = """
     word-break: keep-all;
 }
 
-.st-key-project_detail_sidebar [data-testid="stVerticalBlock"],
 .st-key-project_detail_visual [data-testid="stVerticalBlock"] {
     box-sizing: border-box;
     gap: 12px;
@@ -228,9 +215,6 @@ CSS = """
     width: 100%;
 }
 
-.st-key-project_detail_sidebar [data-testid="stElementContainer"],
-.st-key-project_detail_sidebar [data-testid="stCustomComponentV1"],
-.st-key-project_detail_sidebar .stLinkButton,
 .st-key-project_detail_visual [data-testid="stElementContainer"],
 .st-key-project_detail_visual [data-testid="stCustomComponentV1"],
 .st-key-project_detail_visual .stLinkButton {
@@ -242,32 +226,6 @@ CSS = """
     margin-right: auto !important;
 }
 
-.folio-sidebar-heading {
-    margin-bottom: 2px;
-    padding-bottom: 12px;
-}
-
-.folio-sidebar-heading h2 {
-    color: var(--folio-navy);
-    font-size: 1.05rem;
-    font-weight: 800;
-    margin: 0;
-}
-
-.folio-sidebar-heading h3 {
-    color: var(--folio-navy);
-    font-size: 1.02rem;
-    font-weight: 800;
-    margin: 0;
-}
-
-.folio-sidebar-heading.folio-sidebar-resources {
-    border-top: 1px solid var(--folio-border);
-    margin-top: 10px;
-    padding-top: 18px;
-}
-
-.st-key-project_detail_sidebar iframe,
 .st-key-project_detail_visual iframe {
     box-sizing: border-box;
     border-radius: 12px;
@@ -277,14 +235,12 @@ CSS = """
     width: 100%;
 }
 
-.st-key-project_detail_sidebar [data-testid="stCaptionContainer"],
 .st-key-project_detail_visual [data-testid="stCaptionContainer"] {
     color: var(--folio-muted);
     font-size: 12px;
     line-height: 1.45;
 }
 
-.st-key-project_detail_sidebar .stLinkButton > a,
 .st-key-project_detail_visual .stLinkButton > a {
     background: #ffffff !important;
     border: 1px solid var(--folio-border) !important;
@@ -298,21 +254,12 @@ CSS = """
     width: 100% !important;
 }
 
-.st-key-project_detail_sidebar .stLinkButton > a:hover,
 .st-key-project_detail_visual .stLinkButton > a:hover {
     background: rgba(20, 89, 200, 0.05) !important;
     border-color: rgba(20, 89, 200, 0.35) !important;
     color: var(--folio-blue) !important;
 }
 
-.st-key-project_detail_sidebar .st-key-detail_visual_back_button {
-    border-top: 1px solid var(--folio-border);
-    margin-top: 8px;
-    padding-top: 14px;
-    width: 100%;
-}
-
-.st-key-project_detail_sidebar .st-key-detail_visual_back_button button,
 .st-key-detail_content_back_button button {
     background: transparent !important;
     border: 0 !important;
@@ -322,7 +269,6 @@ CSS = """
     font-weight: 700 !important;
 }
 
-.st-key-project_detail_sidebar .st-key-detail_visual_back_button button:hover,
 .st-key-detail_content_back_button button:hover {
     color: var(--folio-blue) !important;
     transform: none !important;

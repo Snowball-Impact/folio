@@ -110,61 +110,16 @@ def render_project_card_html(
     href: str | None = None,
     preview_url: str | None = None,
 ) -> str:
-    one_liner = html.escape(project.get("one_liner") or fallback_text or project.get("insights") or "")
-    if not one_liner:
-        one_liner = html.escape(project.get("problem") or "")
-
-    author = project.get("author") or {}
-    author_name = html.escape(author.get("name") or "작성자")
-    author_organization = html.escape(author.get("organization") or "")
-    author_label = f"{author_name} · {author_organization}" if author_organization else author_name
-    created_at = project.get("created_at") or ""
-    date_label = html.escape(str(created_at)[:10]) if created_at else ""
-    footer_meta_html = clean_html(f"""
-    <div class="folio-home-footer-meta">
-        <span class="folio-home-date">{date_label}</span>
-        <span class="folio-home-author">{author_label}</span>
-    </div>
-    """)
     title_html = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
     cover_html = _render_auto_cover(project, compact=compact, show_title=False, show_tags=False)
+    summary_html = _card_summary(project, fallback_text)
+    footer_meta_html = _card_footer_meta(project)
     metrics_html = render_project_metrics(project)
-    tags = [str(tag) for tag in (project.get("tags") or [])]
-    visible_tags = tags[:4]
-    tag_html = "".join(f"<span>#{html.escape(tag)}</span>" for tag in visible_tags)
-    hidden_count = max(len(tags) - len(visible_tags), 0)
-    if hidden_count:
-        tag_list = ", ".join(tags)
-        tag_html += (
-            f'<span class="folio-home-card-tag-more" '
-            f'title="{html.escape(tag_list, quote=True)}">+{hidden_count}</span>'
-        )
-    tags_block = f'<div class="folio-home-card-tags">{tag_html}</div>' if tag_html else ""
+    tags_block = _card_tags(project)
+    overlay_link_html = _card_overlay_link(project, href)
+    preview_html = _card_preview(preview_url)
 
-    # Streamlit's markdown renderer will not let <a> wrap block-level content
-    # (e.g. <div>): it silently splits one <a> into several, one per inline
-    # text run, leaving the cover/background unclickable. Instead, an empty
-    # <a> stretched over the whole card (position: absolute; inset: 0;) makes
-    # the entire card clickable while itself containing no block children.
-    overlay_link_html = (
-        f'<a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self" '
-        f'aria-label="{html.escape(project.get("title") or "프로젝트")}"></a>'
-        if href
-        else ""
-    )
-    preview_html = (
-        f"""
-        <div class="folio-home-card-preview" data-folio-preview-src="{html.escape(preview_url, quote=True)}">
-            <div class="folio-home-card-preview-label">대시보드 미리보기</div>
-        </div>
-        """
-        if preview_url
-        else ""
-    )
-
-    card_class = "folio-home-card folio-home-card-compact" if compact else "folio-home-card"
-    if preview_url:
-        card_class += " folio-home-card-has-preview"
+    card_class = _card_class(compact=compact, has_preview=bool(preview_url))
     card_html = f"""
     <div class="{card_class}">
         {overlay_link_html}
@@ -175,7 +130,7 @@ def render_project_card_html(
                 <h3 class="folio-home-card-title">{title_html}</h3>
             </div>
             <div class="folio-home-card-summary-zone">
-                <p class="folio-home-card-summary">{one_liner}</p>
+                <p class="folio-home-card-summary">{summary_html}</p>
             </div>
             <div class="folio-home-card-tags-zone">
                 {tags_block}
@@ -188,3 +143,67 @@ def render_project_card_html(
     </div>
     """
     return clean_html(card_html)
+
+
+def _card_class(*, compact: bool, has_preview: bool) -> str:
+    classes = ["folio-home-card"]
+    if compact:
+        classes.append("folio-home-card-compact")
+    if has_preview:
+        classes.append("folio-home-card-has-preview")
+    return " ".join(classes)
+
+
+def _card_summary(project: dict, fallback_text: str) -> str:
+    summary = project.get("one_liner") or fallback_text or project.get("insights") or project.get("problem") or ""
+    return html.escape(summary)
+
+
+def _card_footer_meta(project: dict) -> str:
+    author = project.get("author") or {}
+    author_name = html.escape(author.get("name") or "작성자")
+    author_organization = html.escape(author.get("organization") or "")
+    author_label = f"{author_name} · {author_organization}" if author_organization else author_name
+    created_at = project.get("created_at") or ""
+    date_label = html.escape(str(created_at)[:10]) if created_at else ""
+    return clean_html(f"""
+    <div class="folio-home-footer-meta">
+        <span class="folio-home-date">{date_label}</span>
+        <span class="folio-home-author">{author_label}</span>
+    </div>
+    """)
+
+
+def _card_tags(project: dict) -> str:
+    tags = [str(tag) for tag in (project.get("tags") or [])]
+    visible_tags = tags[:4]
+    tag_html = "".join(f"<span>#{html.escape(tag)}</span>" for tag in visible_tags)
+    hidden_count = max(len(tags) - len(visible_tags), 0)
+    if hidden_count:
+        tag_list = ", ".join(tags)
+        tag_html += (
+            f'<span class="folio-home-card-tag-more" '
+            f'title="{html.escape(tag_list, quote=True)}">+{hidden_count}</span>'
+        )
+    return f'<div class="folio-home-card-tags">{tag_html}</div>' if tag_html else ""
+
+
+def _card_overlay_link(project: dict, href: str | None) -> str:
+    if not href:
+        return ""
+    # Streamlit's markdown renderer splits links that wrap block-level content.
+    # A stretched empty link keeps the whole media tile clickable.
+    return (
+        f'<a class="folio-card-link" href="{html.escape(href, quote=True)}" target="_self" '
+        f'aria-label="{html.escape(project.get("title") or "프로젝트")}"></a>'
+    )
+
+
+def _card_preview(preview_url: str | None) -> str:
+    if not preview_url:
+        return ""
+    return f"""
+    <div class="folio-home-card-preview" data-folio-preview-src="{html.escape(preview_url, quote=True)}">
+        <div class="folio-home-card-preview-label">대시보드 미리보기</div>
+    </div>
+    """

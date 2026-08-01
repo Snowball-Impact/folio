@@ -1,30 +1,18 @@
-import base64
 import html
-from functools import lru_cache
-from pathlib import Path
 from typing import Callable, Optional
 
 import streamlit as st
 
+from folio_app.components.assets import static_image_src
 from folio_app.navigation import ROUTABLE_PAGES, navigate
 from folio_app.services.auth import get_current_user
-
-
-_STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
-
-
-@lru_cache(maxsize=8)
-def _static_image_src(image_name: str) -> str:
-    image_path = _STATIC_DIR / image_name
-    encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
 
 
 def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
     selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
     current_page = st.query_params.get("page") or "Home"
-    logo_src = _static_image_src("logo.png")
+    logo_src = static_image_src("logo.png")
 
     # No st.columns() here on purpose: Streamlit's column grid runs its own
     # ResizeObserver-based width measurement to decide wrapping, and that
@@ -65,10 +53,12 @@ def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
     if not is_logged_in:
         return [
             ("Home", "홈 갤러리"),
+            ("About", "서비스 소개"),
             ("Login", "로그인"),
         ]
     return [
         ("Home", "홈 갤러리"),
+        ("About", "서비스 소개"),
         ("Submit", "프로젝트 등록"),
         ("My Page", "마이 페이지"),
         ("__logout__", "로그아웃"),
@@ -100,7 +90,7 @@ def render_hero(
     elif image_name:
         visual_html = (
             '<div class="folio-page-hero-visual">'
-            f'<img src="{_static_image_src(image_name)}" alt="{html.escape(image_alt, quote=True)}" />'
+            f'<img src="{static_image_src(image_name)}" alt="{html.escape(image_alt, quote=True)}" />'
             "</div>"
         )
     hero_markup = (

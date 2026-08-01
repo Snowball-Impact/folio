@@ -1,12 +1,10 @@
-import base64
 import html
-from functools import lru_cache
-from pathlib import Path
 
 import streamlit as st
 import streamlit.components.v1 as components
 
 from folio_app.components.analytics import track_event
+from folio_app.components.assets import static_image_src
 from folio_app.components.ui import plain_text, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
@@ -19,14 +17,133 @@ from folio_app.services.projects import (
     normalize_power_bi_embed_url,
 )
 
-_HERO_PREVIEW_PATH = Path(__file__).resolve().parent.parent / "static" / "hero-preview.png"
 _HOME_PAGE = "Home"
+_HOME_HERO_SLIDES = (
+    {
+        "eyebrow": "Project Portfolio Platform",
+        "title_html": "AI 시대에는 <em>휴먼 인사이트</em>가 자산이다.",
+        "body": "데이터, AI, 웹 앱 프로젝트를 기록하고 공유하세요.",
+        "visual": "preview",
+    },
+    {
+        "eyebrow": "Collective Insight",
+        "title_html": "인사이트는 <em>공유할수록 깊어집니다.</em>",
+        "body": "프로젝트를 공유하고, 댓글과 반응으로 더 나은 결과물로 발전시키세요.",
+        "visual": "guide",
+    },
+)
+_HOME_GUIDE_STEPS = (
+    ("01", "공유", "결과물과 제작 맥락을 모두와 공유합니다."),
+    ("02", "피드백", "댓글과 반응으로 새로운 관점을 발견합니다."),
+    ("03", "발전", "다양한 관점이 모여 인사이트를 개선합니다."),
+)
+_RAIL_SCROLL_SCRIPT = """
+<script>
+(function() {
+    var parentDocument = window.parent.document;
+    if (parentDocument.__folioRailScrollBound) {
+        return;
+    }
+    parentDocument.__folioRailScrollBound = true;
+    parentDocument.addEventListener("click", function(event) {
+        var button = event.target.closest("[data-folio-rail-button]");
+        if (!button) {
+            return;
+        }
+        event.preventDefault();
+        var target = button.getAttribute("data-target");
+        var direction = Number(button.getAttribute("data-direction") || "1");
+        var rail = parentDocument.querySelector('[data-folio-rail="' + target + '"]');
+        if (!rail) {
+            return;
+        }
+        var distance = Math.max(rail.clientWidth * 0.72, 320);
+        rail.scrollBy({ left: direction * distance, behavior: "smooth" });
+    });
+})();
+</script>
+"""
+_CARD_PREVIEW_SCRIPT = """
+<script>
+(function() {
+    var parentDocument = window.parent.document;
+    if (parentDocument.__folioCardPreviewBound) {
+        return;
+    }
+    parentDocument.__folioCardPreviewBound = true;
 
+    function mountPreview(preview) {
+        if (!preview || preview.dataset.folioPreviewMounted === "1") {
+            return;
+        }
+        var src = preview.getAttribute("data-folio-preview-src");
+        if (!src) {
+            return;
+        }
+        preview.dataset.folioPreviewMounted = "1";
+        preview.classList.add("is-loaded");
+        var iframe = parentDocument.createElement("iframe");
+        iframe.className = "folio-home-card-preview-frame";
+        iframe.title = "프로젝트 대시보드 미리보기";
+        iframe.src = src;
+        iframe.loading = "lazy";
+        iframe.referrerPolicy = "no-referrer-when-downgrade";
+        iframe.setAttribute("allowfullscreen", "true");
+        preview.appendChild(iframe);
+    }
 
-@lru_cache(maxsize=1)
-def _hero_preview_src() -> str:
-    encoded = base64.b64encode(_HERO_PREVIEW_PATH.read_bytes()).decode("ascii")
-    return f"data:image/png;base64,{encoded}"
+    parentDocument.addEventListener("mouseenter", function(event) {
+        var card = event.target.closest(".folio-home-card-has-preview");
+        if (!card) {
+            return;
+        }
+        mountPreview(card.querySelector(".folio-home-card-preview"));
+    }, true);
+
+    parentDocument.addEventListener("focusin", function(event) {
+        var card = event.target.closest(".folio-home-card-has-preview");
+        if (!card) {
+            return;
+        }
+        mountPreview(card.querySelector(".folio-home-card-preview"));
+    });
+})();
+</script>
+"""
+_COUNT_UP_SCRIPT = """
+<script>
+(function() {
+    var parentDocument = window.parent.document;
+    var counters = parentDocument.querySelectorAll("[data-folio-count-up]");
+    counters.forEach(function(counter) {
+        var target = Number(counter.getAttribute("data-folio-count-up") || "0");
+        var key = "folioCountAnimated:" + target;
+        var duration = 720;
+        var startTime = null;
+
+        if (counter.dataset.folioAnimated === key) {
+            counter.textContent = target.toLocaleString("ko-KR");
+            return;
+        }
+
+        counter.dataset.folioAnimated = key;
+        function tick(timestamp) {
+            if (startTime === null) {
+                startTime = timestamp;
+            }
+            var progress = Math.min((timestamp - startTime) / duration, 1);
+            var eased = 1 - Math.pow(1 - progress, 3);
+            var value = Math.round(target * eased);
+            counter.textContent = value.toLocaleString("ko-KR");
+            if (progress < 1) {
+                parentDocument.defaultView.requestAnimationFrame(tick);
+            }
+        }
+        parentDocument.defaultView.requestAnimationFrame(tick);
+    });
+})();
+</script>
+"""
 
 
 def render() -> None:
@@ -55,73 +172,29 @@ def render() -> None:
             st.rerun()
         return
     _render_browse_panel(total_project_count, popular_tags)
-    _render_project_rails(
-        [
-            ("recent", "최근 등록순", "새로 공개된 프로젝트를 먼저 살펴보세요.", recent_projects),
-            ("views", "조회순", "많이 읽힌 프로젝트를 빠르게 훑어보세요.", viewed_projects),
-            ("likes", "좋아요순", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects),
-        ]
-    )
+    _render_project_rails(_project_rail_specs(recent_projects, viewed_projects, liked_projects))
+
+
+def _project_rail_specs(
+    recent_projects: list[dict],
+    viewed_projects: list[dict],
+    liked_projects: list[dict],
+) -> list[tuple[str, str, list[dict]]]:
+    return [
+        ("recent", "새로 공개된 프로젝트를 먼저 살펴보세요.", recent_projects),
+        ("views", "많이 읽힌 프로젝트를 빠르게 훑어보세요.", viewed_projects),
+        ("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects),
+    ]
 
 
 def _render_hero() -> None:
-    hero_preview_src = _hero_preview_src()
-    primary_href = "?page=Submit"
+    slides_html = "".join(_hero_slide_html(slide) for slide in _HOME_HERO_SLIDES)
     st.markdown(
         f"""
         <section class="folio-home-hero-shell">
             <div class="folio-home-hero-viewport">
                 <div class="folio-home-hero-track">
-                    <section class="folio-home-hero">
-                        <div class="folio-home-copy">
-                            <div class="folio-home-eyebrow">Project Portfolio Platform</div>
-                            <h1>AI 시대에는 <em>휴먼 인사이트</em>가 자산이다.</h1>
-                            <p>데이터, AI, 웹 앱 프로젝트를 기록하고 공유하세요.</p>
-                            <div class="folio-home-actions">
-                                <a class="folio-home-primary-cta" href="{primary_href}" target="_self">내 프로젝트 등록하기</a>
-                            </div>
-                        </div>
-                        <div class="folio-hero-preview">
-                            <img
-                                class="folio-hero-preview-image"
-                                src="{hero_preview_src}"
-                                alt="데이터 분석 대시보드와 인사이트 미리보기"
-                            />
-                        </div>
-                    </section>
-                    <section class="folio-home-hero folio-home-guide-hero">
-                        <div class="folio-home-copy">
-                            <div class="folio-home-eyebrow">Collective Insight</div>
-                            <h1>인사이트는 <em>공유할수록 깊어집니다.</em></h1>
-                            <p>프로젝트를 공유하고, 댓글과 반응으로 더 나은 결과물로 발전시키세요.</p>
-                            <div class="folio-home-actions">
-                                <a class="folio-home-primary-cta" href="{primary_href}" target="_self">내 프로젝트 등록하기</a>
-                            </div>
-                        </div>
-                        <div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">
-                            <div class="folio-home-guide-step">
-                                <div class="folio-home-guide-node">01</div>
-                                <div class="folio-home-guide-card">
-                                    <strong>공유</strong>
-                                    <p>결과물과 제작 맥락을 모두와 공유합니다.</p>
-                                </div>
-                            </div>
-                            <div class="folio-home-guide-step">
-                                <div class="folio-home-guide-node">02</div>
-                                <div class="folio-home-guide-card">
-                                    <strong>피드백</strong>
-                                    <p>댓글과 반응으로 새로운 관점을 발견합니다.</p>
-                                </div>
-                            </div>
-                            <div class="folio-home-guide-step">
-                                <div class="folio-home-guide-node">03</div>
-                                <div class="folio-home-guide-card">
-                                    <strong>발전</strong>
-                                    <p>다양한 관점이 모여 인사이트를 개선합니다.</p>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
+                    {slides_html}
                 </div>
             </div>
             <div class="folio-home-hero-dots" aria-hidden="true">
@@ -145,7 +218,7 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
                 <div class="folio-search-heading">
                     <h1 class="folio-search-title">
                         <span class="folio-search-title-count" data-folio-count-up="{project_count}">0</span>개의
-                        데이터·AI·웹 앱 프로젝트가 FOLIO에 쌓이고 있어요.
+                        휴먼 인사이트 프로젝트가 FOLIO에 쌓이고 있어요.
                     </h1>
                 </div>
             </div>
@@ -190,19 +263,19 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             )
 
 
-def _render_project_rails(rails: list[tuple[str, str, str, list[dict]]]) -> None:
-    if not any(projects for _, _, _, projects in rails):
+def _render_project_rails(rails: list[tuple[str, str, list[dict]]]) -> None:
+    if not any(projects for _, _, projects in rails):
         _render_rail_scroll_script()
         st.info("아직 표시할 프로젝트가 없습니다. 첫 프로젝트를 등록해보세요.")
         return
 
-    for rail_key, title, description, projects in rails:
-        _render_project_rail(rail_key, title, description, projects)
+    for rail_key, description, projects in rails:
+        _render_project_rail(rail_key, description, projects)
     _render_rail_scroll_script()
     _render_card_preview_script()
 
 
-def _render_project_rail(rail_key: str, title: str, description: str, projects: list[dict]) -> None:
+def _render_project_rail(rail_key: str, description: str, projects: list[dict]) -> None:
     cards_html = "".join(_project_card_html(project) for project in projects)
     safe_rail_key = html.escape(rail_key, quote=True)
     safe_description = html.escape(description)
@@ -238,129 +311,66 @@ def _render_project_rail(rail_key: str, title: str, description: str, projects: 
     )
 
 
+def _hero_slide_html(slide: dict[str, str]) -> str:
+    hero_class = "folio-home-hero"
+    if slide["visual"] == "guide":
+        hero_class += " folio-home-guide-hero"
+    return f"""
+    <section class="{hero_class}">
+        <div class="folio-home-copy">
+            <div class="folio-home-eyebrow">{html.escape(slide["eyebrow"])}</div>
+            <h1>{slide["title_html"]}</h1>
+            <p>{html.escape(slide["body"])}</p>
+            <div class="folio-home-actions">
+                <a class="folio-home-primary-cta" href="?page=Submit" target="_self">내 프로젝트 등록하기</a>
+            </div>
+        </div>
+        {_hero_visual_html(slide["visual"])}
+    </section>
+    """
+
+
+def _hero_visual_html(visual: str) -> str:
+    if visual == "preview":
+        hero_preview_src = static_image_src("hero-preview-home.jpg")
+        return (
+            '<div class="folio-hero-preview">'
+            f'<img class="folio-hero-preview-image" src="{hero_preview_src}" '
+            'alt="데이터 분석 대시보드와 인사이트 미리보기" />'
+            "</div>"
+        )
+    if visual == "guide":
+        steps_html = "".join(_hero_guide_step_html(*step) for step in _HOME_GUIDE_STEPS)
+        return f'<div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">{steps_html}</div>'
+    return ""
+
+
+def _hero_guide_step_html(step_number: str, title: str, body: str) -> str:
+    return f"""
+    <div class="folio-home-guide-step">
+        <div class="folio-home-guide-node">{html.escape(step_number)}</div>
+        <div class="folio-home-guide-card">
+            <strong>{html.escape(title)}</strong>
+            <p>{html.escape(body)}</p>
+        </div>
+    </div>
+    """
+
+
 def _render_rail_scroll_script() -> None:
-    components.html(
-        """
-        <script>
-        (function() {
-            var parentDocument = window.parent.document;
-            if (parentDocument.__folioRailScrollBound) {
-                return;
-            }
-            parentDocument.__folioRailScrollBound = true;
-            parentDocument.addEventListener("click", function(event) {
-                var button = event.target.closest("[data-folio-rail-button]");
-                if (!button) {
-                    return;
-                }
-                event.preventDefault();
-                var target = button.getAttribute("data-target");
-                var direction = Number(button.getAttribute("data-direction") || "1");
-                var rail = parentDocument.querySelector('[data-folio-rail="' + target + '"]');
-                if (!rail) {
-                    return;
-                }
-                var distance = Math.max(rail.clientWidth * 0.72, 320);
-                rail.scrollBy({ left: direction * distance, behavior: "smooth" });
-            });
-        })();
-        </script>
-        """,
-        height=0,
-    )
+    _render_script(_RAIL_SCROLL_SCRIPT)
 
 
 def _render_card_preview_script() -> None:
-    components.html(
-        """
-        <script>
-        (function() {
-            var parentDocument = window.parent.document;
-            if (parentDocument.__folioCardPreviewBound) {
-                return;
-            }
-            parentDocument.__folioCardPreviewBound = true;
-
-            function mountPreview(preview) {
-                if (!preview || preview.dataset.folioPreviewMounted === "1") {
-                    return;
-                }
-                var src = preview.getAttribute("data-folio-preview-src");
-                if (!src) {
-                    return;
-                }
-                preview.dataset.folioPreviewMounted = "1";
-                preview.classList.add("is-loaded");
-                var iframe = parentDocument.createElement("iframe");
-                iframe.className = "folio-home-card-preview-frame";
-                iframe.title = "프로젝트 대시보드 미리보기";
-                iframe.src = src;
-                iframe.loading = "lazy";
-                iframe.referrerPolicy = "no-referrer-when-downgrade";
-                iframe.setAttribute("allowfullscreen", "true");
-                preview.appendChild(iframe);
-            }
-
-            parentDocument.addEventListener("mouseenter", function(event) {
-                var card = event.target.closest(".folio-home-card-has-preview");
-                if (!card) {
-                    return;
-                }
-                mountPreview(card.querySelector(".folio-home-card-preview"));
-            }, true);
-
-            parentDocument.addEventListener("focusin", function(event) {
-                var card = event.target.closest(".folio-home-card-has-preview");
-                if (!card) {
-                    return;
-                }
-                mountPreview(card.querySelector(".folio-home-card-preview"));
-            });
-        })();
-        </script>
-        """,
-        height=0,
-    )
+    _render_script(_CARD_PREVIEW_SCRIPT)
 
 
 def _render_count_up_script() -> None:
-    components.html(
-        """
-        <script>
-        (function() {
-            var parentDocument = window.parent.document;
-            var counters = parentDocument.querySelectorAll("[data-folio-count-up]");
-            counters.forEach(function(counter) {
-                var target = Number(counter.getAttribute("data-folio-count-up") || "0");
-                var key = "folioCountAnimated:" + target;
-                var duration = 720;
-                var startTime = null;
+    _render_script(_COUNT_UP_SCRIPT)
 
-                if (counter.dataset.folioAnimated === key) {
-                    counter.textContent = target.toLocaleString("ko-KR");
-                    return;
-                }
 
-                counter.dataset.folioAnimated = key;
-                function tick(timestamp) {
-                    if (startTime === null) {
-                        startTime = timestamp;
-                    }
-                    var progress = Math.min((timestamp - startTime) / duration, 1);
-                    var eased = 1 - Math.pow(1 - progress, 3);
-                    var value = Math.round(target * eased);
-                    counter.textContent = value.toLocaleString("ko-KR");
-                    if (progress < 1) {
-                        parentDocument.defaultView.requestAnimationFrame(tick);
-                    }
-                }
-                parentDocument.defaultView.requestAnimationFrame(tick);
-            });
-        })();
-        </script>
-        """,
-        height=0,
-    )
+def _render_script(script: str) -> None:
+    components.html(script, height=0)
 
 
 def _project_card_html(project: dict) -> str:

@@ -149,14 +149,6 @@ div[data-testid="stForm"] button {
     margin-bottom: 14px;
 }
 
-.folio-form-preview-heading small {
-    color: var(--folio-muted);
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 400;
-    margin-top: 3px;
-}
-
 [class*="_form_section_overview"] [data-testid="stHorizontalBlock"] {
     align-items: stretch;
 }
