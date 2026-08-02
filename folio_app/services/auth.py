@@ -1,461 +1,82 @@
-from __future__ import annotations
-
-from dataclasses import dataclass
-import logging
-from typing import Any
-
 import streamlit as st
-from supabase_auth.types import CodeExchangeParams, VerifyTokenHashParams
 
 from folio_app.config import get_settings
-from folio_app.services.profiles import (
-    ProfileServiceError,
-    complete_onboarding,
-    ensure_profile,
-    profile_exists_for_email,
+from folio_app.services.auth_account import (
+    apply_pending_policy_consents as _apply_pending_policy_consents,
+    resend_signup_confirmation,
+    sign_in,
+    sign_up,
+    sign_up_response_indicates_existing_user as _sign_up_response_indicates_existing_user,
 )
+from folio_app.services.auth_errors import friendly_auth_error as _friendly_auth_error
+from folio_app.services.auth_password_reset import (
+    complete_password_reset,
+    complete_password_reset_with_code,
+    complete_password_reset_with_token_hash,
+    request_password_reset,
+    update_password_and_clear_session as _update_password_and_clear_session,
+)
+from folio_app.services.auth_restore import restore_session
+from folio_app.services.auth_session import (
+    SESSION_CLEAR_BROWSER_AUTH_KEY,
+    SESSION_LOGOUT_IN_PROGRESS_KEY,
+    SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY,
+    SESSION_PASSWORD_RESET_TOKEN_KEY,
+    SESSION_REFRESH_TOKEN_KEY,
+    SESSION_TOKEN_KEY,
+    SESSION_USER_KEY,
+    auth_user_to_dict as _auth_user_to_dict,
+    bind_auth_response as _bind_auth_response,
+    bind_current_client_session as _bind_current_client_session,
+    bind_password_reset_session as _bind_password_reset_session,
+    ensure_authenticated_session,
+    get_auth_tokens,
+    get_current_user,
+    get_password_reset_tokens,
+    save_auth_session as _save_auth_session,
+    should_clear_browser_auth,
+    sign_out,
+)
+from folio_app.services.auth_types import AuthResult
+from folio_app.services.profiles import profile_exists_for_email
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
 
 
-logger = logging.getLogger(__name__)
-
-
-SESSION_USER_KEY = "folio_user"
-SESSION_TOKEN_KEY = "folio_access_token"
-SESSION_REFRESH_TOKEN_KEY = "folio_refresh_token"
-SESSION_CLEAR_BROWSER_AUTH_KEY = "folio_clear_browser_auth"
-SESSION_LOGOUT_IN_PROGRESS_KEY = "folio_logout_in_progress"
-SESSION_PASSWORD_RESET_TOKEN_KEY = "folio_password_reset_access_token"
-SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY = "folio_password_reset_refresh_token"
-
-
-@dataclass(frozen=True)
-class AuthResult:
-    ok: bool
-    message: str
-
-
-def get_current_user() -> dict[str, Any] | None:
-    return st.session_state.get(SESSION_USER_KEY)
-
-
-def sign_up(
-    email: str,
-    password: str,
-    name: str,
-    organization: str,
-    consented_policy_version_ids: list[str] | None = None,
-) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    settings = get_settings()
-
-    try:
-        if profile_exists_for_email(email):
-            return AuthResult(False, "이미 가입된 이메일입니다. Login 메뉴에서 로그인하세요.")
-
-        response = client.auth.sign_up(
-            {
-                "email": email,
-                "password": password,
-                "options": {
-                    "email_redirect_to": settings.login_redirect_url,
-                    "data": {
-                        "name": name,
-                        "organization": organization,
-                        "consented_policy_version_ids": consented_policy_version_ids or [],
-                    }
-                },
-            }
-        )
-        if response.user is None:
-            return AuthResult(False, "회원가입 응답에서 사용자 정보를 찾을 수 없습니다.")
-        if _sign_up_response_indicates_existing_user(response.user):
-            return AuthResult(False, "이미 가입된 이메일입니다. Login 메뉴에서 로그인하세요.")
-
-        if response.session:
-            _save_auth_session(response.session, response.user.model_dump())
-            ensure_profile(response.user.id, email, name, organization)
-            _apply_pending_policy_consents(response.user.id, consented_policy_version_ids or [])
-            return AuthResult(True, "회원가입이 완료되었습니다.")
-
-        return AuthResult(True, "회원가입 요청을 처리했습니다. 메일함을 확인하세요.")
-    except Exception as exc:  # Supabase client raises provider-specific exceptions.
-        return AuthResult(False, _friendly_auth_error("회원가입", exc))
-
-
-def sign_in(email: str, password: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    try:
-        response = client.auth.sign_in_with_password(
-            {
-                "email": email,
-                "password": password,
-            }
-        )
-        if response.user is None or response.session is None:
-            return AuthResult(False, "이메일 또는 비밀번호를 확인하세요.")
-
-        _save_auth_session(response.session, response.user.model_dump())
-
-        metadata = response.user.user_metadata or {}
-        try:
-            ensure_profile(
-                response.user.id,
-                response.user.email or email,
-                metadata.get("name", ""),
-                metadata.get("organization", ""),
-            )
-        except Exception:
-            # Login has already succeeded. Profile repair can be retried elsewhere.
-            logger.exception("Login succeeded but profile repair failed")
-        _apply_pending_policy_consents(response.user.id, metadata.get("consented_policy_version_ids") or [])
-        return AuthResult(True, "로그인되었습니다.")
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("로그인", exc))
-
-
-def resend_signup_confirmation(email: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    settings = get_settings()
-
-    try:
-        client.auth.resend(
-            {
-                "type": "signup",
-                "email": email,
-                "options": {
-                    "email_redirect_to": settings.login_redirect_url,
-                },
-            }
-        )
-        return AuthResult(True, "인증 메일 재발송 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.")
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("인증 메일 재발송", exc))
-
-
-def request_password_reset(email: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    settings = get_settings()
-
-    try:
-        client.auth.reset_password_for_email(
-            email,
-            {
-                "redirect_to": settings.password_reset_redirect_url,
-            },
-        )
-        return AuthResult(True, "비밀번호 재설정 메일 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.")
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("비밀번호 재설정", exc))
-
-
-def complete_password_reset(access_token: str, refresh_token: str, new_password: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    try:
-        session_response = client.auth.set_session(access_token, refresh_token)
-        if session_response.session is None:
-            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
-        return _update_password_and_clear_session(client, new_password)
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
-
-
-def complete_password_reset_with_code(code: str, new_password: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    try:
-        session_response = client.auth.exchange_code_for_session(CodeExchangeParams(auth_code=code))
-        if session_response.session is None:
-            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
-        _bind_password_reset_session(client, session_response.session)
-        return _update_password_and_clear_session(client, new_password)
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
-
-
-def complete_password_reset_with_token_hash(token_hash: str, new_password: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    try:
-        session_response = client.auth.verify_otp(
-            VerifyTokenHashParams(type="recovery", token_hash=token_hash)
-        )
-        if session_response.session is None:
-            return AuthResult(False, "비밀번호 재설정 링크가 만료되었습니다. 다시 요청하세요.")
-        _bind_password_reset_session(client, session_response.session)
-        return _update_password_and_clear_session(client, new_password)
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("비밀번호 변경", exc))
-
-
-def sign_out() -> None:
-    client = get_supabase_client()
-    if client is not None:
-        try:
-            client.auth.sign_out()
-        except Exception:
-            logger.warning("Provider sign-out failed; local session will still be cleared", exc_info=True)
-
-    st.session_state.pop(SESSION_TOKEN_KEY, None)
-    st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
-    st.session_state.pop(SESSION_USER_KEY, None)
-    st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
-    st.session_state[SESSION_LOGOUT_IN_PROGRESS_KEY] = True
-    clear_supabase_client()
-
-
-def restore_session(access_token: str, refresh_token: str) -> AuthResult:
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    try:
-        response = client.auth.set_session(access_token, refresh_token)
-        if response.user is None or response.session is None:
-            return AuthResult(False, "저장된 로그인 정보를 복원하지 못했습니다. 다시 로그인하세요.")
-
-        _save_auth_session(response.session, response.user.model_dump())
-
-        metadata = response.user.user_metadata or {}
-        ensure_profile(
-            response.user.id,
-            response.user.email or "",
-            metadata.get("name", ""),
-            metadata.get("organization", ""),
-        )
-        _apply_pending_policy_consents(response.user.id, metadata.get("consented_policy_version_ids") or [])
-        return AuthResult(True, "로그인 상태를 복원했습니다.")
-    except Exception as exc:
-        return AuthResult(False, _friendly_auth_error("로그인 복원", exc))
-
-
-def get_auth_tokens() -> tuple[str | None, str | None]:
-    return (
-        st.session_state.get(SESSION_TOKEN_KEY),
-        st.session_state.get(SESSION_REFRESH_TOKEN_KEY),
-    )
-
-
-def get_password_reset_tokens() -> tuple[str | None, str | None]:
-    return (
-        st.session_state.get(SESSION_PASSWORD_RESET_TOKEN_KEY),
-        st.session_state.get(SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY),
-    )
-
-
-def ensure_authenticated_session() -> AuthResult:
-    """Rebind the stored user session to PostgREST before an authenticated mutation."""
-    user = get_current_user()
-    if user is None:
-        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
-
-    client = get_supabase_client()
-    if client is None:
-        return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
-
-    access_token, refresh_token = get_auth_tokens()
-    if not access_token or not refresh_token:
-        restored = _bind_current_client_session(client, user)
-        if restored.ok:
-            return restored
-        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
-
-    try:
-        response = client.auth.set_session(access_token, refresh_token)
-        return _bind_auth_response(client, response, user)
-    except Exception:
-        logger.exception("Failed to rebind authenticated session")
-
-    try:
-        response = client.auth.refresh_session(refresh_token)
-        return _bind_auth_response(client, response, user)
-    except Exception:
-        logger.exception("Failed to refresh authenticated session after set_session failure")
-
-    restored = _bind_current_client_session(client, user)
-    if restored.ok:
-        return restored
-    return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
-
-
-def _bind_current_client_session(client: Any, expected_user: dict[str, Any]) -> AuthResult:
-    try:
-        session = client.auth.get_session()
-    except Exception:
-        logger.exception("Failed to read current client auth session")
-        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
-    return _bind_auth_response(client, session, expected_user)
-
-
-def _bind_auth_response(client: Any, response: Any, expected_user: dict[str, Any]) -> AuthResult:
-    session = getattr(response, "session", None) or response
-    if session is None:
-        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
-
-    access_token = getattr(session, "access_token", "")
-    refresh_token = getattr(session, "refresh_token", "")
-    if not access_token or not refresh_token:
-        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
-
-    auth_user = getattr(response, "user", None) or getattr(session, "user", None)
-    if auth_user is None:
-        try:
-            user_response = client.auth.get_user(access_token)
-            auth_user = getattr(user_response, "user", None)
-        except Exception:
-            logger.exception("Failed to load user for authenticated session")
-            return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
-
-    auth_user_data = _auth_user_to_dict(auth_user)
-    if not auth_user_data:
-        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
-    if auth_user_data.get("id") != expected_user.get("id"):
-        return AuthResult(False, "로그인 사용자 정보가 일치하지 않습니다. 다시 로그인하세요.")
-
-    _save_auth_session(session, auth_user_data)
-    client.postgrest.auth(access_token)
-    return AuthResult(True, "로그인 상태를 확인했습니다.")
-
-
-def _auth_user_to_dict(user: Any) -> dict[str, Any]:
-    if isinstance(user, dict):
-        return user
-    if hasattr(user, "model_dump"):
-        return user.model_dump()
-    user_id = getattr(user, "id", None)
-    if not user_id:
-        return {}
-    return {
-        "id": user_id,
-        "email": getattr(user, "email", ""),
-        "user_metadata": getattr(user, "user_metadata", {}) or {},
-    }
-
-
-def should_clear_browser_auth() -> bool:
-    return bool(st.session_state.pop(SESSION_CLEAR_BROWSER_AUTH_KEY, False))
-
-
-def _apply_pending_policy_consents(user_id: str, policy_version_ids: list[str]) -> None:
-    if not policy_version_ids:
-        return
-    try:
-        complete_onboarding(user_id, policy_version_ids)
-    except ProfileServiceError:
-        # Onboarding page remains as a fallback if this silent completion fails.
-        logger.exception("Failed to apply signup-time policy consents")
-
-
-def _save_auth_session(session: Any, user: dict[str, Any]) -> None:
-    st.session_state[SESSION_TOKEN_KEY] = session.access_token
-    st.session_state[SESSION_REFRESH_TOKEN_KEY] = session.refresh_token
-    st.session_state[SESSION_USER_KEY] = user
-
-
-def _update_password_and_clear_session(client: Any, new_password: str) -> AuthResult:
-    client.auth.update_user({"password": new_password})
-    try:
-        client.auth.sign_out()
-    except Exception:
-        logger.warning("Provider sign-out failed after password reset", exc_info=True)
-    st.session_state.pop(SESSION_TOKEN_KEY, None)
-    st.session_state.pop(SESSION_REFRESH_TOKEN_KEY, None)
-    st.session_state.pop(SESSION_USER_KEY, None)
-    st.session_state.pop(SESSION_PASSWORD_RESET_TOKEN_KEY, None)
-    st.session_state.pop(SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY, None)
-    st.session_state[SESSION_CLEAR_BROWSER_AUTH_KEY] = True
-    clear_supabase_client()
-    return AuthResult(True, "비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.")
-
-
-def _bind_password_reset_session(client: Any, session: Any) -> None:
-    access_token = getattr(session, "access_token", "")
-    refresh_token = getattr(session, "refresh_token", "")
-    if access_token and refresh_token:
-        st.session_state[SESSION_PASSWORD_RESET_TOKEN_KEY] = access_token
-        st.session_state[SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY] = refresh_token
-        client.auth.set_session(access_token, refresh_token)
-
-
-def _sign_up_response_indicates_existing_user(user: Any) -> bool:
-    identities = getattr(user, "identities", None)
-    if identities == []:
-        return True
-
-    if hasattr(user, "model_dump"):
-        try:
-            user_data = user.model_dump()
-        except Exception:
-            return False
-        return user_data.get("identities") == []
-
-    return False
-
-
-def _friendly_auth_error(action: str, exc: Exception) -> str:
-    message = str(exc)
-    normalized = message.lower()
-
-    if "email rate limit exceeded" in normalized or "rate limit" in normalized or "over_email_send_rate_limit" in normalized:
-        return "인증 메일 발송 요청이 잠시 제한되었습니다. 잠시 후 다시 시도하세요."
-    if (
-        "redirect" in normalized
-        and (
-            "not allowed" in normalized
-            or "invalid" in normalized
-            or "uri" in normalized
-            or "url" in normalized
-        )
-    ):
-        return "Supabase Redirect URLs에 현재 앱 주소가 허용되어 있지 않습니다. Authentication URL Configuration을 확인하세요."
-    if "error sending" in normalized or "smtp" in normalized or "email provider" in normalized:
-        return "인증 메일 발송 서버 설정에 문제가 있습니다. Supabase SMTP 또는 이메일 템플릿 설정을 확인하세요."
-    if "invalid email" in normalized or "email address" in normalized:
-        return "올바른 이메일 주소를 입력하세요."
-    if "already registered" in normalized or "user already registered" in normalized:
-        return "이미 가입된 이메일입니다. 로그인하거나 인증 메일을 확인하세요."
-    if "email not confirmed" in normalized:
-        return "이메일 인증이 아직 완료되지 않았습니다. 인증 메일을 확인하세요."
-    if "invalid login credentials" in normalized:
-        return "이메일 또는 비밀번호를 확인하세요."
-    if "otp" in normalized or "token" in normalized or "expired" in normalized:
-        return "비밀번호 재설정 링크가 만료되었거나 이미 사용되었습니다. 다시 요청하세요."
-    if "same password" in normalized or "different from the old password" in normalized:
-        return "기존 비밀번호와 다른 새 비밀번호를 입력하세요."
-    if "password" in normalized and ("weak" in normalized or "short" in normalized or "length" in normalized):
-        return "비밀번호 보안 조건을 만족하지 못했습니다. 더 긴 비밀번호를 입력하세요."
-    if "refresh token" in normalized:
-        return "저장된 로그인 정보가 만료되었습니다. 다시 로그인하세요."
-    if (
-        "getaddrinfo failed" in normalized
-        or "connecterror" in normalized
-        or "temporary failure in name resolution" in normalized
-        or "name or service not known" in normalized
-    ):
-        return "Supabase 서버에 연결하지 못했습니다. .env의 SUPABASE_URL 또는 네트워크/DNS 상태를 확인하세요."
-
-    logger.warning(
-        "Authentication action failed: %s",
-        action,
-        exc_info=(type(exc), exc, exc.__traceback__),
-    )
-    return f"{action}에 실패했습니다. 잠시 후 다시 시도하세요."
+__all__ = [
+    "AuthResult",
+    "SESSION_CLEAR_BROWSER_AUTH_KEY",
+    "SESSION_LOGOUT_IN_PROGRESS_KEY",
+    "SESSION_PASSWORD_RESET_REFRESH_TOKEN_KEY",
+    "SESSION_PASSWORD_RESET_TOKEN_KEY",
+    "SESSION_REFRESH_TOKEN_KEY",
+    "SESSION_TOKEN_KEY",
+    "SESSION_USER_KEY",
+    "_apply_pending_policy_consents",
+    "_auth_user_to_dict",
+    "_bind_auth_response",
+    "_bind_current_client_session",
+    "_bind_password_reset_session",
+    "_friendly_auth_error",
+    "_save_auth_session",
+    "_sign_up_response_indicates_existing_user",
+    "_update_password_and_clear_session",
+    "clear_supabase_client",
+    "complete_password_reset",
+    "complete_password_reset_with_code",
+    "complete_password_reset_with_token_hash",
+    "ensure_authenticated_session",
+    "get_auth_tokens",
+    "get_current_user",
+    "get_password_reset_tokens",
+    "get_settings",
+    "get_supabase_client",
+    "profile_exists_for_email",
+    "request_password_reset",
+    "resend_signup_confirmation",
+    "restore_session",
+    "should_clear_browser_auth",
+    "sign_in",
+    "sign_out",
+    "sign_up",
+    "st",
+]

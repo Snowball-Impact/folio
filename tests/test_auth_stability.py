@@ -81,8 +81,8 @@ class SignupStabilityTests(unittest.TestCase):
 
         self.assertIn("Redirect URLs", message)
 
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_session.get_supabase_client")
     def test_authenticated_session_refreshes_after_set_session_failure(self, get_client, session_state) -> None:
         session_state.update(
             {
@@ -110,8 +110,8 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertEqual(session_state["folio_refresh_token"], "fresh-refresh")
         client.postgrest.auth.assert_called_once_with("fresh-access")
 
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_session.get_supabase_client")
     def test_authenticated_session_uses_existing_client_session_when_tokens_missing(
         self,
         get_client,
@@ -153,9 +153,9 @@ class SignupStabilityTests(unittest.TestCase):
 
         self.assertIn("다른 새 비밀번호", message)
 
-    @patch("folio_app.services.auth.get_settings")
-    @patch("folio_app.services.auth.profile_exists_for_email", return_value=True)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_account.get_settings")
+    @patch("folio_app.services.auth_account.profile_exists_for_email", return_value=True)
+    @patch("folio_app.services.auth_account.get_supabase_client")
     def test_existing_profile_email_does_not_call_auth_signup(self, get_client, _profile_exists, get_settings) -> None:
         get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
         client = MagicMock()
@@ -167,9 +167,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertIn("이미 가입된 이메일", result.message)
         client.auth.sign_up.assert_not_called()
 
-    @patch("folio_app.services.auth.get_settings")
-    @patch("folio_app.services.auth.profile_exists_for_email", return_value=False)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_account.get_settings")
+    @patch("folio_app.services.auth_account.profile_exists_for_email", return_value=False)
+    @patch("folio_app.services.auth_account.get_supabase_client")
     def test_signup_without_session_uses_request_processed_copy(self, get_client, _profile_exists, get_settings) -> None:
         get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
         client = MagicMock()
@@ -181,9 +181,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertIn("회원가입 요청을 처리했습니다", result.message)
 
-    @patch("folio_app.services.auth.get_settings")
-    @patch("folio_app.services.auth.profile_exists_for_email", return_value=False)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_account.get_settings")
+    @patch("folio_app.services.auth_account.profile_exists_for_email", return_value=False)
+    @patch("folio_app.services.auth_account.get_supabase_client")
     def test_signup_obfuscated_existing_auth_user_is_rejected(self, get_client, _profile_exists, get_settings) -> None:
         get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
         client = MagicMock()
@@ -198,8 +198,8 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertIn("이미 가입된 이메일", result.message)
 
-    @patch("folio_app.services.auth.get_settings")
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_account.get_settings")
+    @patch("folio_app.services.auth_account.get_supabase_client")
     def test_resend_confirmation_uses_request_processed_copy(self, get_client, get_settings) -> None:
         get_settings.return_value = SimpleNamespace(login_redirect_url="http://localhost:8501")
         client = MagicMock()
@@ -210,8 +210,8 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertIn("재발송 요청을 처리했습니다", result.message)
 
-    @patch("folio_app.services.auth.get_settings")
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.get_settings")
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_password_reset_uses_login_redirect(self, get_client, get_settings) -> None:
         get_settings.return_value = SimpleNamespace(password_reset_redirect_url="http://localhost:8501?page=Login&reset=1")
         client = MagicMock()
@@ -226,9 +226,9 @@ class SignupStabilityTests(unittest.TestCase):
             {"redirect_to": "http://localhost:8501?page=Login&reset=1"},
         )
 
-    @patch("folio_app.services.auth.clear_supabase_client")
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.clear_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_complete_password_reset_updates_password_and_clears_session(
         self,
         get_client,
@@ -248,9 +248,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertTrue(session_state["folio_clear_browser_auth"])
         clear_client.assert_called_once()
 
-    @patch("folio_app.services.auth.clear_supabase_client")
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.clear_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_complete_password_reset_with_code_updates_password_and_clears_session(
         self,
         get_client,
@@ -274,9 +274,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertTrue(session_state["folio_clear_browser_auth"])
         clear_client.assert_called_once()
 
-    @patch("folio_app.services.auth.clear_supabase_client")
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.clear_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_complete_password_reset_with_token_hash_updates_password_and_clears_session(
         self,
         get_client,
@@ -301,9 +301,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertTrue(session_state["folio_clear_browser_auth"])
         clear_client.assert_called_once()
 
-    @patch("folio_app.services.auth.clear_supabase_client")
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.clear_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_password_reset_tokens_survive_update_failure_for_retry(
         self,
         get_client,
@@ -323,9 +323,9 @@ class SignupStabilityTests(unittest.TestCase):
         self.assertEqual(get_password_reset_tokens(), ("retry-token", "retry-refresh"))
         clear_client.assert_not_called()
 
-    @patch("folio_app.services.auth.clear_supabase_client")
-    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
-    @patch("folio_app.services.auth.get_supabase_client")
+    @patch("folio_app.services.auth_password_reset.clear_supabase_client")
+    @patch("folio_app.services.auth_session.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth_password_reset.get_supabase_client")
     def test_saved_password_reset_tokens_are_cleared_after_success(
         self,
         get_client,
