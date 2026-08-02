@@ -6,6 +6,12 @@ import streamlit as st
 from folio_app.components.assets import static_image_src
 from folio_app.navigation import ROUTABLE_PAGES, navigate
 from folio_app.services.auth import get_current_user
+from folio_app.services.notifications import (
+    count_unread_notifications,
+    list_notifications,
+    mark_all_notifications_read,
+    mark_notification_read,
+)
 
 
 def render_header(initial_page: str | None = None) -> str:
@@ -13,6 +19,32 @@ def render_header(initial_page: str | None = None) -> str:
     selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
     current_page = st.query_params.get("page") or "Home"
     logo_src = static_image_src("logo.png")
+    unread_notification_count = count_unread_notifications(user["id"]) if user else 0
+    if unread_notification_count:
+        st.html(
+            """
+            <style>
+            .st-key-nav_Notifications button::before {
+                align-items: center;
+                background: #dc2626;
+                border: 1px solid rgba(255, 255, 255, 0.72);
+                border-radius: 999px;
+                color: #fff;
+                content: "N";
+                display: inline-flex;
+                font-size: 9px;
+                font-weight: 600;
+                height: 15px;
+                justify-content: center;
+                line-height: 1;
+                position: absolute;
+                right: -10px;
+                top: 2px;
+                width: 15px;
+            }
+            </style>
+            """
+        )
 
     # No st.columns() here on purpose: Streamlit's column grid runs its own
     # ResizeObserver-based width measurement to decide wrapping, and that
@@ -37,6 +69,9 @@ def render_header(initial_page: str | None = None) -> str:
         with st.container(border=False, key="folio_header_nav"):
             nav_items = _header_nav_items(user is not None)
             for option, label in nav_items:
+                if option == "Notifications" and user:
+                    _render_notifications_popover(user["id"], unread_notification_count)
+                    continue
                 is_active = option == current_page and option != "__logout__"
                 if st.button(label, key=f"nav_{option}", disabled=is_active):
                     if option == "__logout__":
@@ -62,7 +97,55 @@ def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
         ("Submit", "프로젝트 등록"),
         ("My Page", "마이 페이지"),
         ("__logout__", "로그아웃"),
+        ("Notifications", "알림"),
     ]
+
+
+def _render_notifications_popover(user_id: str, unread_count: int) -> None:
+    label = "알림"
+    with st.popover(
+        label,
+        icon=":material/notifications:",
+        key="nav_Notifications",
+        help="알림",
+        width="content",
+    ):
+        notifications = list_notifications(user_id, limit=5)
+        st.markdown(
+            f"""
+            <div class="folio-header-notifications-popover">
+                <div class="folio-header-notifications-title">
+                    <strong>알림</strong>
+                    <span>{unread_count}개 새 알림</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if not notifications:
+            st.caption("아직 알림이 없습니다.")
+        else:
+            for item in notifications:
+                state = "새 알림" if not item.get("is_read") else "읽음"
+                st.markdown(
+                    f"""
+                    <div class="folio-header-notification-preview">
+                        <span>{state}</span>
+                        <strong>{html.escape(item.get("title") or "새 알림")}</strong>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                if item.get("project_id"):
+                    if st.button("보기", key=f"header_notification_open_{item['id']}", use_container_width=True):
+                        mark_notification_read(item["id"], user_id)
+                        navigate("Home", project_id=item["project_id"])
+        if unread_count:
+            if st.button("모두 읽음", key="header_notifications_mark_all", use_container_width=True):
+                mark_all_notifications_read(user_id)
+                st.rerun()
+        if st.button("모두 보기", key="header_notifications_view_all", use_container_width=True):
+            navigate("Notifications")
 
 
 def render_hero(

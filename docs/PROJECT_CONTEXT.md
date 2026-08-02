@@ -542,10 +542,33 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - `python -m compileall -q app.py folio_app tests`
 - `python -m unittest tests.test_comments tests.test_ui_cards -v`
 
+### 진행: 댓글 알림 1차 구현 (2026-08-02)
+
+댓글 알림은 마이페이지 `NEW` 배지와 별도의 알림 도메인으로 구현한다. 1차 범위는 프로젝트 댓글 알림만 포함한다.
+
+- `supabase/schema.sql`에 `notifications` 테이블과 RLS를 추가했다. 사용자는 자신의 알림만 조회·갱신할 수 있고, 댓글 작성자는 자신이 작성한 댓글에 대해 프로젝트 작성자에게만 `project_comment` 알림을 생성할 수 있다.
+- `folio_app/services/notifications.py`를 추가해 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 개별/전체 읽음 처리를 분리했다. 댓글 알림 생성은 서버 내부 작업이므로 `SUPABASE_SERVICE_ROLE_KEY`가 있으면 service role 클라이언트를 우선 사용한다.
+- `comments.create_comment()`은 댓글 insert 성공 후 프로젝트 작성자에게 알림 생성을 시도한다. 알림 생성 실패가 댓글 작성 성공을 되돌리지는 않는다.
+- 로그인 사용자 헤더에 종 아이콘 알림 버튼을 추가했다. 읽지 않은 알림이 있으면 버튼 우상단에 빨간 `N` 배지를 표시한다. 알림 버튼은 로그아웃 오른쪽 맨 끝에 두고 텍스트는 숨긴다.
+- 헤더 종 아이콘은 최근 알림 popover를 연다. popover를 여는 것만으로는 읽음 처리하지 않고, 알림별 `보기`나 `모두 읽음`에서 읽음 처리한다.
+- `folio_app/pages/notifications.py`는 전체 알림 목록을 보여주고, 페이지를 본 뒤 미확인 알림을 읽음 처리한다. 알림의 `프로젝트 보기`를 누르면 해당 상세로 이동한다.
+- 프로젝트 작성자가 알림이 아닌 다른 경로로 자기 프로젝트 상세 댓글 영역을 봐도 해당 프로젝트의 댓글 알림을 읽음 처리한다.
+- 이메일 알림은 `folio_app/services/email_notifications.py`에서 처리한다. `SUPABASE_SERVICE_ROLE_KEY`와 SMTP 설정이 모두 있을 때만 프로젝트 작성자 이메일을 service role로 조회해 발송한다. 설정이 없거나 발송이 실패해도 댓글 작성과 앱 내부 알림 생성은 성공 상태를 유지한다. 댓글 등록 UX가 SMTP 왕복에 막히지 않도록 이메일 발송은 백그라운드 스레드에서 처리한다.
+- 같은 댓글 알림이 중복 생성되지 않도록 `notifications_project_comment_unique_idx` unique index를 추가했다. 중복 insert가 발생하면 이미 생성된 알림으로 보고 성공 처리하며, 메일은 다시 보내지 않는다.
+
+검증:
+
+- `python -m pyflakes folio_app app.py`
+- `python -m compileall -q app.py folio_app tests`
+- `python -m unittest tests.test_notifications tests.test_comments tests.test_core_flows -v`
+- `python -m unittest tests.test_notifications tests.test_core_flows -v`
+- `python -m unittest tests.test_email_notifications tests.test_notifications tests.test_config -v`
+
 로컬 밖에서 남은 것:
 
 - 원격 Supabase에 `supabase/schema.sql` 재적용 필요.
-- 실제 계정으로 다른 사용자가 댓글 작성 → 작성자 마이페이지 `NEW` 표시 → 상세 진입 후 `NEW` 해제를 브라우저에서 검증해야 한다.
+- 실제 계정으로 B가 A 프로젝트에 댓글 작성 → A 헤더 알림 `N` 배지 표시 → 알림 페이지 진입 후 읽음 처리 → 프로젝트 이동을 브라우저에서 검증해야 한다.
+- 이메일 발송을 쓰려면 운영 secret에 `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_FROM_EMAIL` 등 SMTP 값을 설정해야 한다.
 
 ### 완료: 홈갤러리 활동 NEW 배지 (2026-08-02)
 

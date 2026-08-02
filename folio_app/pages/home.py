@@ -113,8 +113,18 @@ _COUNT_UP_SCRIPT = """
 <script>
 (function() {
     var parentDocument = window.parent.document;
-    var counters = parentDocument.querySelectorAll("[data-folio-count-up]");
-    counters.forEach(function(counter) {
+    var attempts = 0;
+    var maxAttempts = 40;
+
+    function animateCounters() {
+        var counters = parentDocument.querySelectorAll("[data-folio-count-up]");
+        if (!counters.length && attempts < maxAttempts) {
+            attempts += 1;
+            parentDocument.defaultView.setTimeout(animateCounters, 50);
+            return;
+        }
+
+        counters.forEach(function(counter) {
         var target = Number(counter.getAttribute("data-folio-count-up") || "0");
         var key = "folioCountAnimated:" + target;
         var duration = 720;
@@ -139,7 +149,10 @@ _COUNT_UP_SCRIPT = """
             }
         }
         parentDocument.defaultView.requestAnimationFrame(tick);
-    });
+        });
+    }
+
+    animateCounters();
 })();
 </script>
 """
@@ -209,6 +222,7 @@ def _render_hero() -> None:
 def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
     initial_search = st.query_params.get("q", "")
     initial_tag = st.query_params.get("tag", "전체")
+    project_count_label = f"{project_count:,}"
 
     with st.container(border=False, key="folio_browse_panel"), st.form("browse_filters"):
         st.markdown(
@@ -216,7 +230,7 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             <div class="folio-search-container">
                 <div class="folio-search-heading">
                     <h1 class="folio-search-title">
-                        <span class="folio-search-title-count" data-folio-count-up="{project_count}">0</span>개의
+                        <span class="folio-search-title-count" data-folio-count-up="{project_count}">{project_count_label}</span>개의
                         휴먼 인사이트 프로젝트가 FOLIO에 쌓이고 있어요.
                     </h1>
                 </div>

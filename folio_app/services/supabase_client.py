@@ -6,6 +6,8 @@ from folio_app.config import get_settings
 
 SESSION_CLIENT_KEY = "folio_supabase_client"
 SESSION_CLIENT_CONFIG_KEY = "folio_supabase_client_config"
+SESSION_SERVICE_ROLE_CLIENT_KEY = "folio_supabase_service_role_client"
+SESSION_SERVICE_ROLE_CLIENT_CONFIG_KEY = "folio_supabase_service_role_client_config"
 
 
 def get_supabase_client() -> Client | None:
@@ -22,9 +24,25 @@ def get_supabase_client() -> Client | None:
     return client
 
 
+def get_supabase_service_role_client() -> Client | None:
+    settings = get_settings()
+    if not settings.supabase_url or not settings.supabase_service_role_key:
+        return None
+
+    config_key = (settings.supabase_url, settings.supabase_service_role_key)
+    client = st.session_state.get(SESSION_SERVICE_ROLE_CLIENT_KEY)
+    if client is None or st.session_state.get(SESSION_SERVICE_ROLE_CLIENT_CONFIG_KEY) != config_key:
+        client = create_client(settings.supabase_url, settings.supabase_service_role_key)
+        st.session_state[SESSION_SERVICE_ROLE_CLIENT_KEY] = client
+        st.session_state[SESSION_SERVICE_ROLE_CLIENT_CONFIG_KEY] = config_key
+    return client
+
+
 def clear_supabase_client() -> None:
     st.session_state.pop(SESSION_CLIENT_KEY, None)
     st.session_state.pop(SESSION_CLIENT_CONFIG_KEY, None)
+    st.session_state.pop(SESSION_SERVICE_ROLE_CLIENT_KEY, None)
+    st.session_state.pop(SESSION_SERVICE_ROLE_CLIENT_CONFIG_KEY, None)
 
 
 def recover_from_expired_jwt(exc: Exception) -> bool:

@@ -50,9 +50,10 @@ class CommentTreeTests(unittest.TestCase):
 
 
 class CommentServiceTests(unittest.TestCase):
+    @patch("folio_app.services.comments._create_comment_notification")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
     @patch("folio_app.services.comments.get_supabase_client")
-    def test_create_comment_inserts_payload(self, get_client, _ensure_auth) -> None:
+    def test_create_comment_inserts_payload(self, get_client, _ensure_auth, create_notification) -> None:
         builder = MagicMock()
         builder.insert.return_value = builder
         builder.select.return_value = builder
@@ -70,6 +71,7 @@ class CommentServiceTests(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertEqual(result.comment["id"], "new-comment")
+        create_notification.assert_called_once()
         builder.insert.assert_called_once_with(
             {
                 "project_id": "project-1",
@@ -90,9 +92,10 @@ class CommentServiceTests(unittest.TestCase):
         ensure_auth.assert_not_called()
         get_client.assert_not_called()
 
+    @patch("folio_app.services.comments._create_comment_notification")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
     @patch("folio_app.services.comments.get_supabase_client")
-    def test_create_reply_requires_top_level_parent_in_same_project(self, get_client, _ensure_auth) -> None:
+    def test_create_reply_requires_top_level_parent_in_same_project(self, get_client, _ensure_auth, _create_notification) -> None:
         parent_builder = MagicMock()
         parent_builder.select.return_value = parent_builder
         parent_builder.eq.return_value = parent_builder

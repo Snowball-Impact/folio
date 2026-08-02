@@ -84,7 +84,9 @@ def create_comment(project_id: str, author_id: str, body: str, parent_id: str | 
 
     clear_comment_caches()
     created = _attach_comment_authors(response.data or [])
-    return CommentResult(True, "댓글이 등록되었습니다.", comment=created[0] if created else response.data[0])
+    created_comment = created[0] if created else response.data[0]
+    _create_comment_notification(project_id, created_comment, author_id)
+    return CommentResult(True, "댓글이 등록되었습니다.", comment=created_comment)
 
 
 def delete_comment(comment_id: str, author_id: str) -> CommentResult:
@@ -367,3 +369,12 @@ def _parse_timestamp(value: str | None) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(timezone.utc)
+
+
+def _create_comment_notification(project_id: str, comment: dict[str, Any], author_id: str) -> None:
+    try:
+        from folio_app.services.notifications import create_project_comment_notification
+
+        create_project_comment_notification(project_id, comment, author_id)
+    except Exception:
+        logger.exception("Failed to dispatch comment notification")

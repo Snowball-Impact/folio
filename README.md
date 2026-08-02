@@ -21,6 +21,7 @@ FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 �
 - 세션별 중복 증가를 방지하는 조회수 RPC 연동
 - `likes` 테이블 기반 좋아요 추가·취소 및 좋아요순 정렬
 - 프로젝트 상세 댓글·1단계 답글·본인 삭제, 댓글 수와 미확인/활동 `NEW` 표시
+- 댓글 작성 시 프로젝트 작성자에게 알림 생성, 헤더 알림 배지, 알림 목록, 선택적 이메일 알림
 - Power BI iframe 또는 embed URL 표시
 - 보고서/GitHub/썸네일 URL 선택 입력
 - 프로젝트 본문 HTML 허용 목록 정제
@@ -44,6 +45,19 @@ SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 APP_URL=http://localhost:8501
 COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
+```
+
+댓글 이메일 알림을 실제로 발송하려면 서버 전용 secret에 아래 값을 추가합니다. `SUPABASE_SERVICE_ROLE_KEY`는 수신자 이메일 조회에만 사용하며 브라우저에 노출하지 않습니다.
+
+```text
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=your-smtp-user
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM_EMAIL=noreply@example.com
+SMTP_FROM_NAME=FOLIO
+SMTP_USE_TLS=true
 ```
 
 4. 앱을 실행합니다.
@@ -93,6 +107,7 @@ folio_app/app.py
 | `?page=Login` | 로그인 | `pages/auth.py:render_login()` |
 | `?page=Sign+Up` | 회원가입, 인증 메일 재발송 | `pages/auth.py:render_signup()` |
 | `?page=Submit` | 프로젝트 등록 | `pages/protected.py:render_submit()` |
+| `?page=Notifications` | 댓글 알림 목록, 읽음 처리, 프로젝트 이동 | `pages/notifications.py:render()` |
 | `?page=My+Page` | 프로필, 통계, 내 프로젝트 조회·수정·삭제 | `pages/protected.py:render_my_page()` |
 | `?page=My+Portfolio`, `?page=Profile` | 기존 URL 호환용 My Page 리다이렉트 | `pages/protected.py:render_my_portfolio()`, `render_profile()` |
 | `?page=Gallery` | 기존 URL 호환용 Home 리다이렉트 | `pages/gallery.py:render()` |
@@ -122,6 +137,7 @@ folio_app/app.py
 | `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, 댓글, Power BI, 첨부 링크 렌더링 |
 | `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
 | `folio_app/pages/onboarding.py` | 최초 로그인 사용자의 프로필 확인과 약관·개인정보 동의 UI |
+| `folio_app/pages/notifications.py` | 댓글 알림 목록, 읽음 처리와 알림 대상 프로젝트 이동 |
 | `folio_app/pages/protected.py` | 로그인이 필요한 프로젝트 등록 화면과, 프로필·통계·내 프로젝트 조회·수정·삭제를 한 화면에 담은 My Page |
 | `folio_app/pages/gallery.py` | 과거 Gallery 주소를 Home으로 보내는 호환용 페이지 |
 | `folio_app/pages/__init__.py` | `pages` 패키지 초기화 파일 |
@@ -147,6 +163,8 @@ folio_app/app.py
 | `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
 | `folio_app/services/projects.py` | 프로젝트 CRUD, 공개 목록·검색·정렬, 작성자 정보, 조회수, 좋아요, 캐시 관리 |
 | `folio_app/services/comments.py` | 프로젝트 댓글·1단계 답글 조회, 작성, 삭제, 트리 구성, 댓글 수 집계 |
+| `folio_app/services/notifications.py` | 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 읽음 처리 |
+| `folio_app/services/email_notifications.py` | SMTP 기반 댓글 이메일 알림 발송 |
 | `folio_app/services/project_content.py` | 사용자 작성 HTML의 허용 태그·링크 검사와 위험 요소 제거 |
 | `folio_app/services/__init__.py` | `services` 패키지 초기화 파일 |
 
@@ -173,9 +191,17 @@ SUPABASE_PUBLISHABLE_KEY = "your-supabase-publishable-key"
 APP_URL = "https://your-app.streamlit.app"
 COOKIE_PASSWORD = "replace-with-a-long-random-cookie-password"
 GA_MEASUREMENT_ID = "G-XXXXXXXXXX"
+SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
+SMTP_HOST = "smtp.example.com"
+SMTP_PORT = "587"
+SMTP_USERNAME = "your-smtp-user"
+SMTP_PASSWORD = "your-smtp-password"
+SMTP_FROM_EMAIL = "noreply@example.com"
+SMTP_FROM_NAME = "FOLIO"
+SMTP_USE_TLS = "true"
 ```
 
-`GA_MEASUREMENT_ID`는 선택 항목이다. 비워두면 Google Analytics 태그가 삽입되지 않는다. 로컬 `.env`에는 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 한다.
+`GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목이다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않는다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 한다.
 
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 

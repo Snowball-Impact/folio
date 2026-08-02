@@ -32,6 +32,7 @@ class NavigationTests(unittest.TestCase):
                 ("Submit", "프로젝트 등록"),
                 ("My Page", "마이 페이지"),
                 ("__logout__", "로그아웃"),
+                ("Notifications", "알림"),
             ],
         )
 

@@ -8,7 +8,7 @@ from folio_app.components.analytics import render_google_analytics, track_page_v
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
 from folio_app.navigation import ROUTABLE_PAGES
-from folio_app.pages import about, gallery, home, onboarding, policy, protected
+from folio_app.pages import about, gallery, home, notifications, onboarding, policy, protected
 from folio_app.pages.auth import render_login, render_signup
 from folio_app.services.profiles import get_onboarding_status
 from folio_app.services.auth import (
@@ -44,9 +44,6 @@ def _render_verified_notice() -> None:
         return
 
     st.success("이메일 인증이 완료되었습니다. 가입한 이메일과 비밀번호로 로그인하세요.")
-    if st.button("확인", key="clear_verified_notice"):
-        st.query_params.clear()
-        st.rerun()
 
 
 def _render_footer() -> None:
@@ -247,6 +244,7 @@ def main() -> None:
         "Login": render_login,
         "Sign Up": render_signup,
         "Submit": protected.render_submit,
+        "Notifications": notifications.render,
         "My Page": protected.render_my_page,
         "My Portfolio": protected.render_my_portfolio,
         "Policy": policy.render,

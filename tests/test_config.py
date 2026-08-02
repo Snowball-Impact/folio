@@ -2,7 +2,7 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from folio_app.config import Settings, _read_first_setting, _read_secret_section, _read_setting
+from folio_app.config import Settings, _read_bool_setting, _read_first_setting, _read_int_setting, _read_secret_section, _read_setting
 
 
 class SettingsLoadingTests(unittest.TestCase):
@@ -80,3 +80,34 @@ class SettingsLoadingTests(unittest.TestCase):
             settings.password_reset_redirect_url,
             "https://example.com/app?source=email&page=Login&reset=1",
         )
+
+    def test_email_notification_settings_are_optional(self) -> None:
+        settings = Settings(
+            supabase_url="https://example.supabase.co",
+            supabase_key="publishable-key",
+            app_url="http://localhost:8501",
+            cookie_password="password",
+            ga_measurement_id="",
+        )
+
+        self.assertFalse(settings.is_email_notifications_configured)
+
+    def test_email_notification_settings_require_smtp_and_service_role(self) -> None:
+        settings = Settings(
+            supabase_url="https://example.supabase.co",
+            supabase_key="publishable-key",
+            app_url="http://localhost:8501",
+            cookie_password="password",
+            ga_measurement_id="",
+            supabase_service_role_key="service-role",
+            smtp_host="smtp.example.com",
+            smtp_from_email="noreply@example.com",
+        )
+
+        self.assertTrue(settings.is_email_notifications_configured)
+
+    def test_int_and_bool_settings_parse_environment_values(self) -> None:
+        with patch.dict(os.environ, {"SMTP_PORT": "2525", "SMTP_USE_TLS": "false"}, clear=True):
+            with patch("folio_app.config.st.secrets", {}):
+                self.assertEqual(_read_int_setting("SMTP_PORT", 587), 2525)
+                self.assertFalse(_read_bool_setting("SMTP_USE_TLS", True))

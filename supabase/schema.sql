@@ -89,6 +89,20 @@ create table if not exists public.project_comment_reads (
     primary key (project_id, user_id)
 );
 
+create table if not exists public.notifications (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references public.profiles(id) on delete cascade,
+    actor_id uuid references public.profiles(id) on delete set null,
+    project_id uuid references public.projects(id) on delete cascade,
+    comment_id uuid references public.comments(id) on delete cascade,
+    type text not null check (type in ('project_comment')),
+    title text not null,
+    body text,
+    is_read boolean not null default false,
+    read_at timestamptz,
+    created_at timestamptz not null default now()
+);
+
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.project_views (
@@ -106,6 +120,11 @@ create index if not exists comments_project_id_idx on public.comments(project_id
 create index if not exists comments_parent_id_idx on public.comments(parent_id);
 create index if not exists comments_author_id_idx on public.comments(author_id);
 create index if not exists project_comment_reads_user_id_idx on public.project_comment_reads(user_id);
+create index if not exists notifications_user_read_created_idx on public.notifications(user_id, is_read, created_at desc);
+create index if not exists notifications_project_id_idx on public.notifications(project_id);
+create unique index if not exists notifications_project_comment_unique_idx
+on public.notifications(comment_id)
+where type = 'project_comment' and comment_id is not null;
 create index if not exists project_views_project_date_idx on public.project_views(project_id, viewed_on);
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
@@ -140,6 +159,7 @@ grant select, insert, update, delete on public.projects to authenticated;
 grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
 grant select, insert, update on public.project_comment_reads to authenticated;
+grant select, insert, update on public.notifications to authenticated;
 
 drop function if exists public.increment_project_view_count(uuid);
 
@@ -285,6 +305,7 @@ alter table public.projects enable row level security;
 alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.project_comment_reads enable row level security;
+alter table public.notifications enable row level security;
 alter table public.project_views enable row level security;
 alter table public.policy_versions enable row level security;
 alter table public.user_policy_consents enable row level security;
@@ -425,6 +446,41 @@ with check (
         from public.projects
         where projects.id = project_comment_reads.project_id
           and projects.author_id = auth.uid()
+    )
+);
+
+drop policy if exists "Users can read own notifications" on public.notifications;
+create policy "Users can read own notifications"
+on public.notifications for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can update own notifications" on public.notifications;
+create policy "Users can update own notifications"
+on public.notifications for update
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+drop policy if exists "Comment authors can create project comment notifications" on public.notifications;
+create policy "Comment authors can create project comment notifications"
+on public.notifications for insert
+with check (
+    type = 'project_comment'
+    and actor_id = auth.uid()
+    and user_id <> auth.uid()
+    and project_id is not null
+    and comment_id is not null
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = notifications.project_id
+          and projects.author_id = notifications.user_id
+    )
+    and exists (
+        select 1
+        from public.comments
+        where comments.id = notifications.comment_id
+          and comments.project_id = notifications.project_id
+          and comments.author_id = auth.uid()
     )
 );
 

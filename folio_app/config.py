@@ -55,10 +55,27 @@ class Settings:
     app_url: str
     cookie_password: str
     ga_measurement_id: str
+    supabase_service_role_key: str = ""
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    smtp_from_email: str = ""
+    smtp_from_name: str = "FOLIO"
+    smtp_use_tls: bool = True
 
     @property
     def is_supabase_configured(self) -> bool:
         return bool(self.supabase_url and self.supabase_key)
+
+    @property
+    def is_email_notifications_configured(self) -> bool:
+        return bool(
+            self.supabase_url
+            and self.supabase_service_role_key
+            and self.smtp_host
+            and self.smtp_from_email
+        )
 
     @property
     def missing_supabase_settings(self) -> tuple[str, ...]:
@@ -113,4 +130,30 @@ def get_settings() -> Settings:
             "folio-local-dev-cookie-password",
         ),
         ga_measurement_id=_read_setting("GA_MEASUREMENT_ID"),
+        supabase_service_role_key=_read_setting("SUPABASE_SERVICE_ROLE_KEY")
+        or _read_secret_section("supabase", "SUPABASE_SERVICE_ROLE_KEY", "service_role_key"),
+        smtp_host=_read_setting("SMTP_HOST") or _read_secret_section("smtp", "SMTP_HOST", "host"),
+        smtp_port=_read_int_setting("SMTP_PORT", 587),
+        smtp_username=_read_setting("SMTP_USERNAME") or _read_secret_section("smtp", "SMTP_USERNAME", "username"),
+        smtp_password=_read_setting("SMTP_PASSWORD") or _read_secret_section("smtp", "SMTP_PASSWORD", "password"),
+        smtp_from_email=_read_setting("SMTP_FROM_EMAIL") or _read_secret_section("smtp", "SMTP_FROM_EMAIL", "from_email"),
+        smtp_from_name=_read_setting("SMTP_FROM_NAME") or _read_secret_section("smtp", "SMTP_FROM_NAME", "from_name") or "FOLIO",
+        smtp_use_tls=_read_bool_setting("SMTP_USE_TLS", True),
     )
+
+
+def _read_int_setting(name: str, default: int) -> int:
+    value = _read_setting(name)
+    if not value:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
+def _read_bool_setting(name: str, default: bool) -> bool:
+    value = _read_setting(name)
+    if not value:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
