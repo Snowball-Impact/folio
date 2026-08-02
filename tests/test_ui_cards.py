@@ -1,6 +1,8 @@
 import unittest
+from unittest.mock import patch
 
 from folio_app.components.ui import _cover_variant, render_project_card_html
+from folio_app.pages.protected import _render_portfolio_item
 
 
 class AutomaticProjectCoverTests(unittest.TestCase):
@@ -92,6 +94,46 @@ class AutomaticProjectCoverTests(unittest.TestCase):
 
         self.assertNotIn("folio-home-card-has-preview", rendered)
         self.assertNotIn("folio-home-card-preview", rendered)
+
+    def test_card_shows_activity_badge_for_recent_project(self) -> None:
+        project = {
+            "id": "project-recent",
+            "title": "새 프로젝트",
+            "created_at": "2026-08-02T00:00:00+09:00",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-home-card-activity-badge", rendered)
+        self.assertIn(">NEW</span>", rendered)
+
+    def test_card_shows_comment_activity_badge_for_recent_comment(self) -> None:
+        project = {
+            "id": "project-comment-recent",
+            "title": "댓글이 달린 프로젝트",
+            "created_at": "2020-01-01T00:00:00+00:00",
+            "latest_comment_at": "2026-08-02T00:00:00+09:00",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-home-card-activity-badge", rendered)
+        self.assertIn("댓글 NEW", rendered)
+
+    def test_portfolio_item_shows_new_badge_for_unread_comments(self) -> None:
+        project = {
+            "id": "project-unread",
+            "title": "댓글 달린 프로젝트",
+            "tags": [],
+            "has_unread_comments": True,
+        }
+
+        with patch("folio_app.pages.protected.st.markdown") as markdown:
+            _render_portfolio_item(project)
+
+        rendered = markdown.call_args.args[0]
+        self.assertIn("folio-portfolio-card-new-badge", rendered)
+        self.assertIn("NEW", rendered)
 
 
 if __name__ == "__main__":

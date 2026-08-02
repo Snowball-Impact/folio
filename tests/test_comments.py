@@ -4,12 +4,16 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 from folio_app.services.comments import (
+    annotate_unread_comment_status,
     build_comment_tree,
     clear_comment_caches,
     count_comments_by_project,
     create_comment,
     delete_comment,
+    latest_comment_at_by_project,
+    get_unread_comment_project_ids,
     list_project_comments,
+    mark_project_comments_read,
 )
 
 
@@ -201,16 +205,124 @@ class CommentServiceTests(unittest.TestCase):
 
         self.assertEqual(result, {"project-1": 2, "project-2": 1})
 
+    @patch("folio_app.services.comments.get_supabase_client")
+    def test_latest_comment_at_by_project_uses_latest_row(self, get_client) -> None:
+        clear_comment_caches()
+        builder = MagicMock()
+        builder.select.return_value = builder
+        builder.in_.return_value = builder
+        builder.execute.return_value = SimpleNamespace(
+            data=[
+                {"project_id": "project-1", "created_at": "2026-08-02T08:00:00+00:00"},
+                {"project_id": "project-1", "created_at": "2026-08-02T09:00:00+00:00"},
+                {"project_id": "project-2", "created_at": "2026-08-02T07:00:00+00:00"},
+            ]
+        )
+
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = latest_comment_at_by_project(["project-1", "project-2"])
+
+        self.assertEqual(result["project-1"], "2026-08-02T09:00:00+00:00")
+        self.assertEqual(result["project-2"], "2026-08-02T07:00:00+00:00")
+
+    @patch("folio_app.services.comments.get_supabase_client")
+    def test_get_unread_comment_project_ids_ignores_own_comments_and_read_comments(self, get_client) -> None:
+        comments_builder = MagicMock()
+        comments_builder.select.return_value = comments_builder
+        comments_builder.in_.return_value = comments_builder
+        comments_builder.neq.return_value = comments_builder
+        comments_builder.execute.return_value = SimpleNamespace(
+            data=[
+                {"project_id": "project-1", "author_id": "other", "created_at": "2026-08-02T09:00:00+00:00"},
+                {"project_id": "project-2", "author_id": "other", "created_at": "2026-08-02T08:00:00+00:00"},
+            ]
+        )
+        reads_builder = MagicMock()
+        reads_builder.select.return_value = reads_builder
+        reads_builder.eq.return_value = reads_builder
+        reads_builder.in_.return_value = reads_builder
+        reads_builder.execute.return_value = SimpleNamespace(
+            data=[
+                {"project_id": "project-1", "last_read_at": "2026-08-02T08:30:00+00:00"},
+                {"project_id": "project-2", "last_read_at": "2026-08-02T08:30:00+00:00"},
+            ]
+        )
+
+        client = MagicMock()
+        client.table.side_effect = [comments_builder, reads_builder]
+        get_client.return_value = client
+
+        result = get_unread_comment_project_ids(
+            [{"id": "project-1"}, {"id": "project-2"}],
+            "author-1",
+        )
+
+        self.assertEqual(result, {"project-1"})
+        comments_builder.neq.assert_called_once_with("author_id", "author-1")
+
+    @patch("folio_app.services.comments.get_supabase_client")
+    def test_annotate_unread_comment_status_sets_project_flag(self, get_client) -> None:
+        comments_builder = MagicMock()
+        comments_builder.select.return_value = comments_builder
+        comments_builder.in_.return_value = comments_builder
+        comments_builder.neq.return_value = comments_builder
+        comments_builder.execute.return_value = SimpleNamespace(
+            data=[{"project_id": "project-1", "author_id": "other", "created_at": "2026-08-02T09:00:00+00:00"}]
+        )
+        reads_builder = MagicMock()
+        reads_builder.select.return_value = reads_builder
+        reads_builder.eq.return_value = reads_builder
+        reads_builder.in_.return_value = reads_builder
+        reads_builder.execute.return_value = SimpleNamespace(data=[])
+
+        client = MagicMock()
+        client.table.side_effect = [comments_builder, reads_builder]
+        get_client.return_value = client
+
+        projects = [{"id": "project-1"}, {"id": "project-2"}]
+
+        annotate_unread_comment_status(projects, "author-1")
+
+        self.assertTrue(projects[0]["has_unread_comments"])
+        self.assertFalse(projects[1]["has_unread_comments"])
+
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
+    @patch("folio_app.services.comments.get_supabase_client")
+    def test_mark_project_comments_read_upserts_timestamp(self, get_client, _ensure_auth) -> None:
+        builder = MagicMock()
+        builder.upsert.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=[])
+
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = mark_project_comments_read("project-1", "author-1")
+
+        self.assertTrue(result)
+        client.table.assert_called_once_with("project_comment_reads")
+        upsert_payload = builder.upsert.call_args.args[0]
+        self.assertEqual(upsert_payload["project_id"], "project-1")
+        self.assertEqual(upsert_payload["user_id"], "author-1")
+        self.assertIn("last_read_at", upsert_payload)
+        self.assertEqual(builder.upsert.call_args.kwargs["on_conflict"], "project_id,user_id")
+
 
 class CommentSchemaContractTests(unittest.TestCase):
     def test_schema_declares_comment_permissions_and_thread_validation(self) -> None:
         schema_sql = Path("supabase/schema.sql").read_text(encoding="utf-8")
 
         self.assertIn("create table if not exists public.comments", schema_sql)
+        self.assertIn("create table if not exists public.project_comment_reads", schema_sql)
         self.assertIn("grant select on public.comments to anon", schema_sql)
         self.assertIn("grant select, insert, delete on public.comments to authenticated", schema_sql)
+        self.assertIn("grant select, insert, update on public.project_comment_reads to authenticated", schema_sql)
         self.assertIn("create or replace function public.validate_comment_thread()", schema_sql)
         self.assertIn("create policy \"Visible project comments are readable\"", schema_sql)
+        self.assertIn("create policy \"Project authors can read own comment read state\"", schema_sql)
         self.assertIn("projects.is_public = true or auth.uid() = projects.author_id", schema_sql)
         self.assertIn("with check (\n    auth.uid() = author_id", schema_sql)
         self.assertIn("using (auth.uid() = author_id)", schema_sql)

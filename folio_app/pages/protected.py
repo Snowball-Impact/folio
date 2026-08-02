@@ -14,6 +14,7 @@ from folio_app.components.project_form import (
 from folio_app.components.ui import clean_html, render_project_metrics, render_tag_chips
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
+from folio_app.services.comments import annotate_unread_comment_status
 from folio_app.services.project_drafts import (
     apply_pending_draft_clear,
     clear_project_draft,
@@ -146,12 +147,16 @@ def render_my_page() -> None:
 
     try:
         projects = list_projects_by_author(user["id"])
+        annotate_unread_comment_status(projects, user["id"])
     except ProjectServiceError as exc:
         st.error(str(exc))
         if st.button("다시 시도", key="retry_my_portfolio"):
             clear_project_caches()
             st.rerun()
         return
+    unread_comment_error = st.session_state.pop("portfolio_unread_comment_error", None)
+    if unread_comment_error:
+        st.warning(unread_comment_error)
 
     if editing_project_id:
         project = next((item for item in projects if item["id"] == editing_project_id), None)
@@ -349,6 +354,11 @@ def _render_portfolio_item(project: dict) -> None:
     title = html.escape(project.get("title") or "Untitled")
     one_liner = html.escape(project.get("one_liner") or "")
     tags_html = render_tag_chips(project.get("tags") or [])
+    unread_badge = (
+        '<span class="folio-portfolio-card-new-badge" aria-label="안 본 댓글 있음">NEW</span>'
+        if project.get("has_unread_comments")
+        else ""
+    )
     is_public = bool(project.get("is_public"))
     visibility_label = "공개" if is_public else "비공개"
     visibility_icon = (
@@ -367,7 +377,7 @@ def _render_portfolio_item(project: dict) -> None:
         clean_html(f"""
         <div class="folio-portfolio-card">
             <div class="folio-portfolio-card-main">
-                <p class="folio-portfolio-card-title">{title}</p>
+                <p class="folio-portfolio-card-title"><span>{title}</span>{unread_badge}</p>
                 {liner_html}
             </div>
             <div class="folio-portfolio-card-footer">

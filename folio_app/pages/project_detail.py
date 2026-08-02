@@ -12,7 +12,13 @@ from folio_app.components.share import project_action_group_html, render_project
 from folio_app.components.ui import clean_html, is_http_url, render_project_cover_html
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
-from folio_app.services.comments import build_comment_tree, create_comment, delete_comment, list_project_comments
+from folio_app.services.comments import (
+    build_comment_tree,
+    create_comment,
+    delete_comment,
+    list_project_comments,
+    mark_project_comments_read,
+)
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.projects import (
     ProjectServiceError,
@@ -259,6 +265,8 @@ def _render_comments_section(project_id: str, user: dict | None, project_author_
     comment_notice = st.session_state.pop("comment_notice", None)
 
     comments = list_project_comments(project_id)
+    if user and project_author_id and user.get("id") == project_author_id:
+        mark_project_comments_read(project_id, user["id"])
     comment_tree = build_comment_tree(comments)
     comments_page_key = f"comments_page_{project_id}"
     total_pages = max(1, (len(comment_tree) + _COMMENTS_PAGE_SIZE - 1) // _COMMENTS_PAGE_SIZE)

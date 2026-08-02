@@ -1,6 +1,7 @@
 import html
 import hashlib
 import re
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 
@@ -129,11 +130,13 @@ def render_project_card_html(
     tags_block = _card_tags(project)
     overlay_link_html = _card_overlay_link(project, href)
     preview_html = _card_preview(preview_url)
+    activity_badge_html = _card_activity_badge(project)
 
     card_class = _card_class(compact=compact, has_preview=bool(preview_url))
     card_html = f"""
     <div class="{card_class}">
         {overlay_link_html}
+        {activity_badge_html}
         {cover_html}
         {preview_html}
         <div class="folio-home-card-overlay">
@@ -163,6 +166,42 @@ def _card_class(*, compact: bool, has_preview: bool) -> str:
     if has_preview:
         classes.append("folio-home-card-has-preview")
     return " ".join(classes)
+
+
+def _card_activity_badge(project: dict) -> str:
+    created_at = _parse_timestamp(project.get("created_at"))
+    latest_comment_at = _parse_timestamp(project.get("latest_comment_at"))
+    now = datetime.now(timezone.utc)
+    recent_window = timedelta(days=7)
+
+    label = ""
+    title = ""
+    if created_at and timedelta(0) <= now - created_at <= recent_window:
+        label = "NEW"
+        title = "최근 등록된 프로젝트"
+    elif latest_comment_at and timedelta(0) <= now - latest_comment_at <= recent_window:
+        label = "댓글 NEW"
+        title = "최근 댓글이 달린 프로젝트"
+
+    if not label:
+        return ""
+    return (
+        f'<span class="folio-home-card-activity-badge" '
+        f'title="{html.escape(title, quote=True)}" '
+        f'aria-label="{html.escape(title, quote=True)}">{html.escape(label)}</span>'
+    )
+
+
+def _parse_timestamp(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
 
 
 def _card_summary(project: dict, fallback_text: str) -> str:

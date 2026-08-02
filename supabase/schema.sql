@@ -80,6 +80,15 @@ create table if not exists public.comments (
     updated_at timestamptz not null default now()
 );
 
+create table if not exists public.project_comment_reads (
+    project_id uuid not null references public.projects(id) on delete cascade,
+    user_id uuid not null references public.profiles(id) on delete cascade,
+    last_read_at timestamptz not null default now(),
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    primary key (project_id, user_id)
+);
+
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.project_views (
@@ -96,6 +105,7 @@ create index if not exists likes_user_id_idx on public.likes(user_id);
 create index if not exists comments_project_id_idx on public.comments(project_id, created_at);
 create index if not exists comments_parent_id_idx on public.comments(parent_id);
 create index if not exists comments_author_id_idx on public.comments(author_id);
+create index if not exists project_comment_reads_user_id_idx on public.project_comment_reads(user_id);
 create index if not exists project_views_project_date_idx on public.project_views(project_id, viewed_on);
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
@@ -129,6 +139,7 @@ grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
 grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
+grant select, insert, update on public.project_comment_reads to authenticated;
 
 drop function if exists public.increment_project_view_count(uuid);
 
@@ -273,6 +284,7 @@ alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.likes enable row level security;
 alter table public.comments enable row level security;
+alter table public.project_comment_reads enable row level security;
 alter table public.project_views enable row level security;
 alter table public.policy_versions enable row level security;
 alter table public.user_policy_consents enable row level security;
@@ -367,6 +379,54 @@ drop policy if exists "Users can delete own comments" on public.comments;
 create policy "Users can delete own comments"
 on public.comments for delete
 using (auth.uid() = author_id);
+
+drop policy if exists "Project authors can read own comment read state" on public.project_comment_reads;
+create policy "Project authors can read own comment read state"
+on public.project_comment_reads for select
+using (
+    auth.uid() = user_id
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = project_comment_reads.project_id
+          and projects.author_id = auth.uid()
+    )
+);
+
+drop policy if exists "Project authors can create own comment read state" on public.project_comment_reads;
+create policy "Project authors can create own comment read state"
+on public.project_comment_reads for insert
+with check (
+    auth.uid() = user_id
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = project_comment_reads.project_id
+          and projects.author_id = auth.uid()
+    )
+);
+
+drop policy if exists "Project authors can update own comment read state" on public.project_comment_reads;
+create policy "Project authors can update own comment read state"
+on public.project_comment_reads for update
+using (
+    auth.uid() = user_id
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = project_comment_reads.project_id
+          and projects.author_id = auth.uid()
+    )
+)
+with check (
+    auth.uid() = user_id
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = project_comment_reads.project_id
+          and projects.author_id = auth.uid()
+    )
+);
 
 drop policy if exists "Active policy versions are readable by everyone" on public.policy_versions;
 create policy "Active policy versions are readable by everyone"

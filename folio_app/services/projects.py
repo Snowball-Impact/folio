@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 import streamlit as st
 from postgrest.types import CountMethod, ReturnMethod
 
-from folio_app.services.comments import clear_comment_caches, count_comments_by_project
+from folio_app.services.comments import clear_comment_caches, count_comments_by_project, latest_comment_at_by_project
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
 
@@ -464,11 +464,14 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
         }
 
     like_counts = _count_likes_by_project([project["id"] for project in projects if project.get("id")])
-    comment_counts = count_comments_by_project([project["id"] for project in projects if project.get("id")])
+    project_ids = [project["id"] for project in projects if project.get("id")]
+    comment_counts = count_comments_by_project(project_ids)
+    latest_comment_times = latest_comment_at_by_project(project_ids)
     for project in projects:
         project["author"] = profiles_by_id.get(project.get("author_id"), {})
         project["like_count"] = like_counts.get(project["id"], 0)
         project["comment_count"] = comment_counts.get(project["id"], 0)
+        project["latest_comment_at"] = latest_comment_times.get(project["id"])
 
     if sort == "좋아요순":
         projects.sort(key=lambda project: project.get("like_count", 0), reverse=True)

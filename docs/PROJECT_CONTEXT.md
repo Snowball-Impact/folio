@@ -525,4 +525,39 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 
 - 원격 Supabase에 `supabase/schema.sql` 재적용 필요.
 - 실제 계정으로 공개 프로젝트 댓글 조회/작성/삭제, 비공개 프로젝트 작성자 조회, 다른 사용자 권한 차단을 브라우저에서 검증해야 한다.
-- 미확인 댓글 `NEW` 배지는 댓글 1차 범위에 넣지 않고 후속 이슈로 분리한다.
+
+### 완료: 미확인 댓글 NEW 배지 (2026-08-02)
+
+알림 목록을 만들지 않고, 마이페이지에서 안 본 댓글이 있는 프로젝트만 가볍게 표시하는 1.5차 범위로 구현했다.
+
+- `supabase/schema.sql`에 `project_comment_reads` 테이블과 RLS를 추가했다. 프로젝트 작성자만 자신의 프로젝트에 대한 읽음 상태를 조회·생성·갱신할 수 있다.
+- `folio_app/services/comments.py`에 `get_unread_comment_project_ids()`, `annotate_unread_comment_status()`, `mark_project_comments_read()`를 추가했다.
+- 미확인 기준은 “프로젝트 작성자가 아닌 사용자가 남긴 최신 댓글이 `last_read_at`보다 최신인 경우”다. 작성자 본인이 남긴 댓글은 `NEW` 기준에서 제외한다.
+- 마이페이지 내 프로젝트 카드는 `has_unread_comments`가 있으면 제목 옆에 작은 `NEW` 배지를 표시한다.
+- 프로젝트 작성자가 상세 댓글 섹션을 보면 `project_comment_reads.last_read_at`을 upsert해 확인 처리한다.
+
+검증:
+
+- `python -m pyflakes folio_app app.py`
+- `python -m compileall -q app.py folio_app tests`
+- `python -m unittest tests.test_comments tests.test_ui_cards -v`
+
+로컬 밖에서 남은 것:
+
+- 원격 Supabase에 `supabase/schema.sql` 재적용 필요.
+- 실제 계정으로 다른 사용자가 댓글 작성 → 작성자 마이페이지 `NEW` 표시 → 상세 진입 후 `NEW` 해제를 브라우저에서 검증해야 한다.
+
+### 완료: 홈갤러리 활동 NEW 배지 (2026-08-02)
+
+홈갤러리 카드에는 개인화된 읽음 상태가 아니라 공개 활동성을 보여주는 배지를 붙인다.
+
+- `services.comments.latest_comment_at_by_project()`가 프로젝트별 최신 댓글 시각을 계산한다.
+- `services.projects._attach_related_data()`가 `latest_comment_at`을 프로젝트 dict에 붙인다.
+- `components.ui.render_project_card_html()`은 최근 7일 내 등록 프로젝트에 `NEW`, 등록은 오래됐지만 최근 7일 내 댓글이 달린 프로젝트에 `댓글 NEW`를 표시한다.
+- 배지는 카드 우상단에 absolute 배치하며, stretched link 클릭을 막지 않도록 `pointer-events: none`을 둔다.
+
+검증:
+
+- `python -m pyflakes folio_app app.py`
+- `python -m compileall -q app.py folio_app tests`
+- `python -m unittest tests.test_comments tests.test_ui_cards -v`

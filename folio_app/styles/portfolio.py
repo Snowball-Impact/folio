@@ -68,11 +68,33 @@ CSS = """
 }
 
 .folio-portfolio-card-title {
+    align-items: center;
     color: var(--folio-navy);
+    display: flex;
+    gap: 8px;
     font-size: 14px;
     font-weight: 800;
     margin: 0 0 4px;
     word-break: keep-all;
+}
+
+.folio-portfolio-card-title span:first-child {
+    min-width: 0;
+}
+
+.folio-portfolio-card-new-badge {
+    align-items: center;
+    background: var(--folio-blue);
+    border-radius: 999px;
+    color: #fff;
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 600;
+    height: 18px;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 0 7px;
 }
 
 .folio-portfolio-card-liner {

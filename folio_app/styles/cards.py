@@ -36,6 +36,27 @@ CSS = """
     z-index: 8;
 }
 
+.folio-home-card-activity-badge {
+    align-items: center;
+    background: #dc2626;
+    border: 1px solid rgba(255, 255, 255, 0.48);
+    border-radius: 999px;
+    box-shadow: 0 8px 18px rgba(11, 31, 63, 0.2);
+    color: #fff;
+    display: inline-flex;
+    font-size: 11px;
+    font-weight: 600;
+    height: 24px;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 0 9px;
+    pointer-events: none;
+    position: absolute;
+    right: 14px;
+    top: 14px;
+    z-index: 9;
+}
+
 .folio-home-card p {
     color: rgba(255, 255, 255, 0.76);
     display: -webkit-box;
