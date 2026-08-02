@@ -150,8 +150,16 @@ folio_app/app.py
 | `folio_app/components/assets.py` | 정적 이미지를 Streamlit HTML에서 사용할 data URI로 변환 |
 | `folio_app/components/dashboard.py` | Power BI 등 상세 대표 결과물 iframe 렌더링 |
 | `folio_app/components/share.py` | 링크 복사 버튼과 상세 액션 그룹 렌더링 |
-| `folio_app/components/project_form.py` | 등록·수정 공용 폼, Quill 편집기, 본문 섹션 파싱, URL 검증, 카드 미리보기 |
-| `folio_app/components/ui.py` | 태그, 프로젝트 카드 HTML, 일반 텍스트 변환 등 공통 UI 유틸리티 |
+| `folio_app/components/home_gallery.py` | 홈 카드 레일, hover preview script, count-up script 렌더링 |
+| `folio_app/components/project_editor.py` | 프로젝트 등록·수정 제출 흐름과 초안 정리 |
+| `folio_app/components/project_form.py` | 등록·수정 공용 입력 폼, URL 검증, 카드 미리보기 |
+| `folio_app/components/project_body.py` | Quill 본문 편집기, 본문 섹션 파싱, HTML/plain text 변환 |
+| `folio_app/components/project_detail_content.py` | 상세 대표 결과물, 본문 섹션, 외부 결과물 액션 렌더링 |
+| `folio_app/components/project_comments.py` | 상세 댓글·1단계 답글 UI |
+| `folio_app/components/auth_forms.py` | 로그인·회원가입 컴포넌트 facade |
+| `folio_app/components/auth_login.py`, `auth_signup.py`, `auth_password_reset.py`, `auth_validation.py` | 인증 화면과 입력 검증 |
+| `folio_app/components/profile_summary.py`, `portfolio_items.py` | My Page 프로필 요약과 프로젝트 관리 카드 |
+| `folio_app/components/ui.py` | 태그, 프로젝트 카드 HTML, 커버 HTML, 일반 텍스트 변환 등 공통 UI 유틸리티 |
 | `folio_app/components/__init__.py` | `components` 패키지 초기화 파일 |
 
 ### Supabase 서비스
@@ -159,10 +167,13 @@ folio_app/app.py
 | 파일 | 역할 |
 |---|---|
 | `folio_app/services/supabase_client.py` | Streamlit 세션별 Supabase client 생성·폐기와 만료 JWT 복구 |
-| `folio_app/services/auth.py` | 회원가입, 로그인, 로그아웃, 토큰 저장과 쿠키 세션 복구 |
+| `folio_app/services/auth.py` | 인증 public facade. 기존 import 경로를 유지하며 하위 인증 모듈을 re-export |
+| `folio_app/services/auth_session.py`, `auth_account.py`, `auth_restore.py`, `auth_password_reset.py` | 토큰/session_state, 계정 작업, 쿠키 복구, 비밀번호 재설정 구현 |
 | `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
-| `folio_app/services/projects.py` | 프로젝트 CRUD, 공개 목록·검색·정렬, 작성자 정보, 조회수, 좋아요, 캐시 관리 |
-| `folio_app/services/comments.py` | 프로젝트 댓글·1단계 답글 조회, 작성, 삭제, 트리 구성, 댓글 수 집계 |
+| `folio_app/services/projects.py` | 프로젝트 public facade. 기존 import 경로를 유지하며 query/mutation/normalizer/type 모듈을 re-export |
+| `folio_app/services/project_queries.py`, `project_mutations.py`, `project_normalizers.py`, `project_types.py` | 공개 목록·검색·정렬·캐시, CRUD·조회수·좋아요, payload/URL 정규화, 결과 타입 |
+| `folio_app/services/comments.py` | 댓글 public facade. 기존 import 경로를 유지하며 조회/작성/읽음/통계 모듈을 re-export |
+| `folio_app/services/comment_queries.py`, `comment_mutations.py`, `comment_reads.py`, `comment_stats.py`, `comment_utils.py`, `comment_types.py` | 댓글 조회·작성·삭제, 댓글 읽음 상태, 댓글 수·최신 댓글 캐시, 트리 구성, 결과 타입 |
 | `folio_app/services/notifications.py` | 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 읽음 처리 |
 | `folio_app/services/email_notifications.py` | SMTP 기반 댓글 이메일 알림 발송 |
 | `folio_app/services/project_content.py` | 사용자 작성 HTML의 허용 태그·링크 검사와 위험 요소 제거 |

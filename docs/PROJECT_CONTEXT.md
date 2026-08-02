@@ -22,30 +22,63 @@
 ```
 folio_app/
   app.py                  # 진입점. 쿠키 복구, 라우팅, 온보딩 체크
-  styles/                 # 전역 CSS 주입 (apply_global_styles), 화면 영역별로 모듈 분리
+  styles/                 # 전역 CSS 주입 (apply_global_styles), UI 영역별 CSS 모듈
   config.py               # 환경변수 로드 (get_settings)
   navigation.py           # 내부 이동 공통 헬퍼와 허용 라우트
   components/
     assets.py             # static 이미지 data URI 헬퍼
     dashboard.py          # 상세 대표 결과물 iframe 컴포넌트
+    home_gallery.py       # 홈 카드 레일, 카드 preview script, count-up script
     layout.py             # render_header(), render_hero()
+    auth_forms.py         # auth 컴포넌트 public facade
+    auth_login.py         # 로그인 폼
+    auth_signup.py        # 회원가입 폼
+    auth_password_reset.py # 비밀번호 재설정 폼
+    auth_validation.py    # 회원가입 입력/정책 검증
+    analytics.py          # GA page view/event script bridge
+    policy_consent.py     # 약관 동의 checkbox/링크 렌더링
+    portfolio_items.py    # 마이페이지 프로젝트 관리 카드
+    profile_summary.py    # 마이페이지 프로필·통계 요약 HTML
+    project_body.py       # Quill 본문 편집기, 섹션 파싱, plain text 변환
+    project_comments.py   # 상세 댓글·답글 UI
+    project_detail_content.py # 상세 대표 결과물, 본문 섹션, 외부 링크 액션
+    project_editor.py     # 등록/수정 제출 흐름
     share.py              # 공유 버튼, 상세 액션 그룹 HTML 컴포넌트
     ui.py                 # clean_html(), 공통 UI 헬퍼
-    project_form.py       # 프로젝트 등록/수정 폼
+    project_form.py       # 프로젝트 등록/수정 공용 입력 폼과 payload 검증
   pages/
     about.py              # 서비스 소개 페이지
     home.py               # 홈 + 탐색 허브 + 상세 뷰
     project_detail.py     # 상세 렌더링 (home에서 project_id 쿼리로 호출)
     auth.py               # render_login(), render_signup()
     gallery.py            # 레거시 → Home으로 리다이렉트
+    notifications.py      # 댓글 알림 목록과 읽음 처리
     protected.py          # render_submit(), render_my_page() (프로필+포트폴리오 통합). render_my_portfolio()/render_profile()은 My Page로 리다이렉트만 하는 레거시 라우트 핸들러
     onboarding.py         # 약관 동의 온보딩
+    policy.py             # 약관/개인정보 정책 본문
   services/
-    auth.py               # get_current_user(), sign_in/out, restore_session()
+    auth.py               # 인증 public facade. 세션/계정/복구/비밀번호 모듈 re-export
+    auth_session.py       # session_state 토큰, Supabase client binding, 로그아웃
+    auth_account.py       # 회원가입, 로그인, 인증 메일 재발송
+    auth_restore.py       # 쿠키 기반 세션 복구
+    auth_password_reset.py # 비밀번호 재설정 요청/완료
+    auth_types.py, auth_errors.py
+    comments.py           # 댓글 public facade. 조회/작성/읽음/통계 모듈 re-export
+    comment_queries.py    # 댓글 조회, 작성자 attach, 답글 가능 여부
+    comment_mutations.py  # 댓글 작성/삭제, 알림 생성 bridge
+    comment_reads.py      # 프로젝트별 댓글 읽음 상태
+    comment_stats.py      # 댓글 수, 최신 댓글 시각 캐시
+    comment_types.py, comment_utils.py
     profiles.py           # get_profile(), update_profile(), get_onboarding_status()
-    projects.py           # CRUD + 좋아요 + 통계
+    projects.py           # 프로젝트 public facade. query/mutation/normalizer/type re-export
+    project_queries.py    # 공개/작성자 목록, 검색·태그·정렬, 좋아요/작성자 attach, 캐시
+    project_mutations.py  # 생성/수정/삭제, 조회수, 좋아요 mutation
+    project_normalizers.py # payload, 태그, URL, Power BI iframe src 정규화
+    project_types.py      # ProjectResult, ProjectServiceError, ViewCountResult
     project_drafts.py     # 사용자·작업별 세션 초안 저장·복구·삭제
     project_content.py    # 프로젝트 본문 HTML 허용 목록 정제
+    notifications.py      # 댓글 알림 생성·조회·읽음 처리
+    email_notifications.py # SMTP 댓글 이메일 알림
     supabase_client.py    # Streamlit 세션별 Supabase client
   static/
     hero-preview.png      # 홈 히어로 우측 미리보기 이미지
@@ -59,15 +92,15 @@ folio_app/
 
 | 기능 | 파일 | 비고 |
 |------|------|------|
-| 회원가입 / 이메일 인증 | `auth.py` | Supabase Auth |
-| 로그인 / 로그아웃 | `auth.py`, `app.py` | EncryptedCookieManager로 세션 유지 |
-| 약관 동의 | `auth.py`(회원가입), `onboarding.py`, `profiles.py` | 회원가입 폼에서 동의 수집(체크 이력을 Auth user_metadata에 저장) → 첫 로그인 시 조용히 `user_policy_consents`에 기록. 메타데이터가 없거나 기록 실패 시 온보딩 화면이 폴백으로 강제 진입 |
+| 회원가입 / 이메일 인증 | `pages/auth.py`, `components/auth_signup.py`, `services/auth.py` | Supabase Auth |
+| 로그인 / 로그아웃 | `pages/auth.py`, `components/auth_login.py`, `services/auth.py`, `app.py` | EncryptedCookieManager로 세션 유지 |
+| 약관 동의 | `components/auth_signup.py`, `components/policy_consent.py`, `pages/onboarding.py`, `services/profiles.py` | 회원가입 폼에서 동의 수집(체크 이력을 Auth user_metadata에 저장) → 첫 로그인 시 조용히 `user_policy_consents`에 기록. 메타데이터가 없거나 기록 실패 시 온보딩 화면이 폴백으로 강제 진입 |
 | 프로필 조회 / 수정 | `protected.py` | 이름, 소속, 자기소개 |
-| 프로젝트 등록 / 수정 / 삭제 | `protected.py`, `project_form.py` | |
-| 홈 탐색 (검색, 태그, 정렬) | `home.py` | Gallery 페이지 없음, Home이 탐색 허브 |
-| 프로젝트 상세 | `project_detail.py` | `?project_id=` 쿼리로 Home 안에서 렌더링 |
+| 프로젝트 등록 / 수정 / 삭제 | `protected.py`, `project_editor.py`, `project_form.py`, `services/projects.py` | |
+| 홈 탐색 (검색, 태그, 정렬) | `home.py`, `home_gallery.py` | Gallery 페이지 없음, Home이 탐색 허브 |
+| 프로젝트 상세 | `project_detail.py`, `project_detail_content.py`, `project_comments.py` | `?project_id=` 쿼리로 Home 안에서 렌더링 |
 | 서비스 소개 | `about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
-| 좋아요 | `projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
+| 좋아요 | `services/projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
 | 푸터 | `app.py` | Copyright © 2026 Snowball Impact |
 
 ---
@@ -109,25 +142,36 @@ folio_app/
 
 ## CSS 아키텍처
 
-### 파일 구조: 화면 영역별 모듈 분리 (2026-07-06 리팩토링)
+### 파일 구조: UI 영역별 모듈 분리
 
-`folio_app/styles.py` 단일 파일(2400줄+)이 계속 커지면서 죽은 선택자·중복 선언이 쌓였다. `folio_app/styles/` 패키지로 분리했다:
+`folio_app/styles.py` 단일 파일(2400줄+)이 계속 커지면서 죽은 선택자·중복 선언이 쌓였다. 이후 `folio_app/styles/` 패키지로 분리했고, 2026-08 리팩토링에서 홈 갤러리·카드 preview·상세 visual·댓글·헤더 알림처럼 화면 책임이 큰 CSS를 더 작은 영역별 모듈로 나눴다:
 
 ```
 folio_app/styles/
   __init__.py          # apply_global_styles() -- 아래 모듈들의 CSS를 정해진 순서로 이어붙여 st.html() 1회 호출
-  tokens.py            # :root 토큰, 전역 리셋(stApp/사이드바 숨김/CookieManager iframe 숨김/block-container), 푸터
+  tokens.py            # :root 토큰과 앱 배경
+  streamlit_overrides.py # Streamlit 공통 wrapper/사이드바/CookieManager/푸터 보정
   header.py            # 상단 헤더(브랜드, nav 버튼, 로그인 버튼, 메뉴 팝오버)
-  hero.py              # 홈 히어로 + 서브페이지 공용 히어로(render_hero) + 히어로 푸터 액션 + 다크 히어로
+  header_notifications.py # 헤더 알림 버튼/배지
+  hero.py              # 홈 히어로 + 서브페이지 공용 히어로(render_hero)
+  hero_footer.py       # 상세 히어로 footer 액션 정렬
+  about.py             # 서비스 소개 페이지 기본 섹션
+  about_vision.py      # VISION snowball visual
   buttons_inputs.py     # 전역 버튼/입력 필드 스타일
   browse_panel.py       # 홈 탐색(검색/태그/정렬) 패널
-  cards.py              # 홈 프로젝트 카드 그리드 + 자동 커버 아트
+  cards.py              # 홈 프로젝트 카드 본체
+  project_card_cover.py # 자동 커버 아트
+  gallery_rail.py       # 홈 카드 레일/가로 스크롤/레일 버튼
+  card_preview.py       # 홈 hover iframe preview
   shared.py             # folio-tags/folio-tag/folio-detail-meta/folio-muted (카드·히어로·상세 공용)
   auth.py               # 로그인/회원가입 카드
+  notifications.py      # 알림 페이지
   onboarding.py         # 온보딩(약관 동의) 카드
   project_form.py        # 프로젝트 등록/수정 폼 + 공개 설정 토글
   portfolio.py           # 내 포트폴리오 카드
-  detail_page.py         # 프로젝트 상세 페이지(메타 행, 본문 섹션, 대시보드/첨부 사이드바)
+  detail_page.py         # 프로젝트 상세 페이지 레이아웃/본문
+  detail_visual.py       # 상세 대표 결과물/iframe/외부 링크
+  detail_comments.py     # 상세 댓글 UI
   profile.py             # 프로필 페이지
 ```
 
@@ -136,6 +180,8 @@ folio_app/styles/
 **분리 시 검증 방법**: 선택자+선언을 정규화해 분리 전/후 CSS를 구조적으로 비교하는 스크립트로 전체 선택자 집합과 선언 내용이 1:1로 동일함을 확인했다(의도적으로 제거한 죽은 선택자 제외). 이 방법은 이후 CSS 파일을 다시 재구성할 때도 재사용 가능하다.
 
 **새 섹션을 추가할 때**: 어느 화면에 속하는지 위 표에서 가장 가까운 모듈을 찾아 그 모듈의 `CSS` 상수에 추가한다. 새 화면 영역이면 새 모듈을 만들고 `__init__.py`의 `_SECTIONS` 튜플에 등록한다 (등록 순서 = 최종 CSS 내 등장 순서 = 동일 선택자·동일 명시도 충돌 시 타이브레이크 순서이므로, 특정 선택자를 다른 모듈의 규칙보다 나중에 덮어써야 한다면 순서에 유의).
+
+**현재 구조상 facade 규칙**: `styles/__init__.py`만 CSS 모듈을 조합한다. 페이지·컴포넌트에서 개별 style module을 직접 import하지 않는다. CSS 추가는 `CSS` 상수와 `_SECTIONS` 순서를 함께 확인한다.
 
 ### 핵심 패턴: key 기반 스코프
 
@@ -158,10 +204,19 @@ with st.container(border=False, key="folio_header"):
 | key | 용도 |
 |------------|------|
 | `folio_header` | 헤더 컨테이너 |
+| `folio_header_brand`, `folio_header_nav` | 헤더 내부 브랜드/네비게이션 스코프 |
+| `folio_hero_footer_actions` | 공용 히어로 footer 액션 영역 |
 | `folio_browse_panel` | 홈 탐색 패널 |
 | `folio_auth_shell` | 인증 카드 전체 |
 | `folio_auth_form` | 인증 폼 카드 |
 | `folio_onboarding_card` | 온보딩 카드 |
+| `profile_overview`, `profile_edit_card`, `portfolio_item_<id>` | My Page 프로필/프로젝트 관리 |
+| `detail_footer_row`, `detail_back_action_row` | 상세 footer 액션/복귀 버튼 행 |
+| `project_detail_visual` | 상세 대표 결과물 영역 |
+| `project_comments_section`, `comment_row_<kind>_<id>` | 상세 댓글 섹션/댓글 row |
+| `notifications_panel`, `notification_item_<id>` | 알림 목록 |
+| `<prefix>_form_section_overview/content/links` | 등록·수정 폼 섹션 |
+| `<prefix>_visibility_setting` | 등록·수정 공개 설정 |
 
 ### 주의사항
 

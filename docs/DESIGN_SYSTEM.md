@@ -45,7 +45,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 | 보조 설명 | 12-13px, `--folio-muted` |
 | 섹션 제목 | 20px |
 | 홈 카드 레일 제목 | 24px |
-| 칩/버튼 텍스트 | 12-13px, 700 전후 |
+| 칩/버튼 텍스트 | 12-13px, 버튼은 700 전후, 태그칩은 과한 bold를 피함 |
 | 프로필 주요 값 | 20px |
 
 한글은 `word-break: keep-all`을 우선 사용한다. 제목은 과도한 letter spacing을 쓰지 않는다.
@@ -95,7 +95,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Project Card
 
-파일: `folio_app/components/ui.py`, `folio_app/styles/cards.py`
+파일: `folio_app/components/ui.py`, `folio_app/components/home_gallery.py`, `folio_app/styles/cards.py`, `folio_app/styles/project_card_cover.py`, `folio_app/styles/gallery_rail.py`, `folio_app/styles/card_preview.py`
 
 - 16:9 미디어 타일
 - 제목 2줄, 요약 1줄, 태그 최대 4개 + `+N`, 푸터 메타
@@ -103,6 +103,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 - 카드 전체 클릭은 stretched link 패턴을 사용한다.
 - 홈 갤러리 레일에서만 hover 확대와 iframe preview를 켠다.
 - 등록 미리보기, 상세 썸네일에는 hover action을 넣지 않는다.
+- 카드 커버의 상단 eyebrow 라벨은 홈 카드에서 숨기고, 제목·요약·태그·메타의 상하 여백으로 정보 위계를 만든다.
 
 ### Chip
 
@@ -133,7 +134,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Detail Action Bar
 
-파일: `folio_app/pages/project_detail.py`, `folio_app/components/share.py`, `folio_app/styles/detail_page.py`, `folio_app/styles/hero.py`
+파일: `folio_app/pages/project_detail.py`, `folio_app/components/share.py`, `folio_app/styles/detail_page.py`, `folio_app/styles/hero_footer.py`
 
 - 조회수, 댓글 수, 공개 상태, 링크 복사 버튼은 `project_action_group_html()`이 일반 HTML로 렌더링한다. 보이는 액션 UI는 custom component iframe 안에 넣지 않는다.
 - 좋아요는 로그인 상태와 mutation 흐름 때문에 Streamlit button으로 유지하되, 액션 그룹 바로 오른쪽에 둔다.

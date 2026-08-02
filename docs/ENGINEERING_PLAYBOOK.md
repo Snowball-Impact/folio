@@ -37,6 +37,16 @@
 
 페이지가 Supabase query를 직접 만들거나 서비스가 Streamlit 레이아웃을 렌더링하지 않는다.
 
+### 리팩토링 후 모듈 경계
+
+- `folio_app/services/auth.py`, `projects.py`, `comments.py`는 public facade다. 기존 페이지·테스트 import 경로를 깨지 않도록 public API를 re-export하고, 실제 구현은 `auth_*`, `project_*`, `comment_*` 하위 모듈에 둔다.
+- 새 인증 기능은 계정 작업이면 `auth_account.py`, 세션·토큰이면 `auth_session.py`, 쿠키 복구면 `auth_restore.py`, 비밀번호 재설정이면 `auth_password_reset.py`에 추가한다.
+- 새 프로젝트 조회·검색·캐시 로직은 `project_queries.py`, 생성·수정·삭제·좋아요·조회수 변경은 `project_mutations.py`, payload/URL/태그 정규화는 `project_normalizers.py`에 둔다.
+- 새 댓글 조회 로직은 `comment_queries.py`, 작성·삭제는 `comment_mutations.py`, 읽음 상태는 `comment_reads.py`, 댓글 수·최신 댓글 시각 캐시는 `comment_stats.py`, 트리/시간 변환 유틸은 `comment_utils.py`에 둔다.
+- `components/auth_forms.py`는 인증 UI facade다. 로그인/회원가입/비밀번호 재설정 화면 구현은 각각 `auth_login.py`, `auth_signup.py`, `auth_password_reset.py`, 입력·정책 검증은 `auth_validation.py`에 둔다.
+- 프로젝트 등록·수정 흐름은 `project_editor.py`, 공용 입력 폼은 `project_form.py`, Quill 본문 파싱은 `project_body.py`가 맡는다. 상세 대표 결과물/본문은 `project_detail_content.py`, 댓글 UI는 `project_comments.py`, 홈 카드 레일은 `home_gallery.py`에 둔다.
+- 테스트가 과거 facade의 private helper를 patch하고 있다면 먼저 public 동작으로 바꿀 수 있는지 본다. 불가피하게 내부를 patch해야 하면 실제 구현 모듈을 patch한다.
+
 ## 3. 인증과 세션 정책
 
 - Auth 상태를 가진 Supabase client는 전역 cache에 넣지 않는다.
@@ -99,6 +109,9 @@
 - 모바일 버튼 텍스트가 줄마다 한 글자씩 꺾이지 않는지 확인한다.
 - 모든 primary 버튼은 파란 배경·흰 글자로 구분하되, 좋아요처럼 문맥별 스타일이 있는 버튼은 더 구체적인 선택자로 오버라이드한다.
 - 전역 CSS는 `st.html()`의 style-only 콘텐츠로 한 번 주입한다. 인증 rerun 중 스타일이 사라지는 플래시를 줄이기 위함이다.
+- `folio_app/styles/__init__.py`만 CSS 모듈을 조합한다. 페이지·컴포넌트에서 개별 style module을 직접 import하지 않는다.
+- 새 CSS는 가장 가까운 UI 영역 모듈의 `CSS` 상수에 넣는다. 새 모듈을 만들면 반드시 `_SECTIONS`에 추가하고, 순서가 cascade 결과에 영향을 주는지 확인한다.
+- 홈 카드 본체는 `cards.py`, 자동 커버는 `project_card_cover.py`, 카드 레일은 `gallery_rail.py`, hover iframe preview는 `card_preview.py`에 둔다. 상세 대표 결과물은 `detail_visual.py`, 댓글은 `detail_comments.py`, 상세 footer 액션 정렬은 `hero_footer.py`에 둔다.
 - **`styles/*.py`의 CSS 문자열(주석 포함)에 `<a>`, `<div>` 같은 리터럴 태그 형태 텍스트를 쓰지 않는다.** `apply_global_styles()`가 모든 모듈을 이어붙여 `st.html()`로 한 번에 주입하는데, 이 문자열 안에 실제 태그 형태 텍스트가 있으면(주석이라도) 그 지점부터 스타일시트 전체가 깨질 수 있다. 태그를 설명해야 하면 "anchor", "div" 같은 단어로 풀어 쓴다. CSS 변경 후 `folio_app.styles._SECTIONS`를 이어붙인 최종 문자열에 리터럴 태그가 남아있지 않은지 확인한다(문법 오류가 아니라서 `py_compile`/유닛테스트로는 못 잡는다).
 - **Streamlit의 마크다운 렌더러는 `<a>`가 블록 요소(`<div>` 등)를 감싸는 걸 허용하지 않는다.** 하나의 `<a>`로 `<div>`를 감싸면, 렌더러가 이를 텍스트 조각(각 인라인 런)별로 여러 개의 작은 `<a>`로 쪼개버려서, `<div>`로 감싸진 배경·이미지 영역은 어떤 링크에도 속하지 못해 클릭이 안 된다. 카드 전체를 클릭 가능하게 만들어야 하면, 카드를 감싸지 말고 `position: absolute; inset: 0;`로 카드 위에 빈 오버레이 `<a>`를 얹는 "stretched link" 패턴을 쓴다(`folio_app/components/ui.py`의 `render_project_card_html()` 참고). 오버레이의 `z-index`는 카드 내부에서 가장 높은 `z-index`보다 확실히 높게 잡는다(동점이면 나중에 그려지는 요소가 클릭을 가로챌 수 있다).
 

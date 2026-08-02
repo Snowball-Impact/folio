@@ -13,7 +13,7 @@ flowchart LR
     Coordinator[folio_app.app<br/>초기화·인증 복구·라우팅]
     Pages[pages<br/>화면과 사용자 상호작용]
     Components[components<br/>공통 UI와 폼]
-    Services[services<br/>인증·프로필·프로젝트 규칙]
+    Services[services<br/>인증·프로필·프로젝트·댓글 규칙]
     Auth[Supabase Auth]
     RLS[PostgREST + RLS]
     DB[(Supabase PostgreSQL)]
@@ -36,16 +36,21 @@ flowchart LR
 flowchart TB
     subgraph Presentation[Presentation]
         Layout[components/layout.py]
-        Forms[components/project_form.py]
+        HomeGallery[components/home_gallery.py]
+        Forms[components/project_editor.py<br/>components/project_form.py<br/>components/project_body.py]
+        DetailComponents[components/project_detail_content.py<br/>components/project_comments.py]
+        AuthComponents[components/auth_forms.py<br/>auth_login/signup/reset]
         UI[components/ui.py]
         PageModules[pages/*.py]
-        Styles[styles/*.py]
+        Styles[styles/__init__.py<br/>styles/* UI area modules]
     end
 
     subgraph Application[Application Services]
-        AuthService[services/auth.py]
+        AuthService[services/auth.py facade<br/>auth_session/account/restore/reset]
         ProfileService[services/profiles.py]
-        ProjectService[services/projects.py]
+        ProjectService[services/projects.py facade<br/>project_queries/mutations/normalizers]
+        CommentService[services/comments.py facade<br/>comment_queries/mutations/reads/stats]
+        NotificationService[services/notifications.py<br/>email_notifications.py]
         Sanitizer[services/project_content.py]
         ClientFactory[services/supabase_client.py]
     end
@@ -58,15 +63,26 @@ flowchart TB
     end
 
     PageModules --> Layout
+    PageModules --> HomeGallery
     PageModules --> Forms
+    PageModules --> DetailComponents
+    PageModules --> AuthComponents
     PageModules --> UI
     PageModules --> AuthService
     PageModules --> ProfileService
     PageModules --> ProjectService
+    PageModules --> CommentService
+    PageModules --> NotificationService
     Forms --> Sanitizer
+    Forms --> ProjectService
+    DetailComponents --> ProjectService
+    DetailComponents --> CommentService
+    AuthComponents --> AuthService
     AuthService --> ClientFactory
     ProfileService --> ClientFactory
     ProjectService --> ClientFactory
+    CommentService --> ClientFactory
+    NotificationService --> ClientFactory
     ClientFactory --> SupabaseAuth
     ClientFactory --> PostgREST
     PostgREST --> PostgreSQL
@@ -76,10 +92,12 @@ flowchart TB
 | 계층 | 책임 | 금지되는 책임 |
 |---|---|---|
 | `pages/` | 화면 조합, 입력 수집, 사용자 피드백, 화면 전환 | SQL/RLS 우회, 민감 토큰 직접 관리 |
-| `components/` | 반복 UI, 프로젝트 폼, 카드 HTML | 사용자별 데이터 접근 정책 결정 |
-| `services/` | 인증, CRUD, 검증, 캐시, 오류 변환 | 페이지 레이아웃과 화면 문구 구성 |
-| `styles/` | 디자인 토큰과 영역별 CSS | 비즈니스 상태 판단 |
+| `components/` | 반복 UI, 인증 폼, 프로젝트 폼, 상세 본문·댓글 UI, 카드 HTML | 사용자별 데이터 접근 정책 결정 |
+| `services/` | 인증, CRUD, 댓글·알림, 검증, 캐시, 오류 변환 | 페이지 레이아웃과 화면 문구 구성 |
+| `styles/` | 디자인 토큰과 UI 영역별 CSS 모듈 | 비즈니스 상태 판단 |
 | Supabase | Auth, 관계형 데이터, RLS, RPC | Streamlit 화면 상태 관리 |
+
+`services/auth.py`, `services/projects.py`, `services/comments.py`는 기존 import 경로를 유지하는 public facade다. 실제 구현은 `auth_*`, `project_*`, `comment_*` 하위 모듈에 둔다. CSS도 `styles/__init__.py`가 영역별 모듈의 `CSS` 상수를 고정 순서로 합쳐 1회 주입한다.
 
 ## 3. 실행과 라우팅
 
