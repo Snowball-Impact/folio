@@ -5,12 +5,14 @@ from unittest.mock import MagicMock, patch
 from postgrest.types import CountMethod, ReturnMethod
 
 from folio_app.services.auth import AuthResult
-from folio_app.services.projects import ProjectServiceError, _filter_public_projects, list_public_projects, update_project
+from folio_app.services.project_mutations import update_project
+from folio_app.services.project_queries import _filter_public_projects, list_public_projects
+from folio_app.services.project_types import ProjectServiceError
 
 
 class ProjectMutationTests(unittest.TestCase):
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_update_uses_minimal_return_to_allow_public_to_private_change(self, get_client, _auth) -> None:
         builder = MagicMock()
         builder.update.return_value = builder
@@ -89,15 +91,15 @@ class FilterPublicProjectsTests(unittest.TestCase):
 
 
 class ProjectReadFailureTests(unittest.TestCase):
-    @patch("folio_app.services.projects._fetch_public_projects")
+    @patch("folio_app.services.project_queries._fetch_public_projects")
     def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:
         fetch_projects.side_effect = ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
         with self.assertRaisesRegex(ProjectServiceError, "Supabase 연결 설정"):
             list_public_projects()
 
-    @patch("folio_app.services.projects._attach_related_data")
-    @patch("folio_app.services.projects._fetch_public_projects", return_value=[{"id": "1"}])
+    @patch("folio_app.services.project_queries._attach_related_data")
+    @patch("folio_app.services.project_queries._fetch_public_projects", return_value=[{"id": "1"}])
     def test_related_data_failure_becomes_safe_service_error(self, _fetch_projects, attach_data) -> None:
         attach_data.side_effect = RuntimeError("provider details")
 

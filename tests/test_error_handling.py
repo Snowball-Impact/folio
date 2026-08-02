@@ -3,22 +3,24 @@ from unittest.mock import MagicMock, patch
 
 from folio_app.services.auth import _friendly_auth_error
 from folio_app.services.profiles import ProfileServiceError, get_profile
-from folio_app.services.projects import (
-    ProjectServiceError,
-    _execute_public_read,
-    _fetch_like_counts,
-    _fetch_public_profiles,
+from folio_app.services.project_mutations import (
     create_project,
     delete_project,
     set_project_liked,
 )
+from folio_app.services.project_queries import (
+    _execute_public_read,
+    _fetch_like_counts,
+    _fetch_public_profiles,
+)
+from folio_app.services.project_types import ProjectServiceError
 
 
 PROVIDER_DETAIL = "provider-secret-detail"
 
 
 class SafeMutationMessageTests(unittest.TestCase):
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_create_error_does_not_expose_provider_detail(self, get_client) -> None:
         builder = MagicMock()
         builder.insert.return_value = builder
@@ -32,7 +34,7 @@ class SafeMutationMessageTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertNotIn(PROVIDER_DETAIL, result.message)
 
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_delete_error_does_not_expose_provider_detail(self, get_client) -> None:
         builder = MagicMock()
         builder.delete.return_value = builder
@@ -47,7 +49,7 @@ class SafeMutationMessageTests(unittest.TestCase):
         self.assertFalse(result.ok)
         self.assertNotIn(PROVIDER_DETAIL, result.message)
 
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_like_error_does_not_expose_provider_detail(self, get_client) -> None:
         builder = MagicMock()
         builder.insert.return_value = builder
@@ -88,24 +90,24 @@ class ReadFailureDistinctionTests(unittest.TestCase):
 
         self.assertNotIn(PROVIDER_DETAIL, str(raised.exception))
 
-    @patch("folio_app.services.projects._execute_public_read", return_value=None)
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_queries._execute_public_read", return_value=None)
+    @patch("folio_app.services.project_queries.get_supabase_client")
     def test_like_count_failure_is_not_reported_as_zero(self, get_client, _execute) -> None:
         get_client.return_value = MagicMock()
 
         with self.assertRaisesRegex(ProjectServiceError, "좋아요 통계를 불러오지 못했습니다"):
             _fetch_like_counts(("project-error-case",))
 
-    @patch("folio_app.services.projects._execute_public_read", side_effect=[RuntimeError("view"), None])
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_queries._execute_public_read", side_effect=[RuntimeError("view"), None])
+    @patch("folio_app.services.project_queries.get_supabase_client")
     def test_author_failure_is_not_reported_as_empty_author(self, get_client, _execute) -> None:
         get_client.return_value = MagicMock()
 
         with self.assertRaisesRegex(ProjectServiceError, "작성자 정보를 불러오지 못했습니다"):
             _fetch_public_profiles(("author-error-case",))
 
-    @patch("folio_app.services.projects.logger")
-    @patch("folio_app.services.projects.recover_from_expired_jwt", return_value=True)
+    @patch("folio_app.services.project_queries.logger")
+    @patch("folio_app.services.project_queries.recover_from_expired_jwt", return_value=True)
     def test_failed_retry_after_jwt_recovery_is_logged(self, _recover, logger) -> None:
         operation = MagicMock(side_effect=[RuntimeError("expired"), RuntimeError(PROVIDER_DETAIL)])
 

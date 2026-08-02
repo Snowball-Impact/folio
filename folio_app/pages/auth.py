@@ -1,64 +1,39 @@
 import logging
-from time import time
 
 import streamlit as st
 
-from folio_app.components.analytics import track_event
-from folio_app.components.policy_consent import render_policy_agreement_fields
-from folio_app.navigation import navigate
-from folio_app.services.auth import (
-    complete_password_reset,
-    complete_password_reset_with_code,
-    complete_password_reset_with_token_hash,
-    get_current_user,
-    get_password_reset_tokens,
-    request_password_reset,
-    resend_signup_confirmation,
-    sign_in,
-    sign_up,
+from folio_app.components.auth_forms import (
+    query_value as _query_value,
+    render_auth_card_header as _render_auth_card_header,
+    render_email_feedback as _render_email_feedback,
+    render_login,
+    render_login_secondary_actions as _render_login_secondary_actions,
+    render_password_confirm_feedback as _render_password_confirm_feedback,
+    render_password_feedback as _render_password_feedback,
+    render_password_reset_form as _render_password_reset_form,
+    render_password_update_form as _render_password_update_form,
+    render_signup,
+    render_signup_login_link as _render_signup_login_link,
+    resend_cooldown_remaining as _resend_cooldown_remaining,
 )
-from folio_app.services.profiles import get_required_policy_versions, profile_exists_for_email
+from folio_app.components.auth_validation import (
+    EXISTING_ACCOUNT_MESSAGE_PREFIX,
+    SignupEmailCheckError,
+    cached_profile_exists_for_email as _cached_profile_exists_for_email,
+    cached_required_policy_versions as _cached_required_policy_versions,
+    is_valid_email as _is_valid_email,
+    normalize_email as _normalize_email,
+    signup_missing_required_fields as _signup_missing_required_fields,
+)
 
 
 logger = logging.getLogger(__name__)
-
-
-RESEND_COOLDOWN_SECONDS = 60
-EXISTING_ACCOUNT_MESSAGE_PREFIX = "이미 가입된 이메일"
-
-
-class SignupEmailCheckError(RuntimeError):
-    pass
-
-
-def _normalize_email(email: str) -> str:
-    return email.strip().lower()
-
-
-def _is_valid_email(email: str) -> bool:
-    if not email or "@" not in email:
-        return False
-
-    local, _, domain = email.partition("@")
-    return bool(local and "." in domain and not domain.startswith(".") and not domain.endswith("."))
-
-
-@st.cache_data(ttl=10, show_spinner=False)
-def _cached_profile_exists_for_email(email: str) -> bool:
-    return profile_exists_for_email(email)
-
-
-@st.cache_data(ttl=60, show_spinner=False)
-def _cached_required_policy_versions() -> dict:
-    return get_required_policy_versions()
 
 
 def _signup_required_policies() -> dict:
     try:
         return _cached_required_policy_versions()
     except Exception:
-        # Signup should not be blocked by a policy-fetch failure; onboarding
-        # after first login remains the fallback for collecting consent.
         logger.exception("Failed to load policy versions for signup")
         return {}
 
@@ -73,61 +48,6 @@ def _email_already_registered(email: str) -> bool:
         raise SignupEmailCheckError("가입 여부를 확인하지 못했습니다. 잠시 후 다시 시도하세요.") from exc
 
 
-def _render_email_feedback(email: str, already_registered: bool, check_error: str | None = None) -> None:
-    if not email:
-        return
-
-    if not _is_valid_email(email):
-        st.error("이메일 형식을 확인하세요. 예: name@example.com")
-    elif check_error:
-        st.error(check_error)
-    elif already_registered:
-        st.warning("이미 가입된 이메일입니다. 인증 전이라면 아래에서 인증 메일을 다시 받으세요.")
-
-
-def _render_password_feedback(password: str) -> None:
-    if not password:
-        return
-
-    if len(password) < 8:
-        st.warning(f"비밀번호가 너무 짧습니다. 현재 {len(password)}자 / 최소 8자")
-
-
-def _render_password_confirm_feedback(password: str, password_confirm: str) -> None:
-    if not password_confirm:
-        return
-
-    if password != password_confirm:
-        st.error("비밀번호 확인이 일치하지 않습니다.")
-
-
-def _query_value(name: str) -> str:
-    value = st.query_params.get(name, "")
-    if isinstance(value, list):
-        return str(value[0]) if value else ""
-    return str(value or "")
-
-
-def _signup_missing_required_fields(
-    email: str,
-    password: str,
-    password_confirm: str,
-    name: str,
-    organization: str,
-) -> list[str]:
-    return [
-        label
-        for label, value in {
-            "이메일": email,
-            "비밀번호": password,
-            "비밀번호 확인": password_confirm,
-            "이름": name,
-            "소속": organization,
-        }.items()
-        if not value
-    ]
-
-
 def _should_show_resend_confirmation(email_registered: bool) -> bool:
     return email_registered or bool(st.session_state.get("signup_confirmation_email"))
 
@@ -140,291 +60,28 @@ def _should_show_signup_login_link(email_registered: bool, email: str) -> bool:
     return email_registered or st.session_state.get("signup_existing_email") == email
 
 
-def _render_signup_login_link() -> None:
-    if st.button("이미 계정이 있다면 로그인하기", key="signup_to_login", width="stretch"):
-        navigate("Login")
-
-
-def _render_login_secondary_actions(default_email: str = "") -> None:
-    with st.container(border=False, key="login_secondary_actions"):
-        reset_col, signup_col = st.columns(2)
-        with reset_col:
-            if st.button("비밀번호 찾기", key="login_password_reset_toggle", use_container_width=True):
-                st.session_state["show_password_reset"] = not st.session_state.get("show_password_reset", False)
-        with signup_col:
-            if st.button("회원가입하기", key="login_to_signup", use_container_width=True):
-                navigate("Sign Up")
-
-    if st.session_state.get("show_password_reset"):
-        _render_password_reset_form(default_email)
-
-
-def _render_password_reset_form(default_email: str = "") -> None:
-    with st.container(border=False, key="password_reset_panel"):
-        st.caption("가입한 이메일을 입력하면 비밀번호 재설정 메일을 보내드립니다.")
-        reset_email = _normalize_email(
-            st.text_input(
-                "재설정 메일을 받을 이메일",
-                value=default_email if _is_valid_email(default_email) else "",
-                placeholder="name@example.com",
-                key="password_reset_email",
-            )
-        )
-        if reset_email and not _is_valid_email(reset_email):
-            st.error("이메일 형식을 확인하세요. 예: name@example.com")
-
-        if st.button(
-            "재설정 메일 받기",
-            key="password_reset_submit",
-            use_container_width=True,
-        ):
-            if not _is_valid_email(reset_email):
-                st.error("재설정 메일을 받을 이메일을 올바르게 입력하세요.")
-                return
-            result = request_password_reset(reset_email)
-            if result.ok:
-                st.success(result.message)
-            else:
-                st.error(result.message)
-
-
-def _render_password_update_form() -> None:
-    saved_access_token, saved_refresh_token = get_password_reset_tokens()
-    access_token = saved_access_token or _query_value("access_token")
-    refresh_token = saved_refresh_token or _query_value("refresh_token")
-    reset_code = _query_value("code")
-    recovery_type = _query_value("type")
-    token_hash = _query_value("token_hash") or _query_value("token")
-    if recovery_type and recovery_type != "recovery":
-        token_hash = ""
-    if not reset_code and not token_hash and (not access_token or not refresh_token):
-        st.error(
-            "비밀번호 재설정 인증값이 링크에 없습니다. Supabase Reset Password 이메일 템플릿의 버튼 링크에 "
-            "`token_hash={{ .TokenHash }}&type=recovery`가 포함되어 있는지 확인하세요."
-        )
-        if st.button("로그인으로 돌아가기", key="password_reset_missing_back", use_container_width=True):
-            st.query_params.clear()
-            st.query_params["page"] = "Login"
-            st.rerun()
-        return
-
-    st.info("새 비밀번호를 입력하세요. 변경 후 새 비밀번호로 다시 로그인할 수 있습니다.")
-    with st.form("password_update_form", clear_on_submit=False):
-        new_password = st.text_input("새 비밀번호", type="password", placeholder="8자 이상 입력")
-        new_password_confirm = st.text_input("새 비밀번호 확인", type="password")
-        submitted = st.form_submit_button("비밀번호 변경", type="primary", use_container_width=True)
-
-    if not submitted:
-        return
-    if len(new_password) < 8:
-        st.error("비밀번호는 최소 8자 이상으로 입력하세요.")
-        return
-    if new_password != new_password_confirm:
-        st.error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
-        return
-
-    if saved_access_token and saved_refresh_token:
-        result = complete_password_reset(saved_access_token, saved_refresh_token, new_password)
-    elif reset_code:
-        result = complete_password_reset_with_code(reset_code, new_password)
-    elif token_hash:
-        result = complete_password_reset_with_token_hash(token_hash, new_password)
-    else:
-        result = complete_password_reset(access_token, refresh_token, new_password)
-    if result.ok:
-        st.session_state["login_notice"] = result.message
-        st.query_params.clear()
-        st.query_params["page"] = "Login"
-        st.rerun()
-    else:
-        st.error(result.message)
-
-
-def _resend_cooldown_remaining() -> int:
-    available_at = st.session_state.get("resend_confirmation_available_at", 0)
-    return max(0, int(available_at - time()))
-
-
-def render_login() -> None:
-    if get_current_user() is not None and _query_value("reset") != "1":
-        navigate("Home")
-
-    login_notice = st.session_state.pop("login_notice", None)
-
-    with st.container(border=False, key="folio_auth_shell"):
-        _render_auth_card_header(
-            "Login",
-            "로그인",
-            "등록한 프로젝트와 포트폴리오를 이어서 관리하세요.",
-            "login",
-        )
-        with st.container(border=False, key="folio_auth_form"):
-            if login_notice:
-                st.info(login_notice)
-            if _query_value("reset") == "1":
-                _render_password_update_form()
-                return
-
-            with st.form("login_form", clear_on_submit=False):
-                email = st.text_input("이메일", placeholder="name@example.com")
-                password = st.text_input("비밀번호", type="password")
-                submitted = st.form_submit_button("로그인", width="stretch")
-
-            login_feedback = st.empty()
-            if submitted:
-                email = _normalize_email(email)
-                with login_feedback.container():
-                    if not email or not password:
-                        st.error("이메일과 비밀번호를 입력하세요.")
-                    else:
-                        result = sign_in(email, password)
-                        if result.ok:
-                            track_event("login", {"method": "email"})
-                            navigate("Home")
-                        else:
-                            st.error(result.message)
-
-            _render_login_secondary_actions(email)
-
-
-def render_signup() -> None:
-    with st.container(border=False, key="folio_auth_shell"):
-        _render_auth_card_header(
-            "Sign Up",
-            "회원가입",
-            "이메일 인증 후 프로젝트를 등록하고 공유할 수 있습니다.",
-            "signup",
-        )
-        with st.container(border=False, key="folio_auth_form"):
-            email = _normalize_email(st.text_input("이메일 *", placeholder="name@example.com"))
-            email_registered = False
-            email_check_error = None
-            try:
-                email_registered = _email_already_registered(email)
-            except SignupEmailCheckError as exc:
-                email_check_error = str(exc)
-            _render_email_feedback(email, email_registered, email_check_error)
-
-            password = st.text_input(
-                "비밀번호 *",
-                type="password",
-                placeholder="8자 이상 입력",
-            )
-            _render_password_feedback(password)
-
-            password_confirm = st.text_input("비밀번호 확인 *", type="password")
-            _render_password_confirm_feedback(password, password_confirm)
-
-            name = st.text_input("이름 *", placeholder="홍길동").strip()
-
-            organization = st.text_input(
-                "소속 *",
-                placeholder="개인, 학원, 교육과정, 학교, 기관, 회사명을 입력하세요",
-            ).strip()
-
-            required_policies = _signup_required_policies()
-            agreed_policy_ids: list[str] = []
-            if required_policies:
-                st.markdown("#### 필수 동의")
-                agreed_policy_ids = render_policy_agreement_fields(required_policies, key_prefix="signup")
-
-            submitted = st.button(
-                "회원가입",
-                use_container_width=True,
-            )
-
-            if submitted:
-                missing = _signup_missing_required_fields(email, password, password_confirm, name, organization)
-                if missing:
-                    st.error(f"필수 입력값을 확인하세요: {', '.join(missing)}")
-                    return
-                if not _is_valid_email(email):
-                    st.error("올바른 이메일 주소를 입력하세요.")
-                    return
-                required_policy_ids = [policy["id"] for policy in required_policies.values() if policy.get("id")]
-                if set(agreed_policy_ids) != set(required_policy_ids):
-                    st.error("필수 약관과 개인정보 처리방침에 모두 동의해야 가입할 수 있습니다.")
-                    return
-                try:
-                    email_registered = _email_already_registered(email)
-                except SignupEmailCheckError as exc:
-                    st.error(str(exc))
-                    return
-                if email_registered:
-                    st.session_state["signup_existing_email"] = email
-                    st.error("이미 가입된 이메일입니다. Login 메뉴에서 로그인하세요.")
-                    _render_signup_login_link()
-                    return
-                if len(password) < 8:
-                    st.error("비밀번호는 최소 8자 이상으로 입력하세요.")
-                    return
-                if password != password_confirm:
-                    st.error("비밀번호와 비밀번호 확인이 일치하지 않습니다.")
-                    return
-
-                result = sign_up(email, password, name, organization, agreed_policy_ids)
-                if result.ok:
-                    track_event("sign_up", {"method": "email"})
-                    st.session_state["signup_confirmation_email"] = email
-                    st.session_state["resend_confirmation_email"] = email
-                    st.session_state.pop("signup_existing_email", None)
-                    st.success(result.message)
-                    st.caption("메일이 보이지 않으면 스팸함을 확인하세요. 이미 가입한 이메일이라면 로그인하거나 인증 메일 다시 받기를 이용하세요.")
-                else:
-                    if _is_existing_account_message(result.message):
-                        st.session_state["signup_existing_email"] = email
-                    st.error(result.message)
-
-            if _should_show_resend_confirmation(email_registered):
-                with st.expander("인증 메일 다시 받기", expanded=False):
-                    st.caption("인증 메일을 받지 못했거나 링크가 만료됐다면 다시 요청하세요.")
-
-                    if email_registered and st.session_state.get("resend_confirmation_email", "") != email:
-                        st.session_state["resend_confirmation_email"] = email
-
-                    resend_email = _normalize_email(
-                        st.text_input(
-                            "인증 메일 재발송 이메일",
-                            placeholder="name@example.com",
-                            key="resend_confirmation_email",
-                        )
-                    )
-                    if resend_email and not _is_valid_email(resend_email):
-                        st.error("재발송할 이메일 형식을 확인하세요.")
-
-                    cooldown_remaining = _resend_cooldown_remaining()
-                    if cooldown_remaining:
-                        st.caption(f"인증 메일은 {cooldown_remaining}초 후 다시 요청할 수 있습니다.")
-
-                    resend_submitted = st.button(
-                        "인증 메일 다시 보내기",
-                        disabled=cooldown_remaining > 0,
-                        use_container_width=True,
-                    )
-
-                    if resend_submitted:
-                        if not _is_valid_email(resend_email):
-                            st.error("재발송할 이메일을 올바르게 입력하세요.")
-                            return
-                        result = resend_signup_confirmation(resend_email)
-                        if result.ok:
-                            st.session_state["resend_confirmation_available_at"] = time() + RESEND_COOLDOWN_SECONDS
-                            st.success(result.message)
-                            st.caption("메일이 보이지 않으면 스팸함을 확인하세요. 재요청은 60초 후 다시 가능합니다.")
-                        else:
-                            st.error(result.message)
-
-            if _should_show_signup_login_link(email_registered, email):
-                _render_signup_login_link()
-
-
-def _render_auth_card_header(eyebrow: str, title: str, body: str, variant: str) -> None:
-    st.markdown(
-        f"""
-        <div class="folio-auth-card-header folio-auth-card-{variant}">
-            <h2>{title}</h2>
-            <p>{body}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+__all__ = [
+    "SignupEmailCheckError",
+    "_cached_profile_exists_for_email",
+    "_cached_required_policy_versions",
+    "_email_already_registered",
+    "_is_existing_account_message",
+    "_is_valid_email",
+    "_normalize_email",
+    "_query_value",
+    "_render_auth_card_header",
+    "_render_email_feedback",
+    "_render_login_secondary_actions",
+    "_render_password_confirm_feedback",
+    "_render_password_feedback",
+    "_render_password_reset_form",
+    "_render_password_update_form",
+    "_render_signup_login_link",
+    "_resend_cooldown_remaining",
+    "_should_show_resend_confirmation",
+    "_should_show_signup_login_link",
+    "_signup_missing_required_fields",
+    "_signup_required_policies",
+    "render_login",
+    "render_signup",
+]

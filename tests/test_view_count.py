@@ -6,7 +6,8 @@ from uuid import UUID
 
 from folio_app.app import _ensure_visitor_id
 from folio_app.pages.project_detail import _record_project_view
-from folio_app.services.projects import ViewCountResult, increment_view_count
+from folio_app.services.project_mutations import increment_view_count
+from folio_app.services.project_types import ViewCountResult
 
 
 class CookieStub(dict):
@@ -43,8 +44,8 @@ class VisitorIdentityTests(unittest.TestCase):
 
 
 class ViewCountServiceTests(unittest.TestCase):
-    @patch("folio_app.services.projects._fetch_public_projects.clear")
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations._fetch_public_projects.clear")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_counted_view_passes_anonymous_id_and_clears_cache(self, get_client, clear_cache) -> None:
         rpc = MagicMock()
         rpc.execute.return_value = SimpleNamespace(data=True)
@@ -64,8 +65,8 @@ class ViewCountServiceTests(unittest.TestCase):
         )
         clear_cache.assert_called_once()
 
-    @patch("folio_app.services.projects._fetch_public_projects.clear")
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations._fetch_public_projects.clear")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_duplicate_or_owner_view_is_successful_without_cache_clear(self, get_client, clear_cache) -> None:
         rpc = MagicMock()
         rpc.execute.return_value = SimpleNamespace(data=False)
@@ -78,7 +79,7 @@ class ViewCountServiceTests(unittest.TestCase):
         self.assertEqual(result, ViewCountResult(ok=True, counted=False))
         clear_cache.assert_not_called()
 
-    @patch("folio_app.services.projects.get_supabase_client")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_rpc_failure_is_reported_separately(self, get_client) -> None:
         client = MagicMock()
         client.rpc.side_effect = RuntimeError("provider details")
