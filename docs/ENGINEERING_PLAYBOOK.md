@@ -93,6 +93,7 @@
 - 새 선택자를 추가하기 전에 실제 Python 렌더링 클래스와 key를 검색한다.
 - Streamlit 내부 emotion class처럼 버전마다 바뀌는 클래스에 의존하지 않는다.
 - `st.columns()` 내부 래퍼를 추측하지 말고 필요하면 DOM을 측정한다.
+- `.st-key-*`가 실제로 어느 DOM 노드에 붙는지 확인한다. key class가 target 요소 자체에 붙은 경우와 조상/자손에 붙은 경우는 selector가 다르다. 예: `.st-key-x[data-testid="stHorizontalBlock"]`와 `.st-key-x [data-testid="stHorizontalBlock"]`는 완전히 다르며, 틀리면 CSS가 조용히 무시된다.
 - PC 기본 검증은 1440×900, 모바일은 390×844로 한다.
 - PC의 2·3열 입력 폼은 모바일에서 1열로 전환한다.
 - 모바일 버튼 텍스트가 줄마다 한 글자씩 꺾이지 않는지 확인한다.
@@ -139,11 +140,12 @@ flowchart TD
 1. 캡처로 증상을 확인한다.
 2. 1차 수정이 다르면 `getBoundingClientRect()`와 computed style을 측정한다.
 3. 버튼은 `stElementContainer → stButton → stTooltipHoverTarget → button` 전체를 확인한다.
-4. 2~4px 보정을 반복하기 전에 flex/grid 구조와 실제 폭을 확인한다.
+4. 같은 UI 문제를 두 번 이상 수정했는데 재발하면 다음 패치 전에 반드시 DOM을 계측한다. 최소한 문제 요소, 부모 wrapper, 형제 요소의 `getBoundingClientRect()`, `display`, `flex`, `width`, `min-width`, `margin-left`, `justify-content`, selector 매치 여부를 출력한다.
 5. Streamlit UI는 Python의 `st.columns()` 비율, `st.container(key=...)`, custom component iframe, 실제 DOM wrapper가 함께 만든 결과다. 정렬이 어긋날 때 CSS 값만 바꾸면 다른 wrapper가 그대로 남아 효과가 없어 보일 수 있으므로, 렌더 구조와 wrapper를 먼저 확인한다.
 6. 같은 줄처럼 보이는 요소는 실제로도 같은 flex/grid 컨테이너 안에 있어야 한다. 조회수, 공개 상태, 링크 복사, 좋아요처럼 한 묶음으로 읽히는 요소를 여러 column/context에 흩어놓으면 gap과 vertical alignment가 계속 따로 논다.
 7. hover 확대, iframe preview, transform 같은 강한 인터랙션은 필요한 화면에만 scope를 둔다. 홈 갤러리 카드 hover는 유효하지만, 등록 페이지의 카드 미리보기까지 같은 클래스를 공유하면 원치 않는 동작이 번진다.
-8. custom component iframe과 Streamlit button을 같은 행에 섞어야 하면 iframe 안에 묶을 수 있는 요소를 먼저 묶는다. 프로젝트 상세의 조회수/공개/링크복사는 `project_action_group_html()` 한 컴포넌트로 관리하고, 좋아요만 Streamlit button으로 둔다.
+8. 보이는 UI를 custom component iframe에 넣고 Streamlit button과 한 줄에 섞는 구조는 마지막 수단이다. iframe viewport는 바깥 overflow를 보여줄 수 없어 폭 계산이 조금만 틀려도 clipping이 생긴다. 보이는 칩/버튼은 가능하면 페이지 DOM에 렌더링하고, iframe은 script bridge처럼 보이지 않는 기능에만 쓴다.
+9. Streamlit `horizontal=True` 컨테이너를 쓸 때는 실제 DOM에서 key class가 `stHorizontalBlock` 자체에 붙는지 확인한다. key class가 같은 노드에 붙었다면 selector는 `.st-key-name[data-testid="stHorizontalBlock"]` 형태여야 한다.
 
 ### 인증·RLS 문제
 
@@ -201,6 +203,9 @@ python -m pyflakes folio_app app.py
 - **로컬 개발 서버는 사용자가 직접 기동·재시작한다.** 검증을 위해 서버를 임시로 띄웠다면 확인 후 즉시 종료한다. 양쪽이 각자 `streamlit run app.py`를 띄우면 포트 충돌·중복 프로세스로 "재시작해도 반영이 안 되는" 혼란이 생긴다.
 - **Git 동작은 사용자의 동사를 그대로 따른다.** "커밋해"는 로컬 커밋까지만 의미한다. 푸시, PR, 머지, 이슈 닫기는 사용자가 명시적으로 말했을 때만 수행한다.
 - **Streamlit 정렬 문제는 CSS 문제가 아니라 구조 문제인 경우가 많다.** 버튼 높이, 칩 위치, 우측 정렬이 몇 px씩 어긋날 때는 먼저 같은 컨테이너에 묶였는지, column 비율이 불필요한 빈 폭을 만들고 있는지, custom component iframe 높이가 주변 요소와 다른지 확인한다. 작은 보정값을 반복하기 전에 구조를 단순화한다.
+- **문서 교훈은 체크포인트가 아니면 의미가 없다.** 이번 상세 footer 작업에서 "구조적으로 보겠다"고 말하면서도 DOM 계측 없이 selector와 column 비율을 여러 번 보정해 같은 문제를 반복했다. 다음부터 같은 UI 문제가 두 번 이상 재발하면 즉시 브라우저/Selenium으로 실제 DOM을 측정하고, selector가 실제 요소에 매치되는지 확인한 뒤 수정한다.
+- **보이는 액션 UI를 iframe에 넣지 않는다.** 상세 footer에서 조회/댓글/공개/링크복사를 custom component iframe 안에 넣자 iframe viewport clipping 때문에 조회 칩 왼쪽이 계속 잘렸다. 최종 구조는 보이는 칩과 링크 복사 버튼을 페이지 DOM에 두고, 복사 이벤트 처리 script만 0 크기 iframe으로 주입한다.
+- **Streamlit key selector는 "공백 하나"로 실패한다.** `st.container(horizontal=True, key="detail_footer_row")`는 실제 DOM에서 `.st-key-detail_footer_row`와 `[data-testid="stHorizontalBlock"]`가 같은 노드에 붙었다. `.st-key-detail_footer_row [data-testid="stHorizontalBlock"]`는 자손을 찾기 때문에 매치되지 않았고, 메타 영역 `flex: 1`이 전혀 적용되지 않았다. 실제 DOM 계측으로 `.st-key-detail_footer_row[data-testid="stHorizontalBlock"]`로 고쳐 해결했다.
 - **UI 컴포넌트는 사용 맥락별로 scope를 분리한다.** 같은 카드 컴포넌트를 홈 갤러리, 상세 히어로, 등록 미리보기에서 공유하더라도 hover preview나 scale처럼 사용자가 기대하지 않는 상호작용은 화면 전용 wrapper class 아래에서만 활성화한다.
 - **디자인 취향은 팔레트보다 정보 위계에서 먼저 드러난다.** 이번 FOLIO UI는 밝고 정돈된 라이트 테마, 16:9 미디어 타일, 필요한 칩만 쓰는 구성이 기준이다. 색상 베리에이션을 늘릴 때도 화려함보다 안정적인 대비와 카드 내용의 가독성을 우선한다.
 - **리팩토링 후에는 최종 렌더 문자열까지 본다.** 함수 분리가 HTML 구조를 바꾸지 않는다고 가정하지 않는다. 홈 히어로처럼 `slide -> visual -> section` 조각을 합치는 구조에서는 최종 HTML에 불필요한 개행, 들여쓰기, 깨진 태그가 남아 Markdown 렌더링을 바꿀 수 있다.

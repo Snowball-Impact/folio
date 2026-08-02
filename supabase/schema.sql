@@ -68,6 +68,18 @@ create table if not exists public.likes (
     primary key (project_id, user_id)
 );
 
+create table if not exists public.comments (
+    id uuid primary key default gen_random_uuid(),
+    project_id uuid not null references public.projects(id) on delete cascade,
+    author_id uuid not null references public.profiles(id) on delete cascade,
+    parent_id uuid references public.comments(id) on delete cascade,
+    body text not null,
+    depth integer not null default 0 check (depth in (0, 1)),
+    is_deleted boolean not null default false,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
 create extension if not exists pgcrypto with schema extensions;
 
 create table if not exists public.project_views (
@@ -81,10 +93,26 @@ create table if not exists public.project_views (
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists likes_user_id_idx on public.likes(user_id);
+create index if not exists comments_project_id_idx on public.comments(project_id, created_at);
+create index if not exists comments_parent_id_idx on public.comments(parent_id);
+create index if not exists comments_author_id_idx on public.comments(author_id);
 create index if not exists project_views_project_date_idx on public.project_views(project_id, viewed_on);
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
 create index if not exists user_policy_consents_policy_version_id_idx on public.user_policy_consents(policy_version_id);
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'comments_body_length_check'
+          and conrelid = 'public.comments'::regclass
+    ) then
+        alter table public.comments
+        add constraint comments_body_length_check
+        check (char_length(btrim(body)) between 1 and 1000);
+    end if;
+end $$;
 
 create or replace view public.public_profiles as
 select
@@ -99,6 +127,8 @@ grant select on public.policy_versions to anon, authenticated;
 grant select, insert on public.user_policy_consents to authenticated;
 grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
+grant select on public.comments to anon;
+grant select, insert, delete on public.comments to authenticated;
 
 drop function if exists public.increment_project_view_count(uuid);
 
@@ -199,9 +229,50 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
+create or replace function public.validate_comment_thread()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+    parent_project_id uuid;
+    parent_depth integer;
+begin
+    new.body := btrim(new.body);
+
+    if new.parent_id is null then
+        new.depth := 0;
+        return new;
+    end if;
+
+    select project_id, depth
+    into parent_project_id, parent_depth
+    from public.comments
+    where id = new.parent_id;
+
+    if not found then
+        raise exception 'Parent comment does not exist';
+    end if;
+
+    if parent_project_id <> new.project_id or parent_depth <> 0 then
+        raise exception 'Replies are allowed only one level under a comment in the same project';
+    end if;
+
+    new.depth := 1;
+    return new;
+end;
+$$;
+
+drop trigger if exists validate_comment_thread_before_write on public.comments;
+create trigger validate_comment_thread_before_write
+before insert or update on public.comments
+for each row execute function public.validate_comment_thread();
+
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
 alter table public.likes enable row level security;
+alter table public.comments enable row level security;
 alter table public.project_views enable row level security;
 alter table public.policy_versions enable row level security;
 alter table public.user_policy_consents enable row level security;
@@ -265,6 +336,37 @@ drop policy if exists "Users can delete own likes" on public.likes;
 create policy "Users can delete own likes"
 on public.likes for delete
 using (auth.uid() = user_id);
+
+drop policy if exists "Comments are readable by everyone" on public.comments;
+drop policy if exists "Visible project comments are readable" on public.comments;
+create policy "Visible project comments are readable"
+on public.comments for select
+using (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = comments.project_id
+          and (projects.is_public = true or auth.uid() = projects.author_id)
+    )
+);
+
+drop policy if exists "Users can create own comments" on public.comments;
+create policy "Users can create own comments"
+on public.comments for insert
+with check (
+    auth.uid() = author_id
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = comments.project_id
+          and (projects.is_public = true or auth.uid() = projects.author_id)
+    )
+);
+
+drop policy if exists "Users can delete own comments" on public.comments;
+create policy "Users can delete own comments"
+on public.comments for delete
+using (auth.uid() = author_id);
 
 drop policy if exists "Active policy versions are readable by everyone" on public.policy_versions;
 create policy "Active policy versions are readable by everyone"

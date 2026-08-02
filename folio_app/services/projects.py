@@ -10,6 +10,7 @@ from urllib.parse import urlparse
 import streamlit as st
 from postgrest.types import CountMethod, ReturnMethod
 
+from folio_app.services.comments import clear_comment_caches, count_comments_by_project
 from folio_app.services.project_content import sanitize_project_html
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
 
@@ -48,7 +49,7 @@ def create_project(author_id: str, payload: dict[str, Any]) -> ProjectResult:
             return ProjectResult(False, "프로젝트 등록 응답을 확인할 수 없습니다.")
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 등록되었습니다.", response.data[0]["id"])
-    except Exception as exc:
+    except Exception:
         logger.exception("Failed to create project")
         return ProjectResult(False, "프로젝트 등록에 실패했습니다. 잠시 후 다시 시도하세요.")
 
@@ -106,7 +107,7 @@ def delete_project(project_id: str, author_id: str) -> ProjectResult:
             return ProjectResult(False, "삭제할 프로젝트를 찾을 수 없습니다.")
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 삭제되었습니다.", project_id)
-    except Exception as exc:
+    except Exception:
         logger.exception("Failed to delete project")
         return ProjectResult(False, "프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.")
 
@@ -463,9 +464,11 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
         }
 
     like_counts = _count_likes_by_project([project["id"] for project in projects if project.get("id")])
+    comment_counts = count_comments_by_project([project["id"] for project in projects if project.get("id")])
     for project in projects:
         project["author"] = profiles_by_id.get(project.get("author_id"), {})
         project["like_count"] = like_counts.get(project["id"], 0)
+        project["comment_count"] = comment_counts.get(project["id"], 0)
 
     if sort == "좋아요순":
         projects.sort(key=lambda project: project.get("like_count", 0), reverse=True)
@@ -532,3 +535,4 @@ def clear_project_caches() -> None:
     _fetch_public_projects.clear()
     _fetch_public_profiles.clear()
     _fetch_like_counts.clear()
+    clear_comment_caches()

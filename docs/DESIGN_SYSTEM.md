@@ -135,10 +135,10 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 파일: `folio_app/pages/project_detail.py`, `folio_app/components/share.py`, `folio_app/styles/detail_page.py`, `folio_app/styles/hero.py`
 
-- 조회수, 공개 상태, 링크 복사는 `project_action_group_html()` 한 custom component 안에서 관리한다.
+- 조회수, 댓글 수, 공개 상태, 링크 복사 버튼은 `project_action_group_html()`이 일반 HTML로 렌더링한다. 보이는 액션 UI는 custom component iframe 안에 넣지 않는다.
 - 좋아요는 로그인 상태와 mutation 흐름 때문에 Streamlit button으로 유지하되, 액션 그룹 바로 오른쪽에 둔다.
-- 조회수, 공개 상태, 링크 복사를 별도 `st.columns()`에 흩어놓지 않는다.
-- custom component iframe 높이와 주변 Streamlit button 높이를 함께 맞춘다.
+- 조회수, 댓글 수, 공개 상태, 링크 복사, 좋아요를 별도 `st.columns()`에 흩어놓지 않는다. 상세 footer는 `st.container(horizontal=True, key="detail_footer_row")` 한 줄 안에서 메타, 액션 그룹, 좋아요 버튼을 sibling으로 둔다.
+- 링크 복사 기능은 보이지 않는 0 크기 custom component iframe으로 이벤트 핸들러만 주입한다. iframe 안에 보이는 칩을 넣으면 viewport clipping으로 일부 칩이 잘릴 수 있다.
 - 링크 복사 버튼 폭은 좋아요 칩과 통일감을 주는 수준으로 제한하고, 액션 그룹 전체는 우측 정렬한다.
 
 ### Profile Summary
@@ -166,6 +166,7 @@ Streamlit UI는 Python 레이아웃과 브라우저 DOM wrapper가 같이 만든
 - `st.columns()` 비율이 불필요한 빈 폭을 만들고 있는지 확인한다.
 - `st.container(key=...)`가 실제로 어떤 `.st-key-*` wrapper를 만드는지 확인한다.
 - `components.html()` iframe은 주변 button과 높이/정렬 기준이 다르다.
+- selector가 실제 요소에 매치되는지 DOM에서 확인한다. key class와 target attribute가 같은 노드에 있으면 descendant selector가 아니라 compound selector를 써야 한다.
 - 같은 줄로 보여야 하는 요소는 실제 구조에서도 같은 flex/grid 컨테이너 안에 둔다.
 - Streamlit markdown, custom component iframe, Streamlit button이 섞이는 행은 wrapper가 세 종류가 되므로 먼저 구조를 단순화한다.
 - 강한 상호작용은 화면 전용 wrapper 아래로 scope를 제한한다.

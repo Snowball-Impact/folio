@@ -20,6 +20,7 @@ FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 �
 - 경기청년 갭이어 2026과 Snowball Impact를 소개하는 서비스 소개 페이지
 - 세션별 중복 증가를 방지하는 조회수 RPC 연동
 - `likes` 테이블 기반 좋아요 추가·취소 및 좋아요순 정렬
+- 프로젝트 상세 댓글·1단계 답글·본인 삭제와 댓글 수 표시
 - Power BI iframe 또는 embed URL 표시
 - 보고서/GitHub/썸네일 URL 선택 입력
 - 프로젝트 본문 HTML 허용 목록 정제
@@ -118,7 +119,7 @@ folio_app/app.py
 |---|---|
 | `folio_app/pages/home.py` | 홈 히어로, 검색·태그·정렬 폼, 공개 프로젝트 카드 목록 렌더링 |
 | `folio_app/pages/about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO 소개와 VISION 렌더링 |
-| `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, Power BI, 첨부 링크 렌더링 |
+| `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, 댓글, Power BI, 첨부 링크 렌더링 |
 | `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
 | `folio_app/pages/onboarding.py` | 최초 로그인 사용자의 프로필 확인과 약관·개인정보 동의 UI |
 | `folio_app/pages/protected.py` | 로그인이 필요한 프로젝트 등록 화면과, 프로필·통계·내 프로젝트 조회·수정·삭제를 한 화면에 담은 My Page |
@@ -145,6 +146,7 @@ folio_app/app.py
 | `folio_app/services/auth.py` | 회원가입, 로그인, 로그아웃, 토큰 저장과 쿠키 세션 복구 |
 | `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
 | `folio_app/services/projects.py` | 프로젝트 CRUD, 공개 목록·검색·정렬, 작성자 정보, 조회수, 좋아요, 캐시 관리 |
+| `folio_app/services/comments.py` | 프로젝트 댓글·1단계 답글 조회, 작성, 삭제, 트리 구성, 댓글 수 집계 |
 | `folio_app/services/project_content.py` | 사용자 작성 HTML의 허용 태그·링크 검사와 위험 요소 제거 |
 | `folio_app/services/__init__.py` | `services` 패키지 초기화 파일 |
 

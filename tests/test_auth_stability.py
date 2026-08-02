@@ -9,6 +9,7 @@ from folio_app.services.auth import (
     complete_password_reset,
     complete_password_reset_with_code,
     complete_password_reset_with_token_hash,
+    ensure_authenticated_session,
     _friendly_auth_error,
     request_password_reset,
     resend_signup_confirmation,
@@ -79,6 +80,58 @@ class SignupStabilityTests(unittest.TestCase):
         message = _friendly_auth_error("비밀번호 재설정", RuntimeError("redirect_to is not allowed"))
 
         self.assertIn("Redirect URLs", message)
+
+    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_authenticated_session_refreshes_after_set_session_failure(self, get_client, session_state) -> None:
+        session_state.update(
+            {
+                "folio_user": {"id": "user-id", "email": "user@example.com"},
+                "folio_access_token": "stale-access",
+                "folio_refresh_token": "stale-refresh",
+            }
+        )
+        client = MagicMock()
+        client.auth.set_session.side_effect = RuntimeError("refresh token already used")
+        client.auth.refresh_session.return_value = SimpleNamespace(
+            session=SimpleNamespace(
+                access_token="fresh-access",
+                refresh_token="fresh-refresh",
+                user=SimpleNamespace(id="user-id", email="user@example.com", user_metadata={}),
+            ),
+            user=None,
+        )
+        get_client.return_value = client
+
+        result = ensure_authenticated_session()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(session_state["folio_access_token"], "fresh-access")
+        self.assertEqual(session_state["folio_refresh_token"], "fresh-refresh")
+        client.postgrest.auth.assert_called_once_with("fresh-access")
+
+    @patch("folio_app.services.auth.st.session_state", new_callable=dict)
+    @patch("folio_app.services.auth.get_supabase_client")
+    def test_authenticated_session_uses_existing_client_session_when_tokens_missing(
+        self,
+        get_client,
+        session_state,
+    ) -> None:
+        session_state["folio_user"] = {"id": "user-id", "email": "user@example.com"}
+        client = MagicMock()
+        client.auth.get_session.return_value = SimpleNamespace(
+            access_token="client-access",
+            refresh_token="client-refresh",
+            user=SimpleNamespace(id="user-id", email="user@example.com", user_metadata={}),
+        )
+        get_client.return_value = client
+
+        result = ensure_authenticated_session()
+
+        self.assertTrue(result.ok)
+        self.assertEqual(session_state["folio_access_token"], "client-access")
+        self.assertEqual(session_state["folio_refresh_token"], "client-refresh")
+        client.postgrest.auth.assert_called_once_with("client-access")
 
     def test_auth_error_explains_email_rate_limit(self) -> None:
         message = _friendly_auth_error("비밀번호 재설정", RuntimeError("over_email_send_rate_limit"))

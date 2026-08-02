@@ -265,27 +265,90 @@ def get_password_reset_tokens() -> tuple[str | None, str | None]:
 def ensure_authenticated_session() -> AuthResult:
     """Rebind the stored user session to PostgREST before an authenticated mutation."""
     user = get_current_user()
-    access_token, refresh_token = get_auth_tokens()
-    if user is None or not access_token or not refresh_token:
+    if user is None:
         return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
 
     client = get_supabase_client()
     if client is None:
         return AuthResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
 
+    access_token, refresh_token = get_auth_tokens()
+    if not access_token or not refresh_token:
+        restored = _bind_current_client_session(client, user)
+        if restored.ok:
+            return restored
+        return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
+
     try:
         response = client.auth.set_session(access_token, refresh_token)
-        if response.user is None or response.session is None:
-            return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
-        if response.user.id != user.get("id"):
-            return AuthResult(False, "로그인 사용자 정보가 일치하지 않습니다. 다시 로그인하세요.")
-
-        _save_auth_session(response.session, response.user.model_dump())
-        client.postgrest.auth(response.session.access_token)
-        return AuthResult(True, "로그인 상태를 확인했습니다.")
+        return _bind_auth_response(client, response, user)
     except Exception:
         logger.exception("Failed to rebind authenticated session")
+
+    try:
+        response = client.auth.refresh_session(refresh_token)
+        return _bind_auth_response(client, response, user)
+    except Exception:
+        logger.exception("Failed to refresh authenticated session after set_session failure")
+
+    restored = _bind_current_client_session(client, user)
+    if restored.ok:
+        return restored
+    return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
+
+
+def _bind_current_client_session(client: Any, expected_user: dict[str, Any]) -> AuthResult:
+    try:
+        session = client.auth.get_session()
+    except Exception:
+        logger.exception("Failed to read current client auth session")
         return AuthResult(False, "로그인 정보가 만료되었습니다. 다시 로그인하세요.")
+    return _bind_auth_response(client, session, expected_user)
+
+
+def _bind_auth_response(client: Any, response: Any, expected_user: dict[str, Any]) -> AuthResult:
+    session = getattr(response, "session", None) or response
+    if session is None:
+        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
+
+    access_token = getattr(session, "access_token", "")
+    refresh_token = getattr(session, "refresh_token", "")
+    if not access_token or not refresh_token:
+        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
+
+    auth_user = getattr(response, "user", None) or getattr(session, "user", None)
+    if auth_user is None:
+        try:
+            user_response = client.auth.get_user(access_token)
+            auth_user = getattr(user_response, "user", None)
+        except Exception:
+            logger.exception("Failed to load user for authenticated session")
+            return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
+
+    auth_user_data = _auth_user_to_dict(auth_user)
+    if not auth_user_data:
+        return AuthResult(False, "로그인 정보를 확인하지 못했습니다. 다시 로그인하세요.")
+    if auth_user_data.get("id") != expected_user.get("id"):
+        return AuthResult(False, "로그인 사용자 정보가 일치하지 않습니다. 다시 로그인하세요.")
+
+    _save_auth_session(session, auth_user_data)
+    client.postgrest.auth(access_token)
+    return AuthResult(True, "로그인 상태를 확인했습니다.")
+
+
+def _auth_user_to_dict(user: Any) -> dict[str, Any]:
+    if isinstance(user, dict):
+        return user
+    if hasattr(user, "model_dump"):
+        return user.model_dump()
+    user_id = getattr(user, "id", None)
+    if not user_id:
+        return {}
+    return {
+        "id": user_id,
+        "email": getattr(user, "email", ""),
+        "user_metadata": getattr(user, "user_metadata", {}) or {},
+    }
 
 
 def should_clear_browser_auth() -> bool:

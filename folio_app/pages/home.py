@@ -8,7 +8,6 @@ from folio_app.components.assets import static_image_src
 from folio_app.components.ui import plain_text, render_project_card_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
-from folio_app.services.auth import get_current_user
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,

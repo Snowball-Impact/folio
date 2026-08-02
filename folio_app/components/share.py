@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 
 import streamlit.components.v1 as components
@@ -11,19 +12,27 @@ def render_project_share_button(project_id: str) -> None:
     components.html(project_share_button_html(project_id), height=36)
 
 
-def render_project_action_group(project_id: str, *, view_count: int, is_public: bool) -> None:
-    components.html(project_action_group_html(project_id, view_count=view_count, is_public=is_public), height=36)
+def render_project_share_handler(project_id: str) -> None:
+    components.html(project_share_handler_script(project_id), height=0)
 
 
-def project_action_group_html(project_id: str, *, view_count: int, is_public: bool) -> str:
+def project_action_group_html(project_id: str, *, view_count: int, is_public: bool, comment_count: int = 0) -> str:
     visibility_label = "공개" if is_public else "비공개"
     visibility_class = "is-public" if is_public else "is-private"
-    return project_share_button_html(
-        project_id,
-        leading_html=(
-            f'<span class="folio-action-chip" aria-label="조회수 {view_count}">조회 {view_count:,}</span>'
-            f'<span class="folio-action-chip {visibility_class}">{visibility_label}</span>'
-        ),
+    project_id_attr = html.escape(project_id, quote=True)
+    return (
+        '<div class="folio-detail-action-group">'
+        f'<span class="folio-detail-action-chip" aria-label="조회수 {view_count}">조회 {view_count:,}</span>'
+        f'<span class="folio-detail-action-chip" aria-label="댓글 {comment_count}">댓글 {comment_count:,}</span>'
+        f'<span class="folio-detail-action-chip {visibility_class}">{visibility_label}</span>'
+        f'<button class="folio-detail-share-button" type="button" data-folio-share-button data-project-id="{project_id_attr}" aria-label="공유 링크 복사">'
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">'
+        '<path d="M10 13a5 5 0 0 0 7.07 0l2.83-2.83a5 5 0 0 0-7.07-7.07L11.5 4.43"></path>'
+        '<path d="M14 11a5 5 0 0 0-7.07 0L4.1 13.83a5 5 0 0 0 7.07 7.07l1.33-1.33"></path>'
+        "</svg>"
+        '<span data-folio-share-label>링크 복사</span>'
+        "</button>"
+        "</div>"
     )
 
 
@@ -45,7 +54,7 @@ def project_share_button_html(project_id: str, *, leading_html: str = "") -> str
         .folio-action-group {{
             align-items: center;
             display: inline-flex;
-            gap: 6px;
+            gap: 5px;
             height: 36px;
             justify-content: flex-end;
             white-space: nowrap;
@@ -64,8 +73,8 @@ def project_share_button_html(project_id: str, *, leading_html: str = "") -> str
             height: 32px;
             justify-content: center;
             line-height: 1;
-            min-width: 64px;
-            padding: 0 12px;
+            min-width: 58px;
+            padding: 0 10px;
         }}
         .folio-action-chip.is-public {{
             background: #e7f6f2;
@@ -88,11 +97,11 @@ def project_share_button_html(project_id: str, *, leading_html: str = "") -> str
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             font-size: 12px;
             font-weight: 700;
-            gap: 6px;
+            gap: 5px;
             height: 32px;
             justify-content: center;
-            min-width: 96px;
-            padding: 0 12px;
+            min-width: 88px;
+            padding: 0 10px;
             transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
             width: auto;
         }}
@@ -154,6 +163,70 @@ def project_share_button_html(project_id: str, *, leading_html: str = "") -> str
                     setLabel("복사 완료");
                 }} catch (error) {{
                     setLabel("복사 실패");
+                }}
+            }});
+        }})();
+    </script>
+    """
+
+
+def project_share_handler_script(project_id: str) -> str:
+    project_id_json = json.dumps(project_id)
+    return f"""
+    <script>
+        (function() {{
+            var parentDocument = window.parent.document;
+            if (parentDocument.__folioShareHandlerBound) {{
+                return;
+            }}
+            parentDocument.__folioShareHandlerBound = true;
+
+            function setLabel(button, text) {{
+                var label = button.querySelector("[data-folio-share-label]");
+                if (!label) {{
+                    return;
+                }}
+                label.textContent = text;
+                window.setTimeout(function() {{ label.textContent = "링크 복사"; }}, 1600);
+            }}
+
+            function copyWithFallback(text) {{
+                var input = parentDocument.createElement("textarea");
+                input.value = text;
+                input.setAttribute("readonly", "");
+                input.style.position = "fixed";
+                input.style.left = "-9999px";
+                parentDocument.body.appendChild(input);
+                input.select();
+                var copied = parentDocument.execCommand("copy");
+                parentDocument.body.removeChild(input);
+                if (!copied) {{
+                    throw new Error("copy failed");
+                }}
+            }}
+
+            parentDocument.addEventListener("click", async function(event) {{
+                var button = event.target.closest("[data-folio-share-button]");
+                if (!button) {{
+                    return;
+                }}
+                event.preventDefault();
+                var projectId = button.getAttribute("data-project-id") || {project_id_json};
+                var target = new URL(window.parent.location.origin + "/");
+                target.searchParams.set("page", "Home");
+                target.searchParams.set("project_id", projectId);
+                target.searchParams.set("utm_source", "folio");
+                target.searchParams.set("utm_medium", "share");
+                target.searchParams.set("utm_campaign", "project_share");
+                try {{
+                    if (window.parent.navigator.clipboard && window.parent.navigator.clipboard.writeText) {{
+                        await window.parent.navigator.clipboard.writeText(target.toString());
+                    }} else {{
+                        copyWithFallback(target.toString());
+                    }}
+                    setLabel(button, "복사 완료");
+                }} catch (error) {{
+                    setLabel(button, "복사 실패");
                 }}
             }});
         }})();

@@ -31,12 +31,14 @@ class ShareComponentTests(unittest.TestCase):
         self.assertIn("navigator.clipboard.writeText", rendered)
 
     def test_action_group_keeps_status_chips_with_share_button(self) -> None:
-        rendered = project_action_group_html("project-123", view_count=102, is_public=True)
+        rendered = project_action_group_html("project-123", view_count=102, is_public=True, comment_count=7)
 
-        self.assertIn("folio-action-group", rendered)
+        self.assertIn("folio-detail-action-group", rendered)
         self.assertIn('aria-label="조회수 102"', rendered)
+        self.assertIn('aria-label="댓글 7"', rendered)
         self.assertIn(">공개</span>", rendered)
-        self.assertIn("folio-share-button", rendered)
+        self.assertIn("folio-detail-share-button", rendered)
+        self.assertIn("data-folio-share-button", rendered)
 
 
 class DetailHelperTests(unittest.TestCase):

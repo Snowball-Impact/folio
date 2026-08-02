@@ -454,7 +454,8 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
   - 카드 썸네일은 16:9를 유지하고, 자동 커버는 24종 색/패턴 베리에이션을 사용한다. 너무 알록달록하거나 어두운 팔레트는 피하고, 원래의 선명한 미디어 타일 느낌을 기준으로 둔다.
 - **프로젝트 상세**
   - 히어로 썸네일은 16:9로 고정한다.
-  - 조회수, 공개 상태, 링크 복사는 `components/share.py`의 `project_action_group_html()` 한 custom component 안에 묶고, 좋아요만 Streamlit button으로 옆에 둔다. 서로 다른 Streamlit wrapper/iframe이 gap과 vertical alignment를 따로 계산하지 않게 하기 위함이다.
+  - 조회수, 댓글 수, 공개 상태, 링크 복사는 `components/share.py`의 `project_action_group_html()`이 일반 HTML로 렌더링한다. 보이는 액션 UI를 custom component iframe 안에 넣지 않는다. 링크 복사 동작만 0 크기 iframe script bridge(`render_project_share_handler()`)로 붙인다.
+  - 상세 히어로 footer는 `st.container(horizontal=True, key="detail_footer_row")` 한 줄 구조다. 메타 영역이 `flex: 1`로 남은 폭을 먹고, 조회/댓글/공개/링크복사/좋아요가 오른쪽 끝에 붙는다. 실제 DOM에서는 `.st-key-detail_footer_row`와 `[data-testid="stHorizontalBlock"]`가 같은 노드에 붙으므로 selector는 `.st-key-detail_footer_row[data-testid="stHorizontalBlock"]` 형태여야 한다.
   - 대표 결과물 섹션의 설명 문구를 제거하고, 대시보드/보고서/GitHub 링크는 결과물 하단 액션으로 단순화한다.
   - 리포트 본문 앞에 하드코딩된 `01 문제 정의` 같은 제목은 붙이지 않는다. 에디터에서 넘어온 본문만 출력한다.
 - **프로젝트 등록**
@@ -486,7 +487,7 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - **후속 안정화**
   - 중복 Streamlit 서버가 8501 포트에 여러 개 떠 있으면 최신 코드/세션/네트워크 상태가 꼬일 수 있다. 공개 프로젝트가 안 보이거나 수정 반영이 이상하면 먼저 `netstat -ano | Select-String ":8501"`로 리스너 수를 확인한다.
   - 홈 히어로 이미지는 리팩토링 후 태그가 노출된 적이 있으므로, 조각 HTML을 바꾸면 최종 문자열에 `raw_img_multiline` 형태가 남지 않는지 확인한다.
-  - 상세 히어로 footer는 조회/공개/링크복사를 한 컴포넌트로 묶은 구조를 유지한다. 다시 별도 `st.columns()`로 분리하면 같은 정렬 문제가 재발한다.
+  - 상세 히어로 footer의 보이는 액션 UI는 iframe에 넣지 않는다. 조회/댓글/공개/링크복사 HTML과 좋아요 Streamlit button을 같은 horizontal container의 sibling으로 두고, 복사 script만 0 크기 iframe으로 둔다. DOM selector는 반드시 Selenium/브라우저 계측으로 실제 매치 여부를 확인한다.
 
 관련 이슈와 커밋:
 
@@ -498,3 +499,30 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 
 - `python -m compileall -q app.py folio_app tests`
 - `python -m unittest tests.test_core_flows tests.test_project_form tests.test_ui_cards tests.test_view_count -v`
+
+### 완료: GitHub 이슈 #189 댓글 기능 1차 구현 (2026-08-02)
+
+#189는 단순 댓글과 1단계 대댓글 MVP로 마무리했다. 포함 범위는 다음과 같다.
+
+- `supabase/schema.sql`에 `comments` 테이블, 인덱스, grant, RLS, 1단계 대댓글 검증 trigger를 추가했다. 공개 프로젝트 댓글은 공개 조회 가능하고, 비공개 프로젝트 댓글은 프로젝트 작성자만 조회할 수 있다. 댓글 작성은 로그인 사용자 본인 `author_id`로만 가능하며, 답글은 같은 프로젝트의 최상위 댓글에만 달 수 있다.
+- `folio_app/services/comments.py`를 추가해 댓글 조회, 작성, 삭제, 트리 구성, 프로젝트별 댓글 수 집계를 분리했다. 작성/삭제 전에는 `ensure_authenticated_session()`으로 인증 세션을 재확인한다.
+- `services.projects._attach_related_data()`가 좋아요 수와 함께 `comment_count`를 붙인다. 댓글 작성/삭제 시 댓글 수 캐시를 비운다.
+- 홈 프로젝트 카드와 상세 히어로 액션 그룹에 댓글 수를 표시한다.
+- 프로젝트 상세 하단에 댓글 섹션을 렌더링한다. 비로그인 사용자는 조회만 가능하고 로그인 CTA를 본다. 로그인 사용자는 댓글과 최상위 댓글에 대한 1단계 답글을 작성할 수 있으며, 본인 댓글만 삭제 버튼이 보인다. 프로젝트 작성자의 댓글에는 `작성자` 배지를 표시한다. 댓글 목록은 루트 댓글 기준 20개 단위 페이지네이션을 사용하고, 한 페이지뿐이어도 중앙에 페이지 번호를 표시한다.
+- 댓글/답글 입력 버튼은 항상 활성 상태로 두고, 빈 입력과 인증 오류는 댓글 영역 안에서 안내한다.
+- 마이페이지 프로젝트 카드에는 공통 메트릭 컴포넌트를 통해 댓글 수가 함께 표시된다.
+- 댓글 기획서는 `docs/COMMENT_FEATURE_PLAN.md`에 별도로 기록했다.
+- 상세 히어로 footer 정렬 문제를 여러 번 반복 수정한 뒤 실제 Selenium DOM 계측으로 원인을 확인했다. 핵심 원인은 selector 오해였다: `st.container(horizontal=True, key="detail_footer_row")`는 `.st-key-detail_footer_row`와 `[data-testid="stHorizontalBlock"]`가 같은 DOM 노드에 붙는다. descendant selector(`.st-key-detail_footer_row [data-testid="stHorizontalBlock"]`)는 매치되지 않아 메타 영역 `flex: 1`이 적용되지 않았고, 숨은 복사 handler wrapper가 남은 폭을 먹었다. 현재는 compound selector(`.st-key-detail_footer_row[data-testid="stHorizontalBlock"]`)와 0 크기 iframe wrapper 처리로 해결했다. 같은 UI 문제가 두 번 이상 재발하면 다음 패치 전에 반드시 DOM 좌표와 computed style을 측정한다.
+
+로컬 검증:
+
+- `python -m unittest tests.test_comments tests.test_ui_cards tests.test_detail_components -v`
+- `python -m compileall -q app.py folio_app tests`
+- `python -m pyflakes folio_app app.py`
+- `python -m unittest discover -s tests -v`
+
+로컬 밖에서 남은 것:
+
+- 원격 Supabase에 `supabase/schema.sql` 재적용 필요.
+- 실제 계정으로 공개 프로젝트 댓글 조회/작성/삭제, 비공개 프로젝트 작성자 조회, 다른 사용자 권한 차단을 브라우저에서 검증해야 한다.
+- 미확인 댓글 `NEW` 배지는 댓글 1차 범위에 넣지 않고 후속 이슈로 분리한다.

@@ -29,6 +29,7 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertEqual(rendered.count("고객 &lt;이탈&gt; 분석"), 1)
         self.assertIn('aria-label="조회수 0"', rendered)
         self.assertIn('aria-label="좋아요 0"', rendered)
+        self.assertIn('aria-label="댓글 0"', rendered)
         self.assertNotIn("조회 0 · 좋아요 0", rendered)
 
     def test_card_keeps_summary_and_empty_tag_zones_separate(self) -> None:

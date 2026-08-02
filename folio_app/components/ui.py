@@ -67,15 +67,25 @@ def render_project_metrics(
     container_class: str = "folio-home-metrics",
     extra_html: str = "",
     include_likes: bool = True,
+    include_comments: bool = True,
 ) -> str:
     views = project.get("view_count", 0) or 0
     likes = project.get("like_count", 0) or 0
+    comments = project.get("comment_count", 0) or 0
     likes_html = ""
     if include_likes:
         likes_html = f"""
         <span title=\"좋아요\" aria-label=\"좋아요 {likes}\">
             <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z\"></path></svg>
             {likes}
+        </span>
+        """
+    comments_html = ""
+    if include_comments:
+        comments_html = f"""
+        <span title=\"댓글\" aria-label=\"댓글 {comments}\">
+            <svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z\"></path></svg>
+            {comments}
         </span>
         """
     return clean_html(f"""
@@ -85,6 +95,7 @@ def render_project_metrics(
             {views}
         </span>
         {likes_html}
+        {comments_html}
         {extra_html}
     </div>
     """)
