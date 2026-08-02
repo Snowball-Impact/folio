@@ -66,10 +66,17 @@ class CommentTreeTests(unittest.TestCase):
 
 
 class CommentServiceTests(unittest.TestCase):
-    @patch("folio_app.services.comments._create_comment_notification")
+    @patch("folio_app.services.comment_mutations.create_comment_notification")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
-    @patch("folio_app.services.comments.get_supabase_client")
-    def test_create_comment_inserts_payload(self, get_client, _ensure_auth, create_notification) -> None:
+    @patch("folio_app.services.comment_mutations.get_supabase_client")
+    @patch("folio_app.services.comment_queries.get_supabase_client")
+    def test_create_comment_inserts_payload(
+        self,
+        query_get_client,
+        mutation_get_client,
+        _ensure_auth,
+        create_notification,
+    ) -> None:
         builder = MagicMock()
         builder.insert.return_value = builder
         builder.select.return_value = builder
@@ -79,9 +86,12 @@ class CommentServiceTests(unittest.TestCase):
         profile_builder.in_.return_value = profile_builder
         profile_builder.execute.return_value = SimpleNamespace(data=[])
 
-        client = MagicMock()
-        client.table.side_effect = [builder, profile_builder]
-        get_client.return_value = client
+        mutation_client = MagicMock()
+        mutation_client.table.return_value = builder
+        mutation_get_client.return_value = mutation_client
+        query_client = MagicMock()
+        query_client.table.return_value = profile_builder
+        query_get_client.return_value = query_client
 
         result = create_comment("project-1", "user-1", "안녕")
 
@@ -99,7 +109,7 @@ class CommentServiceTests(unittest.TestCase):
         )
 
     @patch("folio_app.services.auth.ensure_authenticated_session")
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_mutations.get_supabase_client")
     def test_create_comment_validates_body_before_auth(self, get_client, ensure_auth) -> None:
         result = create_comment("project-1", "user-1", "가" * 1001)
 
@@ -108,10 +118,17 @@ class CommentServiceTests(unittest.TestCase):
         ensure_auth.assert_not_called()
         get_client.assert_not_called()
 
-    @patch("folio_app.services.comments._create_comment_notification")
+    @patch("folio_app.services.comment_mutations.create_comment_notification")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
-    @patch("folio_app.services.comments.get_supabase_client")
-    def test_create_reply_requires_top_level_parent_in_same_project(self, get_client, _ensure_auth, _create_notification) -> None:
+    @patch("folio_app.services.comment_mutations.get_supabase_client")
+    @patch("folio_app.services.comment_queries.get_supabase_client")
+    def test_create_reply_requires_top_level_parent_in_same_project(
+        self,
+        query_get_client,
+        mutation_get_client,
+        _ensure_auth,
+        _create_notification,
+    ) -> None:
         parent_builder = MagicMock()
         parent_builder.select.return_value = parent_builder
         parent_builder.eq.return_value = parent_builder
@@ -128,9 +145,12 @@ class CommentServiceTests(unittest.TestCase):
         profile_builder.in_.return_value = profile_builder
         profile_builder.execute.return_value = SimpleNamespace(data=[])
 
-        client = MagicMock()
-        client.table.side_effect = [parent_builder, insert_builder, profile_builder]
-        get_client.return_value = client
+        query_client = MagicMock()
+        query_client.table.side_effect = [parent_builder, profile_builder]
+        query_get_client.return_value = query_client
+        mutation_client = MagicMock()
+        mutation_client.table.return_value = insert_builder
+        mutation_get_client.return_value = mutation_client
 
         result = create_comment("project-1", "user-1", " 답글 ", parent_id="parent-1")
 
@@ -145,9 +165,10 @@ class CommentServiceTests(unittest.TestCase):
             }
         )
 
+    @patch("folio_app.services.comment_mutations.get_supabase_client")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
-    @patch("folio_app.services.comments.get_supabase_client")
-    def test_create_reply_rejects_nested_parent(self, get_client, _ensure_auth) -> None:
+    @patch("folio_app.services.comment_queries.get_supabase_client")
+    def test_create_reply_rejects_nested_parent(self, get_client, _ensure_auth, mutation_get_client) -> None:
         parent_builder = MagicMock()
         parent_builder.select.return_value = parent_builder
         parent_builder.eq.return_value = parent_builder
@@ -159,6 +180,7 @@ class CommentServiceTests(unittest.TestCase):
         client = MagicMock()
         client.table.return_value = parent_builder
         get_client.return_value = client
+        mutation_get_client.return_value = MagicMock()
 
         result = create_comment("project-1", "user-1", "중첩 답글", parent_id="reply-1")
 
@@ -166,7 +188,7 @@ class CommentServiceTests(unittest.TestCase):
         parent_builder.insert.assert_not_called()
 
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_mutations.get_supabase_client")
     def test_delete_comment_requires_author_match(self, get_client, _ensure_auth) -> None:
         builder = MagicMock()
         builder.delete.return_value = builder
@@ -182,7 +204,7 @@ class CommentServiceTests(unittest.TestCase):
         self.assertTrue(result.ok)
         self.assertEqual(result.comment_id, "comment-1")
 
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_queries.get_supabase_client")
     def test_list_project_comments_returns_rows(self, get_client) -> None:
         builder = MagicMock()
         builder.select.return_value = builder
@@ -202,7 +224,7 @@ class CommentServiceTests(unittest.TestCase):
 
         self.assertEqual(result[0]["id"], "comment-1")
 
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_stats.get_supabase_client")
     def test_count_comments_by_project_counts_rows(self, get_client) -> None:
         clear_comment_caches()
         builder = MagicMock()
@@ -224,7 +246,7 @@ class CommentServiceTests(unittest.TestCase):
 
         self.assertEqual(result, {"project-1": 2, "project-2": 1})
 
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_stats.get_supabase_client")
     def test_latest_comment_at_by_project_uses_latest_row(self, get_client) -> None:
         clear_comment_caches()
         builder = MagicMock()
@@ -247,7 +269,7 @@ class CommentServiceTests(unittest.TestCase):
         self.assertEqual(result["project-1"], "2026-08-02T09:00:00+00:00")
         self.assertEqual(result["project-2"], "2026-08-02T07:00:00+00:00")
 
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_reads.get_supabase_client")
     def test_get_unread_comment_project_ids_ignores_own_comments_and_read_comments(self, get_client) -> None:
         comments_builder = MagicMock()
         comments_builder.select.return_value = comments_builder
@@ -282,7 +304,7 @@ class CommentServiceTests(unittest.TestCase):
         self.assertEqual(result, {"project-1"})
         comments_builder.neq.assert_called_once_with("author_id", "author-1")
 
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_reads.get_supabase_client")
     def test_annotate_unread_comment_status_sets_project_flag(self, get_client) -> None:
         comments_builder = MagicMock()
         comments_builder.select.return_value = comments_builder
@@ -309,7 +331,7 @@ class CommentServiceTests(unittest.TestCase):
         self.assertFalse(projects[1]["has_unread_comments"])
 
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=SimpleNamespace(ok=True))
-    @patch("folio_app.services.comments.get_supabase_client")
+    @patch("folio_app.services.comment_reads.get_supabase_client")
     def test_mark_project_comments_read_upserts_timestamp(self, get_client, _ensure_auth) -> None:
         builder = MagicMock()
         builder.upsert.return_value = builder
