@@ -1,12 +1,13 @@
 import unittest
 
 from folio_app.components.dashboard import embedded_dashboard_html
-from folio_app.components.share import project_action_group_html, project_share_button_html
-from folio_app.pages.project_detail import (
-    _project_report_html,
-    _project_report_sections,
-    _project_visual_context,
+from folio_app.components.project_detail_content import (
+    project_report_html,
+    project_report_sections,
+    project_visual_context,
 )
+from folio_app.components.share import project_action_group_html, project_share_button_html
+from folio_app.pages.project_detail import _detail_hero_card_html
 
 
 class DashboardComponentTests(unittest.TestCase):
@@ -42,8 +43,24 @@ class ShareComponentTests(unittest.TestCase):
 
 
 class DetailHelperTests(unittest.TestCase):
+    def test_detail_hero_uses_static_home_card_markup(self) -> None:
+        rendered = _detail_hero_card_html(
+            {
+                "id": "project-detail-card",
+                "title": "상세 히어로 카드",
+                "one_liner": "홈 갤러리와 같은 카드",
+                "tags": ["PowerBI", "Reference"],
+            }
+        )
+
+        self.assertIn("folio-home-card", rendered)
+        self.assertIn("상세 히어로 카드", rendered)
+        self.assertIn("홈 갤러리와 같은 카드", rendered)
+        self.assertIn("#PowerBI", rendered)
+        self.assertNotIn("folio-home-card-preview", rendered)
+
     def test_visual_context_detects_any_resource(self) -> None:
-        context = _project_visual_context(
+        context = project_visual_context(
             {
                 "power_bi_url": "",
                 "report_url": "https://example.com/report",
@@ -57,7 +74,7 @@ class DetailHelperTests(unittest.TestCase):
         self.assertTrue(context["has_visual_panel"])
 
     def test_report_sections_omit_empty_values(self) -> None:
-        sections = _project_report_sections(
+        sections = project_report_sections(
             {
                 "problem": "<p>문제</p>",
                 "dataset": "",
@@ -69,7 +86,7 @@ class DetailHelperTests(unittest.TestCase):
         self.assertEqual(sections, ["<p>문제</p>", "<p>인사이트</p>"])
 
     def test_report_html_sanitizes_script_content(self) -> None:
-        rendered = _project_report_html(["<p>안전한 내용</p><script>alert(1)</script>"])
+        rendered = project_report_html(["<p>안전한 내용</p><script>alert(1)</script>"])
 
         self.assertIn("프로젝트 리포트", rendered)
         self.assertIn("안전한 내용", rendered)

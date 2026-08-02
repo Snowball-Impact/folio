@@ -48,6 +48,22 @@ class CommentTreeTests(unittest.TestCase):
         self.assertEqual(tree[0]["id"], "root")
         self.assertEqual([child["id"] for child in tree[0]["children"]], ["reply-1"])
 
+    def test_build_comment_tree_flattens_legacy_nested_replies(self) -> None:
+        rows = [
+            {"id": "root", "parent_id": None, "depth": 0},
+            {"id": "reply-1", "parent_id": "root", "depth": 1},
+            {"id": "legacy-nested", "parent_id": "reply-1", "depth": 1},
+        ]
+
+        tree = build_comment_tree(rows)
+
+        self.assertEqual(len(tree), 1)
+        self.assertEqual(
+            [child["id"] for child in tree[0]["children"]],
+            ["reply-1", "legacy-nested"],
+        )
+        self.assertEqual(tree[0]["children"][0]["children"], [])
+
 
 class CommentServiceTests(unittest.TestCase):
     @patch("folio_app.services.comments._create_comment_notification")

@@ -1,35 +1,19 @@
-import html
-
 import streamlit as st
 
-from folio_app.components.analytics import track_event
 from folio_app.components.layout import render_hero
-from folio_app.components.project_form import (
-    PROJECT_BODY_TEMPLATE,
-    build_project_payload,
-    project_body_from_project,
-    render_project_form,
-    validate_project_form,
-)
-from folio_app.components.ui import clean_html, render_project_metrics, render_tag_chips
+from folio_app.components.portfolio_items import render_portfolio_item
+from folio_app.components.project_editor import render_edit_project_form, render_submit_project_form
+from folio_app.components.profile_summary import profile_overview_html
 from folio_app.navigation import navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.comments import annotate_unread_comment_status
-from folio_app.services.project_drafts import (
-    apply_pending_draft_clear,
-    clear_project_draft,
-    load_project_draft,
-    save_project_draft,
-)
 from folio_app.services.profiles import ProfileServiceError, get_profile, update_profile
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
     count_author_stats,
-    create_project,
     delete_project,
     list_projects_by_author,
-    update_project,
 )
 
 
@@ -58,63 +42,7 @@ def render_submit() -> None:
         _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
         return
 
-    draft_id = "submit"
-    widget_prefix = "submit"
-    apply_pending_draft_clear(st.session_state, user["id"], draft_id)
-    defaults = {
-        "title": "",
-        "one_liner": "",
-        "tags": "",
-        "project_body": PROJECT_BODY_TEMPLATE,
-        "power_bi_url": "",
-        "github_url": "",
-        "report_url": "",
-        "thumbnail_url": "",
-        "is_public": True,
-    }
-    draft = load_project_draft(st.session_state, user["id"], draft_id, defaults)
-
-    form_data, submitted, discarded = render_project_form(
-        widget_prefix,
-        title=draft["title"],
-        one_liner=draft["one_liner"],
-        tags=draft["tags"],
-        project_body_initial=draft["project_body"],
-        power_bi_url=draft["power_bi_url"],
-        github_url=draft["github_url"],
-        etc_url=draft["report_url"],
-        submit_label="프로젝트 등록하기",
-        secondary_label="초안 지우기",
-    )
-    save_project_draft(st.session_state, user["id"], draft_id, form_data)
-
-    if discarded:
-        clear_project_draft(st.session_state, user["id"], draft_id, widget_prefix)
-        st.rerun()
-
-    if not submitted:
-        return
-
-    parsed_body, missing, url_error = validate_project_form(form_data)
-    if missing:
-        st.error(f"필수 입력값을 확인하세요: {', '.join(missing)}")
-        return
-    if url_error:
-        st.error(url_error)
-        return
-
-    result = create_project(
-        user["id"],
-        build_project_payload(form_data, parsed_body),
-    )
-
-    if result.ok:
-        track_event("project_submit", {"item_id": result.project_id})
-        clear_project_draft(st.session_state, user["id"], draft_id, widget_prefix)
-        st.session_state["project_notice"] = result.message
-        navigate("Home", project_id=result.project_id)
-    else:
-        st.error(result.message)
+    render_submit_project_form(user["id"])
 
 
 def render_my_portfolio() -> None:
@@ -161,7 +89,7 @@ def render_my_page() -> None:
     if editing_project_id:
         project = next((item for item in projects if item["id"] == editing_project_id), None)
         if project:
-            _render_edit_project_form(user["id"], project)
+            render_edit_project_form(user["id"], project)
             return
         st.session_state.pop("editing_project_id", None)
         st.rerun()
@@ -211,50 +139,9 @@ def _confirm_project_deletion(project: dict, author_id: str) -> None:
 
 def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> None:
     stats = count_author_stats(projects)
-    public_count = sum(1 for project in projects if project.get("is_public"))
-    like_count = sum(project.get("like_count", 0) or 0 for project in projects)
-
-    name = profile.get("name") or user.get("email") or ""
-    email = profile.get("email") or user.get("email") or ""
-    organization = profile.get("organization") or ""
-    bio = profile.get("bio") or ""
-
-    organization_label = organization or "소속을 추가해 나를 더 잘 소개해 보세요"
-    bio_label = bio or "아직 자기소개가 없습니다. 어떤 관점으로 데이터를 바라보는지 들려주세요."
 
     with st.container(border=True, key="profile_overview"):
-        st.markdown(
-            f"""
-            <div class="folio-profile-identity">
-                <div class="folio-profile-identity-copy">
-                    <dl class="folio-profile-fields">
-                        <div>
-                            <dt>작성자</dt>
-                            <dd class="folio-profile-name">{html.escape(name)}</dd>
-                        </div>
-                        <div>
-                            <dt>소속</dt>
-                            <dd class="folio-profile-info-org{' is-empty' if not organization else ''}">{html.escape(organization_label)}</dd>
-                        </div>
-                        <div>
-                            <dt>이메일</dt>
-                            <dd class="folio-profile-email">{html.escape(email)}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
-            <div class="folio-profile-about">
-                <p class="folio-profile-bio{' is-empty' if not bio else ''}">{html.escape(bio_label)}</p>
-            </div>
-            <div class="folio-profile-stats">
-                <span><small>전체 프로젝트</small><strong>{stats["project_count"]}</strong></span>
-                <span><small>공개 프로젝트</small><strong>{public_count}</strong></span>
-                <span><small>누적 조회</small><strong>{stats["view_count"]:,}</strong></span>
-                <span><small>총 좋아요</small><strong>{like_count:,}</strong></span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.markdown(profile_overview_html(user, profile, projects, stats), unsafe_allow_html=True)
 
         if st.button("프로필 편집", key="start_edit_profile", icon=":material/edit:"):
             st.session_state["editing_profile"] = True
@@ -275,7 +162,7 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
             with st.container(border=True, key=f"portfolio_item_{project['id']}"):
                 project_col, actions_col = st.columns([5, 1], gap="small")
                 with project_col:
-                    _render_portfolio_item(project)
+                    render_portfolio_item(project)
                 with actions_col:
                     if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
                         navigate("Home", project_id=project["id"])
@@ -295,6 +182,8 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
             )
             if st.button("프로젝트 등록", key="profile_create_project", type="primary"):
                 navigate("Submit")
+
+
 def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     with st.container(border=True, key="profile_edit_card"):
         st.markdown(
@@ -349,109 +238,3 @@ def _render_profile_edit_form(user_id: str, profile: dict) -> None:
     st.success("프로필이 업데이트됐습니다.")
     st.rerun()
 
-
-def _render_portfolio_item(project: dict) -> None:
-    title = html.escape(project.get("title") or "Untitled")
-    one_liner = html.escape(project.get("one_liner") or "")
-    tags_html = render_tag_chips(project.get("tags") or [])
-    unread_badge = (
-        '<span class="folio-portfolio-card-new-badge" aria-label="안 본 댓글 있음">NEW</span>'
-        if project.get("has_unread_comments")
-        else ""
-    )
-    is_public = bool(project.get("is_public"))
-    visibility_label = "공개" if is_public else "비공개"
-    visibility_icon = (
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg>'
-        if is_public
-        else '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>'
-    )
-    metrics_html = render_project_metrics(
-        project,
-        container_class="folio-portfolio-card-meta",
-        extra_html=f"<span title=\"{visibility_label}\" aria-label=\"공개 상태 {visibility_label}\">{visibility_icon}</span>",
-    )
-    liner_html = f"<p class='folio-portfolio-card-liner'>{one_liner}</p>" if one_liner else ""
-
-    st.markdown(
-        clean_html(f"""
-        <div class="folio-portfolio-card">
-            <div class="folio-portfolio-card-main">
-                <p class="folio-portfolio-card-title"><span>{title}</span>{unread_badge}</p>
-                {liner_html}
-            </div>
-            <div class="folio-portfolio-card-footer">
-                {tags_html}
-                {metrics_html}
-            </div>
-        </div>
-        """),
-        unsafe_allow_html=True,
-    )
-
-
-def _render_edit_project_form(author_id: str, project: dict) -> None:
-    st.markdown("### 프로젝트 수정")
-
-    draft_id = f"edit:{project['id']}"
-    widget_prefix = f"edit_{project['id']}"
-    apply_pending_draft_clear(st.session_state, author_id, draft_id)
-    defaults = {
-        "title": project.get("title") or "",
-        "one_liner": project.get("one_liner") or "",
-        "tags": ", ".join(project.get("tags") or []),
-        "project_body": project_body_from_project(project),
-        "power_bi_url": project.get("power_bi_url") or "",
-        "github_url": project.get("github_url") or "",
-        "report_url": project.get("report_url") or "",
-        "thumbnail_url": project.get("thumbnail_url") or "",
-        "is_public": bool(project.get("is_public")),
-    }
-    draft = load_project_draft(st.session_state, author_id, draft_id, defaults)
-
-    form_data, submitted, cancelled = render_project_form(
-        widget_prefix,
-        title=draft["title"],
-        one_liner=draft["one_liner"],
-        tags=draft["tags"],
-        project_body_initial=draft["project_body"],
-        power_bi_url=draft["power_bi_url"],
-        github_url=draft["github_url"],
-        etc_url=draft["report_url"],
-        thumbnail_url=draft["thumbnail_url"],
-        is_public=bool(draft["is_public"]),
-        show_visibility_setting=True,
-        submit_label="수정 완료",
-        secondary_label="목록으로 돌아가기",
-    )
-    save_project_draft(st.session_state, author_id, draft_id, form_data)
-
-    if cancelled:
-        clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
-        st.session_state.pop("editing_project_id", None)
-        st.rerun()
-
-    if not submitted:
-        return
-
-    parsed_body, missing, url_error = validate_project_form(form_data)
-    if missing:
-        st.error(f"필수 입력값을 확인하세요: {', '.join(missing)}")
-        return
-    if url_error:
-        st.error(url_error)
-        return
-
-    result = update_project(
-        project["id"],
-        author_id,
-        build_project_payload(form_data, parsed_body),
-    )
-
-    if result.ok:
-        clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
-        st.session_state.pop("editing_project_id", None)
-        st.session_state["portfolio_notice"] = result.message
-        st.rerun()
-    else:
-        st.error(result.message)

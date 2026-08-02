@@ -245,8 +245,7 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - `python -m unittest discover -s tests -v`
 - 라우팅, 인증 클라이언트 격리, 온보딩 오류 처리, 프로필 보존
 - 프로젝트 HTML 정제, 본문 섹션 파싱, URL 정규화, 태그·검색 필터
-- 실제 로그인, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 좋아요와 조회수는 테스트 계정으로 브라우저 검증을 완료했다. 상세 결과는 `docs/INTEGRATION_VALIDATION.md`를 참고한다.
-- 신규 회원가입·이메일 인증·최초 온보딩과 서로 다른 두 계정 간 권한 격리는 아직 검증하지 않았다.
+- 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. 상세 결과는 `docs/INTEGRATION_VALIDATION.md`를 참고한다.
 
 ---
 
@@ -542,7 +541,7 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - `python -m compileall -q app.py folio_app tests`
 - `python -m unittest tests.test_comments tests.test_ui_cards -v`
 
-### 진행: 댓글 알림 1차 구현 (2026-08-02)
+### 완료: 댓글 알림 1차 구현 (2026-08-02)
 
 댓글 알림은 마이페이지 `NEW` 배지와 별도의 알림 도메인으로 구현한다. 1차 범위는 프로젝트 댓글 알림만 포함한다.
 
@@ -564,11 +563,13 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - `python -m unittest tests.test_notifications tests.test_core_flows -v`
 - `python -m unittest tests.test_email_notifications tests.test_notifications tests.test_config -v`
 
-로컬 밖에서 남은 것:
+배포 검증:
 
-- 원격 Supabase에 `supabase/schema.sql` 재적용 필요.
-- 실제 계정으로 B가 A 프로젝트에 댓글 작성 → A 헤더 알림 `N` 배지 표시 → 알림 페이지 진입 후 읽음 처리 → 프로젝트 이동을 브라우저에서 검증해야 한다.
-- 이메일 발송을 쓰려면 운영 secret에 `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_FROM_EMAIL` 등 SMTP 값을 설정해야 한다.
+- 원격 Supabase에 최신 `supabase/schema.sql`을 적용했다.
+- Streamlit Cloud Secrets에 `SUPABASE_SERVICE_ROLE_KEY`, `SMTP_HOST`, `SMTP_FROM_EMAIL` 등 SMTP 값을 설정하고 앱을 재시작했다.
+- 실제 계정으로 B가 A 프로젝트에 댓글 작성 → A 헤더 알림 `N` 배지 표시 → 알림 페이지 진입 후 읽음 처리 → 프로젝트 이동을 확인했다.
+- 댓글 이메일 알림 발송을 확인했다.
+- 댓글과 알림 기능은 현 범위에서 충분한 것으로 판단해 추가 확장은 보류한다.
 
 ### 완료: 홈갤러리 활동 NEW 배지 (2026-08-02)
 

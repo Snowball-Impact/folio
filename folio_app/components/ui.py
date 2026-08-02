@@ -40,6 +40,7 @@ def _render_auto_cover(
     project: dict,
     *,
     compact: bool = False,
+    show_eyebrow: bool = True,
     show_title: bool = True,
     show_tags: bool = True,
 ) -> str:
@@ -48,6 +49,7 @@ def _render_auto_cover(
         f"<span>#{html.escape(str(tag))}</span>"
         for tag in (project.get("tags") or [])[:2]
     )
+    eyebrow_block = '<span class="folio-auto-cover-eyebrow">PROJECT PORTFOLIO</span>' if show_eyebrow else ""
     title_block = f"<h3>{title}</h3>" if show_title else ""
     tags_block = f'<div class="folio-auto-cover-tags">{tag_html}</div>' if show_tags else ""
     compact_class = " folio-auto-cover-compact" if compact else ""
@@ -55,7 +57,7 @@ def _render_auto_cover(
     <div class="folio-auto-cover folio-auto-cover-{_cover_variant(project)}{compact_class}">
         <div class="folio-auto-cover-pattern" aria-hidden="true"></div>
         <div class="folio-auto-cover-content">
-            <span class="folio-auto-cover-eyebrow">PROJECT PORTFOLIO</span>
+            {eyebrow_block}
             {title_block}
             {tags_block}
         </div>
@@ -123,7 +125,13 @@ def render_project_card_html(
     preview_url: str | None = None,
 ) -> str:
     title_html = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
-    cover_html = _render_auto_cover(project, compact=compact, show_title=False, show_tags=False)
+    cover_html = _render_auto_cover(
+        project,
+        compact=compact,
+        show_eyebrow=False,
+        show_title=False,
+        show_tags=False,
+    )
     summary_html = _card_summary(project, fallback_text)
     footer_meta_html = _card_footer_meta(project)
     metrics_html = render_project_metrics(project)

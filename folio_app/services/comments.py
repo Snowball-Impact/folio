@@ -125,8 +125,11 @@ def build_comment_tree(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     for row in rows:
         node = by_id[row["id"]]
         parent_id = row.get("parent_id")
-        if parent_id and parent_id in by_id:
-            by_id[parent_id]["children"].append(node)
+        parent = by_id.get(parent_id) if parent_id else None
+        if parent and not parent.get("parent_id") and (parent.get("depth") or 0) == 0:
+            parent["children"].append(node)
+        elif parent and parent.get("parent_id") in by_id:
+            by_id[parent["parent_id"]]["children"].append(node)
         else:
             roots.append(node)
 

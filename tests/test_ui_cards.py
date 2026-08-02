@@ -1,8 +1,7 @@
 import unittest
-from unittest.mock import patch
 
+from folio_app.components.portfolio_items import portfolio_item_html
 from folio_app.components.ui import _cover_variant, render_project_card_html
-from folio_app.pages.protected import _render_portfolio_item
 
 
 class AutomaticProjectCoverTests(unittest.TestCase):
@@ -48,6 +47,16 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn("folio-home-card-tags-zone", rendered)
         self.assertIn("요약만 있는 프로젝트", rendered)
         self.assertNotIn("folio-home-card-tags\"><span", rendered)
+
+    def test_card_cover_omits_generic_portfolio_eyebrow(self) -> None:
+        project = {
+            "id": "project-cover-copy",
+            "title": "간결한 커버 프로젝트",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertNotIn("PROJECT PORTFOLIO", rendered)
 
     def test_author_organization_is_shown_when_present(self) -> None:
         project = {
@@ -128,10 +137,7 @@ class AutomaticProjectCoverTests(unittest.TestCase):
             "has_unread_comments": True,
         }
 
-        with patch("folio_app.pages.protected.st.markdown") as markdown:
-            _render_portfolio_item(project)
-
-        rendered = markdown.call_args.args[0]
+        rendered = portfolio_item_html(project)
         self.assertIn("folio-portfolio-card-new-badge", rendered)
         self.assertIn("NEW", rendered)
 

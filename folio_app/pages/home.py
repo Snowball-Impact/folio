@@ -1,11 +1,11 @@
 import html
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from folio_app.components.analytics import track_event
 from folio_app.components.assets import static_image_src
-from folio_app.components.ui import plain_text, render_project_card_html
+from folio_app.components.home_gallery import render_count_up_script, render_project_rails
+from folio_app.components.ui import clean_html
 from folio_app.navigation import navigate
 from folio_app.pages import project_detail
 from folio_app.services.projects import (
@@ -13,7 +13,6 @@ from folio_app.services.projects import (
     clear_project_caches,
     list_popular_tags,
     list_public_projects,
-    normalize_power_bi_embed_url,
 )
 
 _HOME_PAGE = "Home"
@@ -36,126 +35,6 @@ _HOME_GUIDE_STEPS = (
     ("02", "피드백", "댓글과 반응으로 새로운 관점을 발견합니다."),
     ("03", "발전", "다양한 관점이 모여 인사이트를 개선합니다."),
 )
-_RAIL_SCROLL_SCRIPT = """
-<script>
-(function() {
-    var parentDocument = window.parent.document;
-    if (parentDocument.__folioRailScrollBound) {
-        return;
-    }
-    parentDocument.__folioRailScrollBound = true;
-    parentDocument.addEventListener("click", function(event) {
-        var button = event.target.closest("[data-folio-rail-button]");
-        if (!button) {
-            return;
-        }
-        event.preventDefault();
-        var target = button.getAttribute("data-target");
-        var direction = Number(button.getAttribute("data-direction") || "1");
-        var rail = parentDocument.querySelector('[data-folio-rail="' + target + '"]');
-        if (!rail) {
-            return;
-        }
-        var distance = Math.max(rail.clientWidth * 0.72, 320);
-        rail.scrollBy({ left: direction * distance, behavior: "smooth" });
-    });
-})();
-</script>
-"""
-_CARD_PREVIEW_SCRIPT = """
-<script>
-(function() {
-    var parentDocument = window.parent.document;
-    if (parentDocument.__folioCardPreviewBound) {
-        return;
-    }
-    parentDocument.__folioCardPreviewBound = true;
-
-    function mountPreview(preview) {
-        if (!preview || preview.dataset.folioPreviewMounted === "1") {
-            return;
-        }
-        var src = preview.getAttribute("data-folio-preview-src");
-        if (!src) {
-            return;
-        }
-        preview.dataset.folioPreviewMounted = "1";
-        preview.classList.add("is-loaded");
-        var iframe = parentDocument.createElement("iframe");
-        iframe.className = "folio-home-card-preview-frame";
-        iframe.title = "프로젝트 대시보드 미리보기";
-        iframe.src = src;
-        iframe.loading = "lazy";
-        iframe.referrerPolicy = "no-referrer-when-downgrade";
-        iframe.setAttribute("allowfullscreen", "true");
-        preview.appendChild(iframe);
-    }
-
-    parentDocument.addEventListener("mouseenter", function(event) {
-        var card = event.target.closest(".folio-home-card-has-preview");
-        if (!card) {
-            return;
-        }
-        mountPreview(card.querySelector(".folio-home-card-preview"));
-    }, true);
-
-    parentDocument.addEventListener("focusin", function(event) {
-        var card = event.target.closest(".folio-home-card-has-preview");
-        if (!card) {
-            return;
-        }
-        mountPreview(card.querySelector(".folio-home-card-preview"));
-    });
-})();
-</script>
-"""
-_COUNT_UP_SCRIPT = """
-<script>
-(function() {
-    var parentDocument = window.parent.document;
-    var attempts = 0;
-    var maxAttempts = 40;
-
-    function animateCounters() {
-        var counters = parentDocument.querySelectorAll("[data-folio-count-up]");
-        if (!counters.length && attempts < maxAttempts) {
-            attempts += 1;
-            parentDocument.defaultView.setTimeout(animateCounters, 50);
-            return;
-        }
-
-        counters.forEach(function(counter) {
-        var target = Number(counter.getAttribute("data-folio-count-up") || "0");
-        var key = "folioCountAnimated:" + target;
-        var duration = 720;
-        var startTime = null;
-
-        if (counter.dataset.folioAnimated === key) {
-            counter.textContent = target.toLocaleString("ko-KR");
-            return;
-        }
-
-        counter.dataset.folioAnimated = key;
-        function tick(timestamp) {
-            if (startTime === null) {
-                startTime = timestamp;
-            }
-            var progress = Math.min((timestamp - startTime) / duration, 1);
-            var eased = 1 - Math.pow(1 - progress, 3);
-            var value = Math.round(target * eased);
-            counter.textContent = value.toLocaleString("ko-KR");
-            if (progress < 1) {
-                parentDocument.defaultView.requestAnimationFrame(tick);
-            }
-        }
-        parentDocument.defaultView.requestAnimationFrame(tick);
-        });
-    }
-
-    animateCounters();
-})();
-</script>
-"""
 
 
 def render() -> None:
@@ -184,7 +63,7 @@ def render() -> None:
             st.rerun()
         return
     _render_browse_panel(total_project_count, popular_tags)
-    _render_project_rails(_project_rail_specs(recent_projects, viewed_projects, liked_projects))
+    render_project_rails(_project_rail_specs(recent_projects, viewed_projects, liked_projects), home_page=_HOME_PAGE)
 
 
 def _project_rail_specs(
@@ -202,7 +81,7 @@ def _project_rail_specs(
 def _render_hero() -> None:
     slides_html = "".join(_hero_slide_html(slide) for slide in _HOME_HERO_SLIDES)
     st.markdown(
-        f"""
+        clean_html(f"""
         <section class="folio-home-hero-shell">
             <div class="folio-home-hero-viewport">
                 <div class="folio-home-hero-track">
@@ -214,7 +93,7 @@ def _render_hero() -> None:
                 <span></span>
             </div>
         </section>
-        """,
+        """),
         unsafe_allow_html=True,
     )
 
@@ -238,7 +117,7 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             """,
             unsafe_allow_html=True,
         )
-        _render_count_up_script()
+        render_count_up_script()
 
         search_col, submit_col = st.columns([5, 1])
         with search_col:
@@ -276,59 +155,11 @@ def _render_browse_panel(project_count: int, popular_tags: list[str]) -> None:
             )
 
 
-def _render_project_rails(rails: list[tuple[str, str, list[dict]]]) -> None:
-    if not any(projects for _, _, projects in rails):
-        _render_rail_scroll_script()
-        st.info("아직 표시할 프로젝트가 없습니다. 첫 프로젝트를 등록해보세요.")
-        return
-
-    for rail_key, description, projects in rails:
-        _render_project_rail(rail_key, description, projects)
-    _render_rail_scroll_script()
-    _render_card_preview_script()
-
-
-def _render_project_rail(rail_key: str, description: str, projects: list[dict]) -> None:
-    cards_html = "".join(_project_card_html(project) for project in projects)
-    safe_rail_key = html.escape(rail_key, quote=True)
-    safe_description = html.escape(description)
-
-    st.markdown(
-        f"""
-        <section class="folio-gallery-rail-section">
-            <div class="folio-gallery-rail-head">
-                <button
-                    class="folio-rail-scroll-button"
-                    type="button"
-                    aria-label="{safe_description} 왼쪽으로 스크롤"
-                    data-folio-rail-button
-                    data-target="{safe_rail_key}"
-                    data-direction="-1"
-                >‹</button>
-                <h3>{safe_description}</h3>
-                <button
-                    class="folio-rail-scroll-button"
-                    type="button"
-                    aria-label="{safe_description} 오른쪽으로 스크롤"
-                    data-folio-rail-button
-                    data-target="{safe_rail_key}"
-                    data-direction="1"
-                >›</button>
-            </div>
-        </section>
-        <div class="folio-gallery-rail" data-folio-rail="{safe_rail_key}">
-            {cards_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-
 def _hero_slide_html(slide: dict[str, str]) -> str:
     hero_class = "folio-home-hero"
     if slide["visual"] == "guide":
         hero_class += " folio-home-guide-hero"
-    return f"""
+    return clean_html(f"""
     <section class="{hero_class}">
         <div class="folio-home-copy">
             <div class="folio-home-eyebrow">{html.escape(slide["eyebrow"])}</div>
@@ -340,7 +171,7 @@ def _hero_slide_html(slide: dict[str, str]) -> str:
         </div>
         {_hero_visual_html(slide["visual"])}
     </section>
-    """
+    """)
 
 
 def _hero_visual_html(visual: str) -> str:
@@ -359,7 +190,7 @@ def _hero_visual_html(visual: str) -> str:
 
 
 def _hero_guide_step_html(step_number: str, title: str, body: str) -> str:
-    return f"""
+    return clean_html(f"""
     <div class="folio-home-guide-step">
         <div class="folio-home-guide-node">{html.escape(step_number)}</div>
         <div class="folio-home-guide-card">
@@ -367,32 +198,5 @@ def _hero_guide_step_html(step_number: str, title: str, body: str) -> str:
             <p>{html.escape(body)}</p>
         </div>
     </div>
-    """
+    """)
 
-
-def _render_rail_scroll_script() -> None:
-    _render_script(_RAIL_SCROLL_SCRIPT)
-
-
-def _render_card_preview_script() -> None:
-    _render_script(_CARD_PREVIEW_SCRIPT)
-
-
-def _render_count_up_script() -> None:
-    _render_script(_COUNT_UP_SCRIPT)
-
-
-def _render_script(script: str) -> None:
-    components.html(script, height=0)
-
-
-def _project_card_html(project: dict) -> str:
-    preview_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
-    html_content = render_project_card_html(
-        project,
-        compact=False,
-        fallback_text=plain_text(project.get("insights")) or "",
-        href=f"?page={_HOME_PAGE}&project_id={project['id']}",
-        preview_url=preview_url,
-    )
-    return html_content

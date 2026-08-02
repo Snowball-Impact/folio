@@ -156,12 +156,24 @@ CSS = """
     }
 
     .st-key-folio_browse_panel .folio-search-title {
-        font-size: 14px !important;
+        font-size: 15px !important;
+        line-height: 1.45 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: normal !important;
     }
 
     .folio-popular-tag-label {
         margin-top: 2px;
         width: auto;
+    }
+
+    .st-key-folio_browse_panel [data-testid="stHorizontalBlock"] {
+        flex-direction: column;
+    }
+
+    .st-key-folio_browse_panel [data-testid="stColumn"] {
+        width: 100% !important;
     }
 }
 """
