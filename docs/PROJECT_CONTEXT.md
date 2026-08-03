@@ -8,12 +8,24 @@
 
 ## 프로젝트 개요
 
-**FOLIO** — 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 자산으로 등록·탐색·공유하는 MVP.
-핵심 메시지: "발표로 끝나지 않는 프로젝트 / AI 시대에는 휴먼 인사이트가 자산이다."
+**FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
+핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
+
+2026-08 기준 제품 방향은 `docs/PRD.md` v2.0을 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 큐레이션형 Visual Gallery MVP로 단계적으로 전환하는 것이다.
 
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
+
+### PRD v2.0 전환 기준
+
+- 초기 콘텐츠 범위는 Tableau Public과 Streamlit 중심의 공개 데이터 시각화 프로젝트다.
+- 사용자의 직접 프로젝트 등록보다 운영자 선별·편집 콘텐츠 공급을 우선한다.
+- 프로젝트 상세는 `Hero -> Project Preview -> Project Summary -> Data & Analysis -> Source & Links -> Comments` 순서를 기준으로 한다.
+- 임베드 실패는 예외가 아니라 정상 상태다. `embed_supported`, `external_link_only`, `embed_failed` 상태를 모델과 UI에서 구분해야 한다.
+- 도구보다 주제를 우선한다. 갤러리 필터는 주제 카테고리와 플랫폼 필터를 함께 제공한다.
+- 원본 프로젝트, 원작자, 원본 플랫폼, 원본 URL, FOLIO 편집·요약 표시를 명확히 노출한다.
+- 프로젝트 등록은 당장 직접 게시가 아니라 등록 요청과 운영자 승인 흐름으로 전환하는 것이 목표다.
 
 ---
 
@@ -102,6 +114,84 @@ folio_app/
 | 서비스 소개 | `about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
 | 좋아요 | `services/projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
 | 푸터 | `app.py` | Copyright © 2026 Snowball Impact |
+
+---
+
+## PRD v2.0 전환 갭
+
+현재 구현은 사용자 작성 프로젝트 포트폴리오 플랫폼에 가깝고, PRD v2.0은 운영자 큐레이션 기반 데이터 시각화 갤러리를 우선한다. 큰 방향은 맞지만 아래 항목은 아직 전환이 필요하다.
+
+### 데이터 모델
+
+현재 `projects`는 `author_id`, `one_liner`, `problem`, `dataset`, `process`, `insights`, `power_bi_url`, `report_url`, `github_url`, `thumbnail_url`, `tags`, `is_public` 중심이다.
+
+PRD v2.0 전환에 필요한 필드:
+
+- `summary` 또는 기존 `one_liner`의 의미 재정의
+- `topic_category`
+- `project_format`
+- `platform`
+- `creator_name`
+- `creator_url`
+- `source_url`
+- `embed_url` 또는 기존 `power_bi_url`의 범용화
+- `data_source`
+- `embed_status`: `supported`, `external_only`, `failed`
+- `source_type`: `curated`, `submitted`, `creator_owned`
+- `publication_status`: `draft`, `review`, `published`, `hidden`
+- `published_at`
+
+기존 프로젝트 설명 필드(`problem`, `dataset`, `process`, `insights`)는 PRD v2.0의 `project_contents` 초안과 대부분 대응된다. 다만 `process`는 "분석 및 시각화", `insights`는 "주요 관찰 포인트"로 화면 문구를 바꿔야 한다.
+
+### 갤러리
+
+현재 홈은 태그 중심 검색·정렬과 최근/조회/좋아요 레일을 제공한다. PRD v2.0에서는 주제 카테고리 필터, 플랫폼 필터, 최신순 목록, 에디터 추천/신규/주제별/플랫폼별 섹션이 필요하다.
+
+우선순위:
+
+1. 기존 태그 필터는 유지하되 `topic_category`, `platform` 필터를 추가한다.
+2. 카드에 주제 카테고리, 플랫폼, 제작자, 댓글 수를 표시한다.
+3. 좋아요/인기 프로젝트는 P1로 내려가므로 핵심 갤러리에서 과하게 강조하지 않는다.
+
+### 상세 페이지
+
+현재 상세는 Power BI iframe 또는 외부 링크 중심이며, 작성자 포트폴리오 맥락이 강하다. PRD v2.0 기준 상세는 원작자·원본 플랫폼·원본 URL·FOLIO 편집 표시와 임베드 실패 fallback이 핵심이다.
+
+우선순위:
+
+1. `power_bi_url` 중심 명명을 범용 `embed_url`/`source_url` 개념으로 확장한다.
+2. `embed_status`에 따라 iframe, 대표 이미지 fallback, 외부 실행 버튼을 분기한다.
+3. 상세 본문 섹션 제목을 문제 정의, 사용 데이터, 분석 및 시각화, 주요 관찰 포인트로 표준화한다.
+4. Source & Links 섹션에 원본 프로젝트, 제작자 프로필, GitHub, 데이터 출처, 관련 보고서를 노출한다.
+
+### 등록 흐름
+
+현재 `Submit`은 로그인 사용자가 프로젝트를 직접 게시한다. PRD v2.0 P0에서는 사용자가 직접 게시하지 않고 프로젝트 URL을 제출하며, 운영자가 승인한다.
+
+우선순위:
+
+1. 기존 직접 등록은 운영자용 등록/수정 흐름으로 재정의하거나 관리자 권한으로 제한한다.
+2. 일반 사용자용 `project_submissions` 요청 테이블과 등록 요청 화면을 추가한다.
+3. 요청 상태는 `pending`, `reviewing`, `approved`, `rejected`로 관리한다.
+
+### 댓글
+
+현재 댓글, 1단계 답글, 삭제, 알림, 이메일 알림은 구현되어 있다. PRD v2.0 P0의 "본인 댓글 수정"은 아직 없다.
+
+우선순위:
+
+1. 본인 댓글 수정 기능을 추가한다.
+2. 댓글 신고와 구조화 댓글은 P1/P2로 보류한다.
+
+### 분석 이벤트
+
+현재 GA page view, 공유 링크 진입, 좋아요, 등록 등 일부 이벤트가 있다. PRD v2.0에서는 카드 클릭, 상세 조회, 임베드 또는 원본 실행 클릭, 댓글 작성, 등록 요청 제출이 P0다.
+
+우선순위:
+
+1. 원본 실행 버튼 클릭 이벤트를 추가한다.
+2. 프로젝트 카드 클릭과 상세 조회 이벤트 이름을 v2.0 지표에 맞춰 정리한다.
+3. 등록 요청 제출 이벤트는 등록 요청 기능과 함께 추가한다.
 
 ---
 

@@ -7,7 +7,7 @@ from folio_app.components.project_detail_content import (
     project_visual_context,
 )
 from folio_app.components.share import project_action_group_html, project_share_button_html
-from folio_app.pages.project_detail import _detail_hero_card_html
+from folio_app.pages.project_detail import _detail_hero_card_html, _is_project_owner
 
 
 class DashboardComponentTests(unittest.TestCase):
@@ -43,6 +43,13 @@ class ShareComponentTests(unittest.TestCase):
 
 
 class DetailHelperTests(unittest.TestCase):
+    def test_project_owner_detects_matching_logged_in_user(self) -> None:
+        self.assertTrue(_is_project_owner({"author_id": "user-1"}, {"id": "user-1"}))
+
+    def test_project_owner_rejects_other_or_logged_out_user(self) -> None:
+        self.assertFalse(_is_project_owner({"author_id": "user-1"}, {"id": "user-2"}))
+        self.assertFalse(_is_project_owner({"author_id": "user-1"}, None))
+
     def test_detail_hero_uses_static_home_card_markup(self) -> None:
         rendered = _detail_hero_card_html(
             {

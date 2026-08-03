@@ -121,17 +121,17 @@ def render_project_form(
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
     with st.container(border=True, key=f"{key_prefix}_form_section_links"):
-        _render_form_section_heading("관련 결과물 링크", "관련 결과물을 연결할 수 있습니다. 선택 입력 항목입니다.")
-        power_bi_col, github_col, etc_col = st.columns(3, gap="medium")
-        with power_bi_col:
-            power_bi_url_input = st.text_input(
-                "BI Platform Embed URL",
-                value=power_bi_url,
-                placeholder="https://... 또는 iframe 코드",
-                help="BI Platform 에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
-                key=f"{key_prefix}_power_bi_url",
-            )
-            _render_url_feedback(power_bi_url_input, "BI Platform Embed URL", power_bi=True)
+        _render_form_section_heading("프로젝트 산출물 링크", "")
+        power_bi_url_input = st.text_input(
+            "Embed Code",
+            value=power_bi_url,
+            placeholder="https://... 또는 iframe 코드",
+            help="BI Platform 에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
+            key=f"{key_prefix}_power_bi_url",
+        )
+        _render_url_feedback(power_bi_url_input, "Embed Code", power_bi=True)
+
+        github_col, etc_col = st.columns(2, gap="medium")
         with github_col:
             github_url_input = st.text_input(
                 "GitHub URL",
@@ -142,12 +142,12 @@ def render_project_form(
             _render_url_feedback(github_url_input, "GitHub URL")
         with etc_col:
             etc_url_input = st.text_input(
-                "ETC URL",
+                "Web Application URL",
                 value=etc_url,
                 placeholder="https://...",
                 key=f"{key_prefix}_etc_url",
             )
-            _render_url_feedback(etc_url_input, "ETC URL")
+            _render_url_feedback(etc_url_input, "Web Application URL")
 
     cancelled = False
     if show_visibility_setting:
@@ -210,7 +210,7 @@ def render_project_form(
             "tags": tags_input,
             "project_body": project_body,
             "power_bi_url": power_bi_url_input,
-            # ETC URL is stored in the legacy report_url column. Thumbnail is
+            # Web application URL is stored in the legacy report_url column. Thumbnail is
             # no longer editable, but retaining it prevents edits from clearing it.
             "report_url": etc_url_input,
             "github_url": github_url_input,
@@ -241,12 +241,18 @@ def _render_form_section_heading(title: str, body: str) -> None:
         <div class="folio-form-section-heading">
             <div>
                 <strong>{html.escape(title)}</strong>
-                <small>{html.escape(body)}</small>
+                {_form_section_body_html(body)}
             </div>
         </div>
         """),
         unsafe_allow_html=True,
     )
+
+
+def _form_section_body_html(body: str) -> str:
+    if not body:
+        return ""
+    return f"<small>{html.escape(body)}</small>"
 
 
 def _validate_optional_urls(
@@ -256,7 +262,7 @@ def _validate_optional_urls(
     thumbnail_url: str,
 ) -> str | None:
     if power_bi_url.strip() and normalize_power_bi_embed_url(power_bi_url) is None:
-        return "Power BI Embed URL을 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다."
+        return "Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다."
 
     invalid_fields = []
     if report_url.strip() and normalize_optional_url(report_url) is None:

@@ -126,6 +126,7 @@ def _render_hero_footer_actions(
             unsafe_allow_html=True,
         )
         _render_detail_like_button(project_id, like_count, user)
+        _render_detail_edit_button(project, project_id, user)
         render_project_share_handler(project_id)
 
 
@@ -204,6 +205,24 @@ def _render_detail_like_button(project_id: str, like_count: int, user: dict | No
         else:
             track_event("like" if not liked else "unlike", {"item_id": project_id})
         st.rerun()
+
+
+def _render_detail_edit_button(project: dict, project_id: str, user: dict | None) -> None:
+    if not _is_project_owner(project, user):
+        return
+
+    if st.button(
+        "수정",
+        key="detail_edit_project_action",
+        icon=":material/edit:",
+        use_container_width=False,
+    ):
+        st.session_state["editing_project_id"] = project_id
+        navigate("My Page")
+
+
+def _is_project_owner(project: dict, user: dict | None) -> bool:
+    return bool(user and project.get("author_id") == user.get("id"))
 
 
 def _track_share_open(project_id: str) -> None:
