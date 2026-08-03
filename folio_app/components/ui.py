@@ -125,13 +125,7 @@ def render_project_card_html(
     preview_url: str | None = None,
 ) -> str:
     title_html = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
-    cover_html = _render_auto_cover(
-        project,
-        compact=compact,
-        show_eyebrow=False,
-        show_title=False,
-        show_tags=False,
-    )
+    cover_html = _card_cover(project, compact=compact)
     summary_html = _card_summary(project, fallback_text)
     footer_meta_html = _card_footer_meta(project)
     metrics_html = render_project_metrics(project)
@@ -140,7 +134,7 @@ def render_project_card_html(
     preview_html = _card_preview(preview_url)
     activity_badge_html = _card_activity_badge(project)
 
-    card_class = _card_class(compact=compact, has_preview=bool(preview_url))
+    card_class = _card_class(compact=compact, preview_url=preview_url, has_thumbnail=_has_card_thumbnail(project))
     card_html = f"""
     <div class="{card_class}">
         {overlay_link_html}
@@ -167,13 +161,24 @@ def render_project_card_html(
     return clean_html(card_html)
 
 
-def _card_class(*, compact: bool, has_preview: bool) -> str:
+def _card_class(*, compact: bool, preview_url: str | None, has_thumbnail: bool = False) -> str:
     classes = ["folio-home-card"]
     if compact:
         classes.append("folio-home-card-compact")
-    if has_preview:
+    if has_thumbnail:
+        classes.append("folio-home-card-has-thumbnail")
+    if preview_url:
         classes.append("folio-home-card-has-preview")
+        classes.append(_preview_type_class(preview_url))
     return " ".join(classes)
+
+
+def _preview_type_class(preview_url: str) -> str:
+    parsed = urlparse(preview_url)
+    hostname = parsed.hostname or ""
+    if hostname == "streamlit.app" or hostname.endswith(".streamlit.app"):
+        return "folio-home-card-preview-streamlit"
+    return "folio-home-card-preview-dashboard"
 
 
 def _card_activity_badge(project: dict) -> str:
@@ -198,6 +203,28 @@ def _card_activity_badge(project: dict) -> str:
         f'title="{html.escape(title, quote=True)}" '
         f'aria-label="{html.escape(title, quote=True)}">{html.escape(label)}</span>'
     )
+
+
+def _card_cover(project: dict, *, compact: bool) -> str:
+    thumbnail_url = project.get("thumbnail_url")
+    if _has_card_thumbnail(project):
+        title = html.escape(project.get("title") or "프로젝트", quote=True)
+        return (
+            f'<img class="folio-home-card-cover-image" '
+            f'src="{html.escape(thumbnail_url, quote=True)}" '
+            f'alt="{title} 대표 이미지" loading="lazy" />'
+        )
+    return _render_auto_cover(
+        project,
+        compact=compact,
+        show_eyebrow=False,
+        show_title=False,
+        show_tags=False,
+    )
+
+
+def _has_card_thumbnail(project: dict) -> bool:
+    return is_http_url(project.get("thumbnail_url"))
 
 
 def _parse_timestamp(value: str | None) -> datetime | None:

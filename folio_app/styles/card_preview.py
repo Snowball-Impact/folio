@@ -7,6 +7,12 @@ CSS = """
     --folio-preview-frame-width: 150%;
 }
 
+.folio-gallery-rail .folio-home-card-preview-streamlit {
+    --folio-preview-frame-height: 225%;
+    --folio-preview-frame-scale: 0.4444444;
+    --folio-preview-frame-width: 225%;
+}
+
 .folio-home-card-preview {
     background: rgba(11, 31, 63, 0.92);
     inset: 0;

@@ -20,6 +20,34 @@ CSS = """
     min-height: 160px;
 }
 
+.folio-home-card-cover-image {
+    aspect-ratio: 16 / 9;
+    display: block;
+    height: auto;
+    object-fit: cover;
+    position: relative;
+    width: 100%;
+    z-index: 0;
+}
+
+.folio-home-card-has-thumbnail::before {
+    background: linear-gradient(
+        180deg,
+        rgba(4, 12, 28, 0.34) 0%,
+        rgba(4, 12, 28, 0.58) 45%,
+        rgba(4, 12, 28, 0.88) 100%
+    );
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+}
+
+.folio-home-card-cover-image + .folio-home-card-preview {
+    z-index: 2;
+}
+
 /* Streamlit's markdown renderer splits an anchor that wraps block-level
    content into several smaller anchors, one per inline text run, which
    leaves the cover art and padding unclickable. This empty anchor is

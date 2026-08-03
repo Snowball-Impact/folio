@@ -58,6 +58,36 @@ class AutomaticProjectCoverTests(unittest.TestCase):
 
         self.assertNotIn("PROJECT PORTFOLIO", rendered)
 
+    def test_card_uses_thumbnail_image_when_available(self) -> None:
+        project = {
+            "id": "project-thumbnail",
+            "title": "썸네일 프로젝트",
+            "thumbnail_url": "https://example.com/thumb.png",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-home-card-has-thumbnail", rendered)
+        self.assertIn("folio-home-card-cover-image", rendered)
+        self.assertIn('src="https://example.com/thumb.png"', rendered)
+        self.assertIn('alt="썸네일 프로젝트 대표 이미지"', rendered)
+        self.assertIn("folio-home-card-overlay", rendered)
+        self.assertIn("썸네일 프로젝트", rendered)
+        self.assertNotIn("folio-auto-cover", rendered)
+
+    def test_card_falls_back_to_auto_cover_for_invalid_thumbnail(self) -> None:
+        project = {
+            "id": "project-invalid-thumbnail",
+            "title": "잘못된 썸네일 프로젝트",
+            "thumbnail_url": "javascript:alert(1)",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-auto-cover", rendered)
+        self.assertNotIn("folio-home-card-has-thumbnail", rendered)
+        self.assertNotIn("folio-home-card-cover-image", rendered)
+
     def test_author_organization_is_shown_when_present(self) -> None:
         project = {
             "id": "project-456",
@@ -92,6 +122,18 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn("folio-home-card-has-preview", rendered)
         self.assertIn("folio-home-card-preview", rendered)
         self.assertIn('data-folio-preview-src="https://example.com/report"', rendered)
+        self.assertIn("folio-home-card-preview-dashboard", rendered)
+
+    def test_card_uses_streamlit_preview_class_for_streamlit_app_url(self) -> None:
+        project = {
+            "id": "project-streamlit-preview",
+            "title": "스트림릿 미리보기 프로젝트",
+        }
+
+        rendered = render_project_card_html(project, preview_url="https://demo.streamlit.app?embed=true")
+
+        self.assertIn("folio-home-card-preview-streamlit", rendered)
+        self.assertNotIn("folio-home-card-preview-dashboard", rendered)
 
     def test_card_omits_hover_preview_without_preview_url(self) -> None:
         project = {
