@@ -37,6 +37,10 @@ CSS = """
     word-break: keep-all;
 }
 
+.folio-gallery-rail-highlight {
+    color: var(--folio-blue);
+}
+
 .folio-gallery-rail {
     display: flex;
     gap: 18px;

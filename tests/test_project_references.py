@@ -58,7 +58,7 @@ class ProjectReferenceTests(unittest.TestCase):
             ["datastudio"],
         )
 
-    def test_popular_tags_include_references_but_exclude_platform_menu_tags(self) -> None:
+    def test_popular_tags_exclude_references_and_platform_menu_tags(self) -> None:
         projects = [
             {"id": "tableau", "tags": ["Tableau", "인구 통계"]},
             {"id": "powerbi", "tags": ["Power BI", "매출 분석"]},
@@ -68,7 +68,7 @@ class ProjectReferenceTests(unittest.TestCase):
 
         self.assertEqual(
             _popular_tags_from_projects(projects),
-            ["인구 통계", "매출 분석", "고객 분석"],
+            ["고객 분석"],
         )
 
 

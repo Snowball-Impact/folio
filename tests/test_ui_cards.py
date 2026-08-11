@@ -1,8 +1,30 @@
 import unittest
 from datetime import UTC, datetime
 
+from folio_app.components.home_gallery import _rail_title_html
 from folio_app.components.portfolio_items import portfolio_item_html
 from folio_app.components.ui import _cover_variant, render_project_card_html
+
+
+class HomeGalleryRailTests(unittest.TestCase):
+    def test_rail_title_highlights_key_words(self) -> None:
+        self.assertIn(
+            '<span class="folio-gallery-rail-highlight">새로 공개</span>된 프로젝트',
+            _rail_title_html("recent", "새로 공개된 프로젝트를 먼저 살펴보세요."),
+        )
+        self.assertIn(
+            '<span class="folio-gallery-rail-highlight">조회수</span>가 높은 프로젝트',
+            _rail_title_html("views", "조회수가 높은 프로젝트를 빠르게 훑어보세요."),
+        )
+        self.assertIn(
+            '<span class="folio-gallery-rail-highlight">좋아요</span>를 많이 받은 프로젝트',
+            _rail_title_html("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요."),
+        )
+
+    def test_rail_title_escapes_unhighlighted_text(self) -> None:
+        rendered = _rail_title_html("custom", "위험 <script>")
+
+        self.assertEqual(rendered, "위험 &lt;script&gt;")
 
 
 class AutomaticProjectCoverTests(unittest.TestCase):

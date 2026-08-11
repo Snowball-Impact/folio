@@ -11,21 +11,31 @@
 **FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
 핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
 
-2026-08 기준 제품 방향은 `docs/PRD.md` v2.0을 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 큐레이션형 Visual Gallery MVP로 단계적으로 전환하는 것이다.
+2026-08 기준 제품 방향은 `docs/PRD.md` v1.5를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI Embedded/PBIX 게시 흐름과 데이터 시각화 갤러리 경험을 단계적으로 결합하는 것이다.
 
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
 
-### PRD v2.0 전환 기준
+### PRD v1.5 전환 기준
 
-- 초기 콘텐츠 범위는 Tableau Public과 Streamlit 중심의 공개 데이터 시각화 프로젝트다.
-- 사용자의 직접 프로젝트 등록보다 운영자 선별·편집 콘텐츠 공급을 우선한다.
+- 초기 콘텐츠 범위는 Power BI Embedded 기술 검증과 Tableau/Public Streamlit/Looker Studio 중심의 공개 데이터 시각화 프로젝트다.
+- 사용자의 직접 프로젝트 등록은 유지하되, Power BI 프로젝트는 Embedded Viewer와 PBIX 게시 흐름으로 단계적으로 제품화한다.
 - 프로젝트 상세는 `Hero -> Project Preview -> Project Summary -> Data & Analysis -> Source & Links -> Comments` 순서를 기준으로 한다.
 - 임베드 실패는 예외가 아니라 정상 상태다. `embed_supported`, `external_link_only`, `embed_failed` 상태를 모델과 UI에서 구분해야 한다.
 - 도구보다 주제를 우선한다. 갤러리 필터는 주제 카테고리와 플랫폼 필터를 함께 제공한다.
 - 원본 프로젝트, 원작자, 원본 플랫폼, 원본 URL, FOLIO 편집·요약 표시를 명확히 노출한다.
-- 프로젝트 등록은 당장 직접 게시가 아니라 등록 요청과 운영자 승인 흐름으로 전환하는 것이 목표다.
+- 관리자 사전 승인 흐름은 만들지 않고, 부적절한 프로젝트는 사후 관리한다.
+- Power BI Embed Token과 Client Secret은 서버 전용이며 DB와 클라이언트에 영구 노출하지 않는다.
+- PBIX는 임시 처리 후 Power BI Import가 끝나면 삭제하고, Supabase Storage에 영구 보관하지 않는다.
+- PBIX 업로드는 등록/수정 완료 버튼을 눌렀을 때 실행하며, 실패하면 프로젝트 생성/수정은 보류하고 입력 초안을 유지한다.
+- PBIX 최대 파일 크기는 10MB로 제한한다.
+- 수정 시 새 PBIX Import가 성공하면 기존 프로젝트 ID, 댓글, 조회수, 좋아요, 상세 URL은 유지하고 `powerbi_reports` 메타데이터만 교체한다. 실패하면 기존 Power BI 게시본은 유지한다.
+- Power BI Import polling은 MVP에서 최대 10초로 제한한다.
+- 프로젝트 유형 후보는 Power BI, Tableau, Looker Studio, Streamlit, Notebook, HTML Report, Markdown Report, Web/App, 기타다.
+- HTML Report는 sandbox iframe으로만 표시하고, Markdown Report는 sanitize 후 렌더링한다. Notebook은 MVP에서 서버 실행/변환하지 않고 GitHub 또는 nbviewer URL 등록을 우선한다.
+- GitHub 연동은 Todo로만 둔다. 초기 아이디어는 public GitHub repo/file URL 기반 README 또는 파일 감지와 폼 자동 채움이며, OAuth/GitHub App/private repo import는 MVP 제외다.
+- 소셜미디어 링크는 Todo로 둔다. Instagram, YouTube, Threads, Facebook, Blog, LinkedIn, X 등은 프로젝트 링크와 제작자 프로필 링크를 구분해 안전한 외부 URL로 표시하는 방향이다.
 
 ---
 
@@ -117,20 +127,22 @@ folio_app/
 
 ---
 
-## PRD v2.0 전환 갭
+## PRD v1.5 전환 갭
 
-현재 구현은 사용자 작성 프로젝트 포트폴리오 플랫폼에 가깝고, PRD v2.0은 운영자 큐레이션 기반 데이터 시각화 갤러리를 우선한다. 큰 방향은 맞지만 아래 항목은 아직 전환이 필요하다.
+현재 구현은 사용자 작성 프로젝트 포트폴리오 플랫폼에 가깝고, PRD v1.5는 Power BI Embedded/PBIX 게시 제품화와 데이터 시각화 갤러리 경험을 함께 우선한다. 큰 방향은 맞지만 아래 항목은 아직 전환이 필요하다.
 
 ### 데이터 모델
 
 현재 `projects`는 `author_id`, `one_liner`, `problem`, `dataset`, `process`, `insights`, `power_bi_url`, `report_url`, `github_url`, `thumbnail_url`, `thumbnail_mode`, `tags`, `is_public` 중심이다.
 
-PRD v2.0 전환에 필요한 필드:
+PRD v1.5 전환에 필요한 필드:
 
 - `summary` 또는 기존 `one_liner`의 의미 재정의
 - `topic_category`
 - `project_format`
 - `platform`
+- `project_type`: `powerbi`, `tableau`, `looker`, `streamlit`, `web`, `other`
+- `status`: `processing`, `published`, `failed`, `deleted`
 - `creator_name`
 - `creator_url`
 - `source_url`
@@ -138,45 +150,48 @@ PRD v2.0 전환에 필요한 필드:
 - `data_source`
 - `embed_status`: `supported`, `external_only`, `failed`
 - `source_type`: `curated`, `submitted`, `creator_owned`
-- `publication_status`: `draft`, `review`, `published`, `hidden`
 - `published_at`
+- `deleted_at`
+- `powerbi_reports` 테이블: `workspace_id`, `report_id`, `dataset_id`, `embed_url`, `import_id`, `import_status`
 
-기존 프로젝트 설명 필드(`problem`, `dataset`, `process`, `insights`)는 PRD v2.0의 `project_contents` 초안과 대부분 대응된다. 다만 `process`는 "분석 및 시각화", `insights`는 "주요 관찰 포인트"로 화면 문구를 바꿔야 한다.
+기존 프로젝트 설명 필드(`problem`, `dataset`, `process`, `insights`)는 PRD v1.5의 상세 설명 구조와 대부분 대응된다. 다만 `process`는 "분석 및 시각화", `insights`는 "주요 관찰 포인트"로 화면 문구를 바꿔야 한다.
 
 ### 갤러리
 
-현재 홈은 태그 중심 검색·정렬과 최근/조회/좋아요 레일을 제공한다. PRD v2.0에서는 주제 카테고리 필터, 플랫폼 필터, 최신순 목록, 에디터 추천/신규/주제별/플랫폼별 섹션이 필요하다.
+현재 홈은 태그 중심 검색·정렬과 최근/조회/좋아요 레일을 제공한다. PRD v1.5에서는 기존 레퍼런스 갤러리를 유지하되, Power BI 프로젝트를 실제 Embedded로 체험할 수 있는 흐름이 중요하다.
 
 우선순위:
 
-1. 기존 태그 필터는 유지하되 `topic_category`, `platform` 필터를 추가한다.
-2. 카드에 주제 카테고리, 플랫폼, 제작자, 댓글 수를 표시한다.
-3. 좋아요/인기 프로젝트는 P1로 내려가므로 핵심 갤러리에서 과하게 강조하지 않는다.
+1. 기존 태그 필터와 플랫폼 필터를 유지한다.
+2. 카드에 주제 카테고리, 플랫폼, 제작자, 댓글 수, Power BI 처리 상태를 단계적으로 표시한다.
+3. 레퍼런스와 사용자 직접 등록 프로젝트가 한 화면에서 혼동되지 않도록 출처와 프로젝트 유형을 명확히 표시한다.
 
 ### 상세 페이지
 
-현재 상세는 Power BI iframe 또는 외부 링크 중심이며, 작성자 포트폴리오 맥락이 강하다. PRD v2.0 기준 상세는 원작자·원본 플랫폼·원본 URL·FOLIO 편집 표시와 임베드 실패 fallback이 핵심이다.
+현재 상세는 Power BI iframe 또는 외부 링크 중심이며, 작성자 포트폴리오 맥락이 강하다. PRD v1.5 기준 상세는 Power BI Embedded Viewer, 원작자·원본 플랫폼·원본 URL, 임베드 실패 fallback이 핵심이다.
 
 우선순위:
 
 1. `power_bi_url` 중심 명명을 범용 `embed_url`/`source_url` 개념으로 확장한다.
-2. `embed_status`에 따라 iframe, 대표 이미지 fallback, 외부 실행 버튼을 분기한다.
-3. 상세 본문 섹션 제목을 문제 정의, 사용 데이터, 분석 및 시각화, 주요 관찰 포인트로 표준화한다.
-4. Source & Links 섹션에 원본 프로젝트, 제작자 프로필, GitHub, 데이터 출처, 관련 보고서를 노출한다.
+2. Power BI Embedded는 서버에서 Embed Token을 동적 발급하고 클라이언트에는 secret을 노출하지 않는다.
+3. `embed_status`와 `status`에 따라 iframe, Embedded Viewer, 대표 이미지 fallback, 외부 실행 버튼을 분기한다.
+4. 상세 본문 섹션 제목을 문제 정의, 사용 데이터, 분석 및 시각화, 주요 관찰 포인트로 표준화한다.
+5. Source & Links 섹션에 원본 프로젝트, 제작자 프로필, GitHub, 데이터 출처, 관련 보고서를 노출한다.
 
 ### 등록 흐름
 
-현재 `Submit`은 로그인 사용자가 프로젝트를 직접 게시한다. PRD v2.0 P0에서는 사용자가 직접 게시하지 않고 프로젝트 URL을 제출하며, 운영자가 승인한다.
+현재 `Submit`은 로그인 사용자가 프로젝트를 직접 게시한다. PRD v1.5에서는 관리자 사전 승인 없이 직접 게시를 유지하되, Power BI 프로젝트는 `processing -> published/failed` 상태를 거친다.
 
 우선순위:
 
-1. 기존 직접 등록은 운영자용 등록/수정 흐름으로 재정의하거나 관리자 권한으로 제한한다.
-2. 일반 사용자용 `project_submissions` 요청 테이블과 등록 요청 화면을 추가한다.
-3. 요청 상태는 `pending`, `reviewing`, `approved`, `rejected`로 관리한다.
+1. 프로젝트 유형 선택을 추가한다.
+2. 대표 썸네일 업로드를 우선 구현한다.
+3. Power BI 선택 시 PBIX 업로드와 Import 상태 표시를 추가한다.
+4. PBIX는 임시 처리 후 Power BI Import 성공 시 삭제하며 Supabase Storage에 영구 보관하지 않는다.
 
 ### 댓글
 
-현재 댓글, 1단계 답글, 삭제, 알림, 이메일 알림은 구현되어 있다. PRD v2.0 P0의 "본인 댓글 수정"은 아직 없다.
+현재 댓글, 1단계 답글, 삭제, 알림, 이메일 알림은 구현되어 있다. PRD v1.5의 최소 커뮤니티 Gap은 "본인 댓글 수정"과 관리자 사후 삭제 정책이다.
 
 우선순위:
 
@@ -185,13 +200,13 @@ PRD v2.0 전환에 필요한 필드:
 
 ### 분석 이벤트
 
-현재 GA page view, 공유 링크 진입, 좋아요, 등록 등 일부 이벤트가 있다. PRD v2.0에서는 카드 클릭, 상세 조회, 임베드 또는 원본 실행 클릭, 댓글 작성, 등록 요청 제출이 P0다.
+현재 GA page view, 공유 링크 진입, 좋아요, 등록 등 일부 이벤트가 있다. PRD v1.5에서는 카드 클릭, 상세 조회, 임베드 또는 원본 실행 클릭, 댓글 작성, Power BI embed load/success/error, PBIX import success/failed가 중요하다.
 
 우선순위:
 
 1. 원본 실행 버튼 클릭 이벤트를 추가한다.
-2. 프로젝트 카드 클릭과 상세 조회 이벤트 이름을 v2.0 지표에 맞춰 정리한다.
-3. 등록 요청 제출 이벤트는 등록 요청 기능과 함께 추가한다.
+2. 프로젝트 카드 클릭과 상세 조회 이벤트 이름을 v1.5 지표에 맞춰 정리한다.
+3. Power BI Embedded와 PBIX Import 이벤트를 추가한다.
 
 ---
 
@@ -733,7 +748,7 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 
 ### 완료: Tableau Viz Gallery 1차 수집과 등록 (2026-08-11)
 
-PRD v2.0 전환을 위해 Tableau Viz Gallery의 공개 시각화 프로젝트를 실제 Share 패널 기준으로 수집했다. 최종 등록 결과는 27개 후보 중 23개다. 수집 CSV는 `docs/curation/tableau_gallery/all.csv`, 재사용 수집기는 `tools/collect_tableau_gallery.py`에 둔다.
+이전 Visual Gallery 전환 작업에서 Tableau Viz Gallery의 공개 시각화 프로젝트를 실제 Share 패널 기준으로 수집했다. 최종 등록 결과는 27개 후보 중 23개다. 수집 CSV는 `docs/curation/tableau_gallery/all.csv`, 재사용 수집기는 `tools/collect_tableau_gallery.py`에 둔다.
 
 - 첫 시도에서 URL 규칙으로 embed URL을 추정해 CSV를 만들었으나, 실제 Share 버튼에서 얻은 값이 아니므로 폐기했다. 앞으로 Tableau embed code는 실제 UI의 Share 패널에서 읽은 값만 사용한다.
 - Tableau Public 상세 페이지는 바깥 페이지와 내부 viz iframe으로 나뉜다. Share 버튼은 바깥 페이지에 있지만, Embed Code input과 Link input은 `public.tableau.com/views/...` iframe 내부에 열린다. 최상위 DOM만 보면 공유 패널이 열린 사실을 놓친다.

@@ -16,6 +16,7 @@ from folio_app.services.projects import (
 )
 from folio_app.services.project_references import (
     REFERENCE_PLATFORMS,
+    is_reference_project,
     reference_platform_for_project,
 )
 
@@ -93,7 +94,7 @@ def _project_rail_specs(
 ) -> list[tuple[str, str, list[dict]]]:
     return [
         ("recent", "새로 공개된 프로젝트를 먼저 살펴보세요.", recent_projects),
-        ("views", "많이 읽힌 프로젝트를 빠르게 훑어보세요.", viewed_projects),
+        ("views", "조회수가 높은 프로젝트를 빠르게 훑어보세요.", viewed_projects),
         ("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects),
     ]
 
@@ -109,6 +110,8 @@ def _popular_tags_from_projects(projects: list[dict], limit: int = 10) -> list[s
     excluded_tags = _platform_tag_exclusions()
     counter: Counter[str] = Counter()
     for project in projects:
+        if is_reference_project(project):
+            continue
         counter.update(
             tag
             for tag in project.get("tags") or []

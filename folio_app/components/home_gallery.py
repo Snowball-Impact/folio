@@ -190,6 +190,7 @@ def render_project_rail(
     )
     safe_rail_key = html.escape(rail_key, quote=True)
     safe_description = html.escape(description)
+    title_html = _rail_title_html(rail_key, description)
 
     st.markdown(
         f"""
@@ -203,7 +204,7 @@ def render_project_rail(
                     data-target="{safe_rail_key}"
                     data-direction="-1"
                 >‹</button>
-                <h3>{safe_description}</h3>
+                <h3>{title_html}</h3>
                 <button
                     class="folio-rail-scroll-button"
                     type="button"
@@ -219,6 +220,24 @@ def render_project_rail(
         </div>
         """,
         unsafe_allow_html=True,
+    )
+
+
+def _rail_title_html(rail_key: str, description: str) -> str:
+    highlights = {
+        "recent": "새로 공개",
+        "views": "조회수",
+        "likes": "좋아요",
+    }
+    highlight = highlights.get(rail_key)
+    if not highlight or highlight not in description:
+        return html.escape(description)
+
+    before, after = description.split(highlight, 1)
+    return (
+        f"{html.escape(before)}"
+        f'<span class="folio-gallery-rail-highlight">{html.escape(highlight)}</span>'
+        f"{html.escape(after)}"
     )
 
 
