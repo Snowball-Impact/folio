@@ -1,10 +1,10 @@
 # FOLIO 아키텍처
 
-이 문서는 FOLIO의 실행 구조, 모듈 경계, 인증 상태와 데이터 흐름을 포트폴리오 관점에서 설명한다.
+이 문서는 FOLIO의 실행 구조, 모듈 경계, 인증 상태와 데이터 흐름을 현재 데이터 시각화 커뮤니티 관점에서 설명한다.
 
 ## 1. 시스템 개요
 
-FOLIO는 데이터 분석 프로젝트를 등록·탐색·공유하는 Streamlit 기반 웹 애플리케이션이다. UI와 서버 렌더링은 Streamlit이 담당하고, Supabase가 인증·PostgreSQL·RLS를 제공한다.
+FOLIO는 공개 데이터 시각화 레퍼런스와 사용자 등록 프로젝트를 탐색·공유하는 Streamlit 기반 웹 애플리케이션이다. UI와 서버 렌더링은 Streamlit이 담당하고, Supabase가 인증·PostgreSQL·RLS·Storage를 제공한다.
 
 ```mermaid
 flowchart LR
@@ -48,7 +48,9 @@ flowchart TB
     subgraph Application[Application Services]
         AuthService[services/auth.py facade<br/>auth_session/account/restore/reset]
         ProfileService[services/profiles.py]
-        ProjectService[services/projects.py facade<br/>project_queries/mutations/normalizers]
+    ProjectService[services/projects.py facade<br/>project_queries/mutations/normalizers]
+    ReferenceService[services/project_references.py]
+    ThumbnailService[services/project_thumbnails.py]
         CommentService[services/comments.py facade<br/>comment_queries/mutations/reads/stats]
         NotificationService[services/notifications.py<br/>email_notifications.py]
         Sanitizer[services/project_content.py]
@@ -71,10 +73,12 @@ flowchart TB
     PageModules --> AuthService
     PageModules --> ProfileService
     PageModules --> ProjectService
+    PageModules --> ReferenceService
     PageModules --> CommentService
     PageModules --> NotificationService
     Forms --> Sanitizer
     Forms --> ProjectService
+    Forms --> ThumbnailService
     DetailComponents --> ProjectService
     DetailComponents --> CommentService
     AuthComponents --> AuthService
@@ -121,7 +125,7 @@ flowchart TD
     Onboarding -- 예 --> Route --> Render
 ```
 
-파일 기반 멀티페이지 대신 `st.query_params["page"]`를 사용한다. 내부 이동은 `navigation.navigate()`가 query 초기화와 `st.rerun()`을 함께 처리해 Streamlit 세션을 보존한다. 공개 프로젝트 카드 링크만 브라우저 링크를 허용한다.
+파일 기반 멀티페이지 대신 `st.query_params["page"]`를 사용한다. 내부 이동은 `navigation.navigate()`가 query 초기화와 `st.rerun()`을 함께 처리해 Streamlit 세션을 보존한다. 공개 프로젝트 카드 링크와 레퍼런스 카드 링크는 공유 가능한 브라우저 URL을 유지한다.
 
 ## 4. 인증과 세션 구조
 
@@ -176,6 +180,8 @@ flowchart LR
 
 공개 프로젝트 원본을 일정 시간 캐시한 뒤 검색·태그·정렬은 복사본에 적용한다. 프로젝트 CRUD, 조회수 증가, 좋아요 변경 후에는 관련 캐시를 즉시 무효화한다.
 
+레퍼런스 목록은 같은 공개 프로젝트 원본에서 태그와 URL marker를 기준으로 플랫폼을 분류한다. `Reference` 페이지는 최초 12개를 렌더링하고, 하단 도달 시 `visible` query parameter를 늘려 같은 Python 렌더 경로에서 다음 묶음을 표시한다. 자동 감지는 Streamlit의 실제 스크롤 컨테이너인 `section.stMain`에 이벤트를 묶고, iframe 안에서 상위 URL을 직접 바꾸지 않는다.
+
 ## 6. 보안 경계
 
 - 애플리케이션 검증과 별개로 데이터 접근의 최종 권한은 Supabase RLS가 결정한다.
@@ -183,6 +189,7 @@ flowchart LR
 - 프로젝트 본문 HTML은 저장 전과 출력 전 `sanitize_project_html()`로 정제한다.
 - 외부 URL은 `http/https`만 허용하고 Power BI iframe에서는 안전한 `src`만 추출한다.
 - `service_role` 키를 클라이언트·저장소·배포 Secrets에 사용하지 않는다.
+- 자동 캡처 썸네일은 Selenium/Chromium으로 서버에서 생성하고 Supabase Storage public bucket에 저장한다. 썸네일 모드를 기본 커버나 직접 URL로 바꾸면 기존 자동 캡처 파일을 삭제해 stale 이미지가 남지 않게 한다.
 
 ## 7. 배포 단위
 

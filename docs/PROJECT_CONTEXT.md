@@ -11,11 +11,12 @@
 **FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
 핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
 
-2026-08 기준 제품 방향은 `docs/PRD.md` v1.5를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI Embedded/PBIX 게시 흐름과 데이터 시각화 갤러리 경험을 단계적으로 결합하는 것이다.
+2026-08 기준 제품 방향은 `docs/MVP_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI Embedded/PBIX 게시 흐름과 데이터 시각화 갤러리 경험을 단계적으로 결합하는 것이다.
 
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
+- **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 `packages.txt` 기반 Chromium/Selenium 썸네일 자동 캡처를 실험하는 것이다.
 
 ### PRD v1.5 전환 기준
 
@@ -35,7 +36,7 @@
 - 프로젝트 유형 후보는 Power BI, Tableau, Looker Studio, Streamlit, Notebook, HTML Report, Markdown Report, Web/App, 기타다.
 - HTML Report는 sandbox iframe으로만 표시하고, Markdown Report는 sanitize 후 렌더링한다. Notebook은 MVP에서 서버 실행/변환하지 않고 GitHub 또는 nbviewer URL 등록을 우선한다.
 - GitHub 연동은 Todo로만 둔다. 초기 아이디어는 public GitHub repo/file URL 기반 README 또는 파일 감지와 폼 자동 채움이며, OAuth/GitHub App/private repo import는 MVP 제외다.
-- 소셜미디어 링크는 Todo로 둔다. Instagram, YouTube, Threads, Facebook, Blog, LinkedIn, X 등은 프로젝트 링크와 제작자 프로필 링크를 구분해 안전한 외부 URL로 표시하는 방향이다.
+- 소셜미디어 링크와 Kaggle은 Todo로 둔다. Instagram, YouTube, Threads, Facebook, Blog, LinkedIn, X, Kaggle 등은 프로젝트 링크와 제작자 프로필 링크를 구분해 안전한 외부 URL로 표시하는 방향이다.
 
 ---
 
@@ -407,6 +408,16 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - 프로젝트 HTML 정제, 본문 섹션 파싱, URL 정규화, 태그·검색 필터
 - 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. 상세 결과는 `docs/INTEGRATION_VALIDATION.md`를 참고한다.
 
+### Streamlit Community Cloud 배포
+
+- 현재 기본 배포 문서는 `docs/STREAMLIT_CLOUD_DEPLOYMENT.md`다.
+- 배포 Main file path는 루트 `app.py`다.
+- Linux 패키지는 `packages.txt`로 설치한다. 현재 자동 캡처 실험을 위해 `chromium`, `chromium-driver`가 들어 있다.
+- Streamlit Cloud Secrets에는 `CHROME_BINARY_PATH=/usr/bin/chromium`, `CHROMEDRIVER_PATH=/usr/bin/chromedriver`를 둔다.
+- `APP_URL`은 최종 `https://*.streamlit.app` 주소와 반드시 맞춰야 하며, Supabase Auth Site URL/Redirect URLs도 같은 값으로 갱신한다.
+- 완전한 커스텀 도메인은 직접 연결 대신 별도 정적 호스팅의 전체 iframe shell로 우회할 수 있다. 이 경우 인증 redirect, 쿠키, iframe 정책을 실제 배포에서 확인한다.
+- Community Cloud의 무료 런타임에서는 cold start, resource limit, hibernation 영향이 있을 수 있다. Chromium 자동 캡처가 불안정하면 관리자 배치 캡처 또는 별도 캡처 worker로 분리한다.
+
 ---
 
 ## 작업 원칙
@@ -598,7 +609,7 @@ Streamlit은 `st.markdown()`/`st.html()`로 넣은 `<script>`를 보안상 실�
 
 ### 계획 변경: 프로젝트 범위 확대와 댓글 MVP 단순화 (2026-08-01)
 
-기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이에 맞춰 `docs/PRD.md`의 제품 설명, 타깃 사용자, 차별화, 성공 지표를 갱신했다.
+기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이 내용은 현재 `docs/MVP_PRD.md`에 통합되어 있고, 당시 기준 PRD는 `docs/legacy/PRD.md`에 보존했다.
 
 #189 댓글 기능은 구조화 피드백 질문·유형·알림까지 한 번에 구현하지 않고, 먼저 단순 댓글과 1단계 대댓글로 실증한다. 1차 포함 범위는 댓글 작성·조회·삭제, 대댓글 작성, 작성자 배지, 댓글 수 표시다. 댓글 수정, 피드백 유형, 작성자 질문, 알림, 관리자 댓글 관리는 실제 사용 반응 확인 후 후속 이슈로 분리한다.
 
@@ -801,7 +812,11 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 홈 갤러리는 레퍼런스와 일반 프로젝트를 함께 노출한다. 검색 패널의 라디오 필터로 `전체`, `기타`, `Tableau`, `Power BI`, `Data Studio`, `Streamlit` 중 하나를 선택한다.
 - 홈 인기 태그 TOP10은 선택된 플랫폼 범위의 레퍼런스 콘텐츠까지 포함해 집계하되, 플랫폼 선택 메뉴와 중복되는 태그(`Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other` 등)는 제외한다.
 - 레퍼런스 페이지는 카드 그리드와 상세 페이지를 재사용한다. 상세에서 돌아갈 때 `platform` 파라미터를 유지한다.
-- 레퍼런스 페이지는 최초 12개 카드를 보여주고, 하단 스크롤 시 브라우저에서 다음 12개씩 표시한다. Streamlit hidden button + rerun 방식은 중간에 loading 상태가 잠길 수 있어 쓰지 않는다.
+- 레퍼런스 페이지는 최초 12개 카드를 보여주고, 하단 스크롤 시 `visible` 쿼리 파라미터를 12개씩 늘려 Streamlit rerun으로 다음 묶음을 렌더링한다. 자동 스크롤 스크립트는 `components.html` iframe에서 실행되므로 상위 URL을 직접 변경하지 않고, 화면에 있는 Streamlit "더 보기" 버튼을 클릭해 같은 콜백을 태운다.
+- 브라우저 검증 교훈: Streamlit 페이지의 실제 스크롤 컨테이너는 `window`가 아니라 `section.stMain`일 수 있다. 무한스크롤이나 sticky UI를 고칠 때는 먼저 Selenium/브라우저 계측으로 `scrollHeight`, `clientHeight`, `scrollTop`, sentinel 위치, iframe sandbox 오류를 확인한다.
+- 레퍼런스 히어로는 홈 히어로 shell 기준(surface, border, 16px radius, grid, `28px 42px 34px` padding, `220px` min-height)을 따른다. eyebrow/title/description의 타이포그래피도 홈 히어로와 맞춘다.
+- 레퍼런스 히어로 타이틀은 숫자 span만 파랑, 나머지 문장은 네이비다. Streamlit Markdown heading이 내부 span을 추가할 수 있으므로 class를 분리해 색을 고정한다.
+- 우측 플랫폼 로고는 헤더 nav 우측 기준선에 맞춘다. 로고 이미지는 `width: auto`와 `max-width`/`max-height`를 사용한다. 고정 width와 `object-fit: contain` 조합은 Power BI처럼 내부 여백이 없는 에셋에서도 이미지 박스 내부 여백을 만들 수 있다.
 - 프로젝트 등록/수정 폼에는 `플랫폼` 라디오를 태그 입력 아래에 둔다. 별도 DB 컬럼이 아직 없으므로 선택한 플랫폼은 공식 플랫폼 태그로 정규화해 저장한다. 예: `Data Studio` 선택 + `고객 분석` 태그 입력 → `["Data Studio", "고객 분석"]`.
 
 검증:
@@ -809,4 +824,5 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 앱 서비스 기준 공개 프로젝트 368개 중 파워BI 99개, 스트림릿 163개, 태블로 23개, 데이터스튜디오 80개, 기타 1개로 분배
 - `python -m compileall -q folio_app tests`
 - `python -m unittest tests.test_project_form tests.test_project_references tests.test_detail_components tests.test_project_queries -v`
-- `http://localhost:8501/?page=Reference&platform=datastudio`에서 무한스크롤 `12 -> 24 -> 36 -> 48 -> 60` 로드 확인
+- `http://localhost:8501/?page=Reference&platform=datastudio`에서 무한스크롤 `12 -> 36 -> 48 -> 60 -> 72 -> 80` 로드 확인. 마지막에는 "더 보기" 버튼이 사라지고 "모든 레퍼런스를 불러왔습니다."만 표시된다.
+- `powerbi`, `datastudio`, `tableau`, `streamlit` 레퍼런스 히어로에서 로고 우측 기준과 타이틀 색상 확인. Power BI 로고는 실제 렌더 폭 약 358px로 줄고, 로고 우측과 wrapper 우측 차이는 0px이다.

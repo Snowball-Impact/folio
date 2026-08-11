@@ -16,7 +16,6 @@ from folio_app.services.projects import (
 )
 from folio_app.services.project_references import (
     REFERENCE_PLATFORMS,
-    is_reference_project,
     reference_platform_for_project,
 )
 
@@ -110,8 +109,6 @@ def _popular_tags_from_projects(projects: list[dict], limit: int = 10) -> list[s
     excluded_tags = _platform_tag_exclusions()
     counter: Counter[str] = Counter()
     for project in projects:
-        if is_reference_project(project):
-            continue
         counter.update(
             tag
             for tag in project.get("tags") or []

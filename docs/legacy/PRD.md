@@ -151,7 +151,7 @@ MVP는 Supabase Free Tier 범위 내 운영을 기본 원칙으로 한다.
 ```text
 Users
   ↓
-FOLIO / Streamlit or Render
+FOLIO / Streamlit Community Cloud
   ├──────────────→ Power BI REST API / Embedded
   ↓
 Supabase
@@ -170,7 +170,7 @@ Local Windows Worker / Future Worker
 - **Power BI**: PBIX Import, Report, Semantic Model, Embed Token, Interactive Rendering
 - **Worker**: 향후 콘텐츠 수집, 썸네일 처리, 정제, 중복 제거, 로그
 
-배포는 Streamlit Community Cloud에서 시작할 수 있으나, Power BI Embedded/PBIX 처리와 Chrome 실행 필요성이 커지면 Render 같은 서버 제어권이 큰 환경을 검토한다.
+현재 무료 배포 채널은 Streamlit Community Cloud다. Power BI Embedded/PBIX 처리, Chrome 실행, 배치 수집의 안정성이 Community Cloud 한계를 넘으면 앱 전체 이전보다 캡처·수집 worker를 Cloud Run, Azure, Render Cron 같은 별도 런타임으로 분리하는 방식을 먼저 검토한다.
 
 ---
 
@@ -880,6 +880,7 @@ Facebook
 Blog / Brunch / Medium
 LinkedIn
 X
+Kaggle
 기타 개인 웹사이트
 ```
 

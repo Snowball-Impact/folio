@@ -137,7 +137,7 @@ def upload_project_thumbnail(project_id: str, image_bytes: bytes, client: Any | 
     storage = client.storage
     _ensure_public_bucket(storage, bucket_name)
 
-    path = f"projects/{_safe_storage_name(project_id)}/thumbnail.jpg"
+    path = _project_thumbnail_storage_path(project_id)
     storage.from_(bucket_name).upload(
         path,
         image_bytes,
@@ -147,7 +147,27 @@ def upload_project_thumbnail(project_id: str, image_bytes: bytes, client: Any | 
             "upsert": "true",
         },
     )
-    return storage.from_(bucket_name).get_public_url(path)
+    return _cache_busted_url(storage.from_(bucket_name).get_public_url(path))
+
+
+def delete_project_thumbnail_file(project_id: str, client: Any | None = None) -> bool:
+    client = client or get_supabase_service_role_client() or get_supabase_client()
+    if client is None:
+        raise RuntimeError("Supabase client is not configured.")
+
+    settings = get_settings()
+    bucket_name = settings.thumbnail_storage_bucket or "project-thumbnails"
+    path = _project_thumbnail_storage_path(project_id)
+    client.storage.from_(bucket_name).remove([path])
+    return True
+
+
+def try_delete_project_thumbnail_file(project_id: str) -> bool:
+    try:
+        return delete_project_thumbnail_file(project_id)
+    except Exception:
+        logger.exception("Failed to delete project thumbnail file")
+        return False
 
 
 def update_project_thumbnail_url(project_id: str, thumbnail_url: str) -> None:
@@ -198,6 +218,15 @@ def _ensure_public_bucket(storage: object, bucket_name: str) -> None:
                 "file_size_limit": "1048576",
             },
         )
+
+
+def _project_thumbnail_storage_path(project_id: str) -> str:
+    return f"projects/{_safe_storage_name(project_id)}/thumbnail.jpg"
+
+
+def _cache_busted_url(url: str) -> str:
+    separator = "&" if "?" in url else "?"
+    return f"{url}{separator}v={int(time.time())}"
 
 
 def _safe_storage_name(value: str) -> str:

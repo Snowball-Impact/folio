@@ -113,7 +113,9 @@ CSS = """
 }
 
 .st-key-home_platform_filters .stRadio label {
+    align-items: center;
     color: var(--folio-navy);
+    display: inline-flex;
     font-size: 0.84rem;
     font-weight: 700;
     min-height: 24px;
@@ -125,9 +127,13 @@ CSS = """
 }
 
 .st-key-home_platform_filters .stRadio p {
+    align-items: center;
+    display: inline-flex;
     font-size: inherit !important;
     font-weight: inherit !important;
-    line-height: 1 !important;
+    line-height: 18px !important;
+    margin: 0 !important;
+    min-height: 18px;
     white-space: nowrap;
 }
 

@@ -5,8 +5,8 @@ from typing import Any, Callable
 
 from postgrest.types import CountMethod, ReturnMethod
 
-from folio_app.services.project_normalizers import clean_project_payload
-from folio_app.services.project_thumbnails import maybe_capture_project_thumbnail
+from folio_app.services.project_normalizers import THUMBNAIL_MODE_CAPTURE, clean_project_payload
+from folio_app.services.project_thumbnails import maybe_capture_project_thumbnail, try_delete_project_thumbnail_file
 from folio_app.services.project_queries import _fetch_like_counts, _fetch_public_projects, clear_project_caches
 from folio_app.services.project_types import ProjectResult, ViewCountResult
 from folio_app.services.supabase_client import get_supabase_client
@@ -75,6 +75,8 @@ def update_project(
         if response.count == 0:
             return ProjectResult(False, "수정할 프로젝트를 찾을 수 없습니다.")
         capture_result = maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
+        if "thumbnail_mode" in data and data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
+            try_delete_project_thumbnail_file(project_id)
         clear_project_caches()
         return ProjectResult(True, _message_with_thumbnail_result("프로젝트가 수정되었습니다.", capture_result), project_id)
     except Exception as exc:
@@ -106,6 +108,7 @@ def delete_project(project_id: str, author_id: str) -> ProjectResult:
         )
         if not response.data:
             return ProjectResult(False, "삭제할 프로젝트를 찾을 수 없습니다.")
+        try_delete_project_thumbnail_file(project_id)
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 삭제되었습니다.", project_id)
     except Exception:

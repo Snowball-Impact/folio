@@ -230,37 +230,6 @@ CSS = """
     word-break: keep-all;
 }
 
-.folio-about-capabilities {
-    display: grid;
-    gap: 10px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    margin-top: 20px;
-    text-align: center;
-}
-
-.folio-about-capability {
-    background: #fbfdff;
-    border: 1px solid var(--folio-border);
-    border-radius: 8px;
-    min-height: 88px;
-    padding: 17px 18px;
-}
-
-.folio-about-capability strong {
-    color: var(--folio-navy);
-    display: block;
-    font-size: 15px;
-    margin-bottom: 8px;
-}
-
-.folio-about-capability span {
-    color: var(--folio-muted);
-    display: block;
-    font-size: 13px;
-    line-height: 1.55;
-    word-break: keep-all;
-}
-
 @media (max-width: 860px) {
     .folio-about-hero-caption {
         align-items: flex-start;
@@ -302,8 +271,7 @@ CSS = """
         flex-direction: column;
     }
 
-    .folio-about-service-flow,
-    .folio-about-capabilities {
+    .folio-about-service-flow {
         grid-template-columns: 1fr;
     }
 

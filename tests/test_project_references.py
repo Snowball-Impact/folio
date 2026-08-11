@@ -1,6 +1,7 @@
 import unittest
 
 from folio_app.pages.home import _filter_projects_by_platforms, _popular_tags_from_projects
+from folio_app.pages.reference import _next_visible_count
 from folio_app.services.project_references import (
     non_reference_projects,
     reference_platform_for_project,
@@ -58,7 +59,7 @@ class ProjectReferenceTests(unittest.TestCase):
             ["datastudio"],
         )
 
-    def test_popular_tags_exclude_references_and_platform_menu_tags(self) -> None:
+    def test_popular_tags_keep_reference_topic_tags_but_exclude_platform_menu_tags(self) -> None:
         projects = [
             {"id": "tableau", "tags": ["Tableau", "인구 통계"]},
             {"id": "powerbi", "tags": ["Power BI", "매출 분석"]},
@@ -68,8 +69,12 @@ class ProjectReferenceTests(unittest.TestCase):
 
         self.assertEqual(
             _popular_tags_from_projects(projects),
-            ["고객 분석"],
+            ["인구 통계", "매출 분석", "고객 분석"],
         )
+
+    def test_reference_load_more_count_is_capped_by_total(self) -> None:
+        self.assertEqual(_next_visible_count(12, 80), 24)
+        self.assertEqual(_next_visible_count(72, 80), 80)
 
 
 if __name__ == "__main__":

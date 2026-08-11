@@ -58,7 +58,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### 히어로
 
-홈, 등록, 마이페이지 히어로는 같은 기준을 따른다.
+홈, 등록, 마이페이지, 레퍼런스 히어로는 같은 기준을 따른다.
 
 - surface 배경, 1px border, 16px radius
 - desktop padding: `28px 42px 34px`
@@ -67,6 +67,17 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 - CTA가 없는 서브페이지는 홈 히어로와 시각 기준선이 어긋나지 않게 보이지 않는 spacer를 둔다
 
 모바일에서는 오른쪽 visual이 화면을 길게 만들면 숨긴다. 카피는 중앙 정렬한다.
+
+### Reference Hero
+
+파일: `folio_app/pages/reference.py`, `folio_app/styles/reference.py`
+
+- shell은 홈 히어로의 surface, border, 16px radius, desktop padding, grid column 기준을 따른다.
+- eyebrow, title, description의 font-size, weight, line-height는 홈 히어로와 같은 값을 사용한다.
+- 타이틀 강조는 숫자만 `--folio-blue`로 처리하고, 나머지 문장은 `--folio-navy`를 유지한다.
+- 우측 플랫폼 로고는 헤더 nav의 우측 기준선과 맞춘다.
+- 로고 이미지는 `width: auto`와 `max-width`/`max-height`를 함께 사용한다. 고정 width와 `object-fit: contain`을 함께 쓰면 이미지 박스 내부 여백이 생겨 실제 로고가 오른쪽 기준선에서 떠 보일 수 있다.
+- 플랫폼 탭은 로고 아래에 두고, 목록 필터 역할을 하므로 카드형 section이나 설명 카드로 확장하지 않는다.
 
 ### 섹션
 

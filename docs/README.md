@@ -14,7 +14,7 @@
 
 | 문서 | 설명 |
 |---|---|
-| [PRD.md](PRD.md) | 제품 문제, 사용자, MVP 범위와 성공 기준 |
+| [MVP_PRD.md](MVP_PRD.md) | 제품 문제, 사용자, MVP 범위와 성공 기준을 통합한 현재 기준 PRD |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 시스템 구성, 계층, 인증·캐시·배포 구조 |
 | [USER_FLOWS.md](USER_FLOWS.md) | 회원가입, 온보딩, 프로젝트 등록·탐색·관리 사용자 여정 |
 | [DATA_MODEL.md](DATA_MODEL.md) | ERD, 관계·삭제 규칙, RLS 행렬, trigger와 RPC |
@@ -25,13 +25,22 @@
 | 문서 | 설명 |
 |---|---|
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
+| [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | Streamlit Community Cloud 배포, Chromium/Selenium 캡처 실험, 커스텀 도메인 iframe 우회 기준 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
+
+## 큐레이션 데이터
+
+| 위치 | 설명 |
+|---|---|
+| [curation/tableau_gallery/](curation/tableau_gallery/) | Tableau Gallery 수집 결과와 수집 방식 |
+| [curation/looker_studio_gallery/](curation/looker_studio_gallery/) | Looker Studio/Data Studio Gallery 수집 결과와 skip 로그 |
+| [curation/streamlit_gallery/](curation/streamlit_gallery/) | Streamlit Gallery 수집 결과 CSV |
 
 ## Legacy
 
 | 위치 | 설명 |
 |---|---|
-| [legacy/](legacy/) | 초안, 완료 체크리스트, 이전 와이어프레임, 과거 상세 개선 기록 |
+| [legacy/](legacy/) | 초안, 완료 체크리스트, 이전 와이어프레임, 과거 상세 개선 기록, 이전 PRD |
 
 `legacy/` 문서는 당시 맥락 보존용이다. 현재 구현 기준과 충돌하면 `PROJECT_CONTEXT.md`, 실제 코드, 스키마 순으로 확인한다.

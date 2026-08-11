@@ -1,8 +1,8 @@
 # FOLIO
 
-발표로 끝나지 않는 프로젝트.
+좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 자산으로 축적하고 공유하는 Streamlit + Supabase 기반 MVP입니다.
+FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록한 프로젝트를 함께 탐색·공유하는 Streamlit + Supabase 기반 MVP입니다. 현재 구현은 기존 포트폴리오 기능을 유지하면서 Tableau, Power BI, Looker Studio/Data Studio, Streamlit 레퍼런스 탐색을 확장하는 방향입니다.
 
 ## 현재 구현 범위
 
@@ -12,9 +12,11 @@ FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 �
 - 사용자 프로필 자동 생성, 조회 및 수정
 - 프로젝트 등록, 수정, 삭제
 - Quill 자유 입력 본문과 기본 정보 옆 실시간 카드 미리보기 기반 프로젝트 작성
-- 홈 화면 안의 태그 중심 프로젝트 탐색
+- 홈 화면 안의 검색·태그·플랫폼 중심 프로젝트 탐색
 - 검색, 태그 필터, 최신순/조회수순/좋아요순 정렬
 - 최근 등록순·조회순·좋아요순 홈 카드 레일
+- 플랫폼별 레퍼런스 서브페이지와 레퍼런스 상세 복귀
+- 레퍼런스 페이지의 브라우저 기반 증분 로딩
 - 홈 카드 hover 기반 Power BI 미리보기
 - Home 안에서 `project_id` 쿼리 기반 상세 페이지 렌더링
 - 경기청년 갭이어 2026과 Snowball Impact를 소개하는 서비스 소개 페이지
@@ -106,6 +108,8 @@ folio_app/app.py
 |---|---|---|
 | `/` 또는 `?page=Home` | 홈, 검색, 태그 필터, 프로젝트 목록 | `pages/home.py:render()` |
 | `?page=Home&project_id=...` | 프로젝트 상세 | `pages/project_detail.py:render()` |
+| `?page=Reference&platform=...` | 플랫폼별 레퍼런스 목록 | `pages/reference.py:render()` |
+| `?page=Reference&project_id=...` | 레퍼런스 상세 | `pages/project_detail.py:render()` |
 | `?page=About` | 서비스 소개 | `pages/about.py:render()` |
 | `?page=Login` | 로그인 | `pages/auth.py:render_login()` |
 | `?page=Sign+Up` | 회원가입, 인증 메일 재발송 | `pages/auth.py:render_signup()` |
@@ -135,7 +139,8 @@ folio_app/app.py
 
 | 파일 | 역할 |
 |---|---|
-| `folio_app/pages/home.py` | 홈 히어로, 검색·태그·정렬 폼, 공개 프로젝트 카드 목록 렌더링 |
+| `folio_app/pages/home.py` | 홈 히어로, 검색·태그·플랫폼 필터, 공개 프로젝트 카드 목록 렌더링 |
+| `folio_app/pages/reference.py` | 플랫폼별 레퍼런스 히어로, 탭, 카드 그리드, 증분 로딩 렌더링 |
 | `folio_app/pages/about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO 소개와 VISION 렌더링 |
 | `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, 댓글, Power BI, 첨부 링크 렌더링 |
 | `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
@@ -175,6 +180,8 @@ folio_app/app.py
 | `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
 | `folio_app/services/projects.py` | 프로젝트 public facade. 기존 import 경로를 유지하며 query/mutation/normalizer/type 모듈을 re-export |
 | `folio_app/services/project_queries.py`, `project_mutations.py`, `project_normalizers.py`, `project_types.py` | 공개 목록·검색·정렬·캐시, CRUD·조회수·좋아요, payload/URL 정규화, 결과 타입 |
+| `folio_app/services/project_references.py` | Tableau, Power BI, Data Studio, Streamlit 레퍼런스 분류 기준 |
+| `folio_app/services/project_thumbnails.py` | 직접 URL·기본 커버·Selenium 자동 캡처 썸네일 처리 |
 | `folio_app/services/comments.py` | 댓글 public facade. 기존 import 경로를 유지하며 조회/작성/읽음/통계 모듈을 re-export |
 | `folio_app/services/comment_queries.py`, `comment_mutations.py`, `comment_reads.py`, `comment_stats.py`, `comment_utils.py`, `comment_types.py` | 댓글 조회·작성·삭제, 댓글 읽음 상태, 댓글 수·최신 댓글 캐시, 트리 구성, 결과 타입 |
 | `folio_app/services/notifications.py` | 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 읽음 처리 |
@@ -240,7 +247,7 @@ Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용�
 - 개발 정책과 교훈: [`docs/ENGINEERING_PLAYBOOK.md`](docs/ENGINEERING_PLAYBOOK.md)
 - 작업 전 현재 컨텍스트: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 - 디자인 시스템: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
-- 제품/기획 개요: [`docs/PRD.md`](docs/PRD.md)
+- 제품/기획 개요: [`docs/MVP_PRD.md`](docs/MVP_PRD.md)
 - Supabase 설정: [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
 - Streamlit Cloud 배포와 캡처 실험: [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)
 - 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)

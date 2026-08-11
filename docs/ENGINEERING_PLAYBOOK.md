@@ -125,14 +125,24 @@
 - 비어 있는 상태, 로딩 실패, 실제 데이터 없음은 서로 다른 메시지와 재시도 흐름을 제공한다.
 - 모바일 임베드 콘텐츠는 내부 스크롤과 화면 길이를 확인하고 필요하면 외부 열기 중심으로 단순화한다.
 
-## 9. 캐시 정책
+## 9. Streamlit 브라우저 테스트 체크리스트
+
+- in-app browser 세션이 없으면 곧바로 로컬 Chrome/Selenium으로 대체하되, 먼저 `localhost:8501` 서버와 포트 중복 여부를 확인한다.
+- 스크롤 문제는 `window.scrollY`를 기준으로 단정하지 않는다. `section.stMain`, `[data-testid="stMain"]`, `.block-container` 등 실제 스크롤 가능한 요소의 `scrollHeight`, `clientHeight`, `scrollTop`을 먼저 측정한다.
+- sentinel 기반 무한스크롤은 sentinel의 `getBoundingClientRect()`와 실제 스크롤 컨테이너 위치를 함께 기록한다.
+- `components.html` 스크립트는 iframe sandbox 안에서 실행된다. 상위 페이지 URL 변경, top navigation, 직접 reload는 브라우저 정책에 막힐 수 있으므로 Streamlit 버튼 클릭, query param 콜백, `st.rerun()`처럼 앱 내부 동작을 태운다.
+- 자동 로딩과 수동 fallback 버튼은 같은 Python 콜백을 공유하게 만든다. 둘이 별도 상태를 가지면 남은 개수, 버튼 노출, 마지막 상태가 쉽게 어긋난다.
+- 브라우저 로그에서 `Unsafe attempt to initiate navigation`, `sandbox`, iframe 관련 오류가 보이면 JavaScript 권한 문제가 원인 후보 1순위다.
+- 완료 검증은 시작 상태, 1회 로딩 후 상태, 마지막 상태를 모두 남긴다. 예: 카드 수, URL query, sentinel 문구, fallback 버튼 존재 여부.
+
+## 10. 캐시 정책
 
 - 캐시된 원본 row를 직접 수정하지 않는다. 필터·정렬 전 복사한다.
 - 프로젝트 CRUD, 조회수, 좋아요 변경 후 관련 캐시를 비운다.
 - 인기 태그처럼 같은 원본에서 계산할 수 있는 값은 추가 DB 요청을 만들지 않는다.
 - 캐시 TTL은 성능과 최신성의 의도적 절충이며 변경 이유를 문서에 남긴다.
 
-## 10. 진단 순서
+## 11. 진단 순서
 
 ```mermaid
 flowchart TD
@@ -159,6 +169,7 @@ flowchart TD
 7. hover 확대, iframe preview, transform 같은 강한 인터랙션은 필요한 화면에만 scope를 둔다. 홈 갤러리 카드 hover는 유효하지만, 등록 페이지의 카드 미리보기까지 같은 클래스를 공유하면 원치 않는 동작이 번진다.
 8. 보이는 UI를 custom component iframe에 넣고 Streamlit button과 한 줄에 섞는 구조는 마지막 수단이다. iframe viewport는 바깥 overflow를 보여줄 수 없어 폭 계산이 조금만 틀려도 clipping이 생긴다. 보이는 칩/버튼은 가능하면 페이지 DOM에 렌더링하고, iframe은 script bridge처럼 보이지 않는 기능에만 쓴다.
 9. Streamlit `horizontal=True` 컨테이너를 쓸 때는 실제 DOM에서 key class가 `stHorizontalBlock` 자체에 붙는지 확인한다. key class가 같은 노드에 붙었다면 selector는 `.st-key-name[data-testid="stHorizontalBlock"]` 형태여야 한다.
+10. 이미지 정렬 문제는 DOM 박스 좌표와 실제 이미지 비율을 분리해 본다. `object-fit: contain`과 고정 `width`를 함께 쓰면 PNG 내부 여백이 없어도 이미지 박스 안에 시각적 여백이 생긴다. 오른쪽 기준선에 맞춰야 하는 로고는 `width: auto`, `max-width`, `max-height` 조합을 우선한다.
 
 ### 인증·RLS 문제
 
@@ -168,7 +179,7 @@ flowchart TD
 4. 원격 RLS 정책이 최신인지 확인한다.
 5. 실제 테스트 계정으로 공개↔비공개와 작성자 권한을 검증한다.
 
-## 11. 검증 기준
+## 12. 검증 기준
 
 | 변경 위험도 | 최소 검증 |
 |---|---|
@@ -190,7 +201,7 @@ python -m pyflakes folio_app app.py
 
 `py_compile`/`compileall`은 문법만 검사하고 `NameError`(누락된 import 등)는 잡지 못한다. 특히 여러 파일에 걸쳐 새 함수 호출을 추가했다면(예: 여러 페이지에 `track_event()` 호출 추가), 그 함수를 실제로 실행하는 테스트가 없을 수 있으므로 `pyflakes`로 undefined-name을 정적으로 한 번 더 검사한다.
 
-## 12. 완료 정의
+## 13. 완료 정의
 
 작업은 다음 조건을 만족해야 완료다.
 
@@ -201,7 +212,7 @@ python -m pyflakes folio_app app.py
 - 원격 SQL이나 배포 설정이 필요하면 로컬 완료와 구분해 알렸다.
 - 구조·라우트·정책이 바뀌면 README와 관련 docs를 갱신했다.
 
-## 13. 주요 교훈
+## 14. 주요 교훈
 
 - **세션 사용자가 있다고 API도 인증된 것은 아니다.** Auth와 PostgREST 상태를 분리해서 본다.
 - **CSS가 적용됐다는 것과 원하는 요소가 움직였다는 것은 다르다.** 실제 좌표를 측정한다.
@@ -224,10 +235,12 @@ python -m pyflakes folio_app app.py
 - **리팩토링 후에는 최종 렌더 문자열까지 본다.** 함수 분리가 HTML 구조를 바꾸지 않는다고 가정하지 않는다. 홈 히어로처럼 `slide -> visual -> section` 조각을 합치는 구조에서는 최종 HTML에 불필요한 개행, 들여쓰기, 깨진 태그가 남아 Markdown 렌더링을 바꿀 수 있다.
 - **외부 갤러리 수집은 실제 UI에서 복사된 값을 기준으로 한다.** Tableau Viz Gallery처럼 Share 버튼이 제공하는 embed code는 URL 규칙으로 추정하지 않는다. Share 버튼은 바깥 페이지에 있어도 실제 Embed Code input은 viz iframe 내부에 열릴 수 있으므로, Selenium으로 iframe에 진입해 input 값을 읽는다.
 - **배치 수집은 항목 단위로 판단한다.** Tableau 수집에서 한 번에 전체를 돌린 뒤 판단하자 쿠키 배너, 로케일, WAF, 404, no-embed 상태가 뒤섞였다. 앞으로 외부 콘텐츠 수집은 항목 하나마다 `collected`, `skipped_*`, `error_*`를 기록하고 CSV를 즉시 저장한다.
-- **Streamlit 무한스크롤은 rerun 버튼 클릭보다 DOM 표시 전환이 안정적이다.** 숨겨둔 `st.button()`을 JS로 클릭해 12개씩 늘리는 방식은 rerun 타이밍과 충돌하면 sentinel의 loading 상태가 잠겨 더 이상 로드되지 않을 수 있다. 단순 카드 목록에서는 전체 카드 HTML을 렌더한 뒤 처음 일부만 보이게 하고, 하단 스크롤에서 다음 묶음의 hidden class를 제거하는 방식이 더 예측 가능하다.
+- **Streamlit 무한스크롤은 실제 스크롤 컨테이너와 iframe 권한을 먼저 확인한다.** 레퍼런스 페이지에서 `window` 기준 스크롤 감지와 iframe 안 URL 변경을 가정해 시간을 잃었다. 현재 검증된 구조는 `section.stMain` 같은 실제 scrollable element에 이벤트를 묶고, 자동 로더가 화면의 Streamlit "더 보기" 버튼을 클릭해 Python 콜백과 `st.rerun()`을 태우는 방식이다. 수동 버튼과 자동 로딩이 같은 콜백을 공유해야 남은 개수와 마지막 상태가 어긋나지 않는다.
+- **히어로 양식 통일은 텍스트 값만 맞추는 일이 아니다.** 홈 히어로와 맞춘다고 할 때는 shell의 `display`, grid columns, gap, padding, radius, min-height와 title의 실제 element type, global heading cascade까지 computed style로 비교한다.
+- **로고 여백은 에셋 내부 여백, 부모 컬럼, object-fit 박스 여백을 분리해서 본다.** Power BI 로고처럼 내부 여백이 없는 이미지도 고정 width 박스 안에서 `object-fit: contain`이 적용되면 실제 그림이 오른쪽 기준선에서 떠 보일 수 있다.
 - **플랫폼 분류값과 태그는 중복되지 않게 관리한다.** 별도 `platform` 컬럼이 없을 때는 등록 폼의 플랫폼 선택값을 공식 플랫폼 태그로 저장하되, 사용자가 직접 입력한 `PowerBI`, `Looker Studio` 같은 플랫폼성 태그는 정규화 과정에서 제거해 중복과 오분류를 막는다.
 
-## 14. GitHub 이슈 기반 작업 관리
+## 15. GitHub 이슈 기반 작업 관리
 
 모든 작업(버그, 기능, 완료된 작업 기록)은 GitHub 이슈로 관리한다.
 
@@ -236,7 +249,7 @@ python -m pyflakes folio_app app.py
 1. **분석**: 이슈 본문·스크린샷·댓글을 읽고 원인을 코드로 확인한다. 스크린샷은 필요하면 다운로드해 직접 본다.
 2. **범위 확인**: 원인과 대응 방향을 사용자에게 요약하고, 진행 여부·순서·범위는 반드시 사용자 확인을 받는다. "범위가 커?"처럼 정보만 묻는 질문에는 답하고 멈춘다 — "진행해" 같은 명시적 지시 전에는 코드를 고치지 않는다.
 3. **구현**: 승인된 범위 내에서만 구현한다. 진행 중 새로 발견한 관련 문제는 별도로 보고하고, 범위에 포함할지 사용자가 정하게 한다.
-4. **검증**: 위험도에 맞는 검증(11번 섹션)을 수행한다.
+4. **검증**: 위험도에 맞는 검증(12번 섹션)을 수행한다.
 5. **이슈 코멘트**: 원인과 조치 내용을 코멘트로 남긴다(무엇을 왜 고쳤는지, 관련 파일). 로컬에만 반영된 상태인지, 원격(DB/배포)까지 반영됐는지 구분해서 적는다.
 6. **닫기**: 사용자의 명시적인 확인("닫아", "커밋했으니 닫자" 등) 없이 이슈를 닫지 않는다. 코멘트만 먼저 남기고 닫을지 여부를 물어본다.
 

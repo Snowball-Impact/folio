@@ -31,6 +31,50 @@ class ProjectMutationTests(unittest.TestCase):
             returning=ReturnMethod.minimal,
         )
 
+    @patch("folio_app.services.project_mutations.try_delete_project_thumbnail_file")
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
+    @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_update_deletes_stored_thumbnail_when_switching_to_auto_cover(
+        self,
+        get_client,
+        _auth,
+        delete_thumbnail,
+    ) -> None:
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=None, count=1)
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = update_project("project-id", "author-id", {"thumbnail_mode": "auto_cover", "thumbnail_url": ""})
+
+        self.assertTrue(result.ok)
+        delete_thumbnail.assert_called_once_with("project-id")
+
+    @patch("folio_app.services.project_mutations.try_delete_project_thumbnail_file")
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
+    @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_partial_update_without_thumbnail_mode_does_not_delete_thumbnail(
+        self,
+        get_client,
+        _auth,
+        delete_thumbnail,
+    ) -> None:
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=None, count=1)
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = update_project("project-id", "author-id", {"is_public": False})
+
+        self.assertTrue(result.ok)
+        delete_thumbnail.assert_not_called()
+
 
 class FilterPublicProjectsTests(unittest.TestCase):
     def setUp(self) -> None:

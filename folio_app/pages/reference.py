@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import json
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -8,7 +9,6 @@ import streamlit.components.v1 as components
 from folio_app.components.assets import static_image_src
 from folio_app.components.home_gallery import project_card_html, render_card_preview_script, render_count_up_script
 from folio_app.components.ui import clean_html
-from folio_app.navigation import navigate
 from folio_app.pages import project_detail
 from folio_app.services.project_references import (
     DEFAULT_REFERENCE_PLATFORM_KEY,
@@ -21,6 +21,7 @@ from folio_app.services.projects import ProjectServiceError, clear_project_cache
 
 _REFERENCE_PAGE = "Reference"
 _REFERENCE_PAGE_SIZE = 12
+_VISIBLE_QUERY_PARAM = "visible"
 
 
 def render() -> None:
@@ -35,8 +36,6 @@ def render() -> None:
         return
 
     platform_key = _selected_platform_key()
-    platform = REFERENCE_PLATFORM_BY_KEY[platform_key]
-
     try:
         projects = reference_projects_for_platform(
             list_public_projects(sort="최신순", limit=500),
@@ -50,9 +49,9 @@ def render() -> None:
         return
 
     _render_reference_hero(platform_key, len(projects))
-    initial_visible_count = min(_REFERENCE_PAGE_SIZE, len(projects))
-    _render_reference_grid(projects, platform_key, initial_visible_count)
-    _render_incremental_loader(initial_visible_count, len(projects))
+    visible_count = _visible_reference_count(len(projects))
+    _render_reference_grid(projects, platform_key, visible_count)
+    _render_incremental_loader(platform_key, visible_count, len(projects))
 
 
 def _selected_platform_key() -> str:
@@ -60,6 +59,18 @@ def _selected_platform_key() -> str:
     if platform_key not in REFERENCE_PLATFORM_BY_KEY:
         return DEFAULT_REFERENCE_PLATFORM_KEY
     return platform_key
+
+
+def _visible_reference_count(total_count: int) -> int:
+    try:
+        current = int(st.query_params.get(_VISIBLE_QUERY_PARAM, _REFERENCE_PAGE_SIZE))
+    except (TypeError, ValueError):
+        current = _REFERENCE_PAGE_SIZE
+    return min(max(current, _REFERENCE_PAGE_SIZE), total_count)
+
+
+def _next_visible_count(current_count: int, total_count: int) -> int:
+    return min(current_count + _REFERENCE_PAGE_SIZE, total_count)
 
 
 def _render_reference_hero(platform_key: str, project_count: int) -> None:
@@ -72,9 +83,9 @@ def _render_reference_hero(platform_key: str, project_count: int) -> None:
         <section class="folio-reference-hero-shell">
             <div class="folio-reference-hero-copy">
                 <div class="folio-page-hero-eyebrow">Reference Library</div>
-                <div class="folio-reference-hero-title" role="heading" aria-level="1">
-                    <span data-folio-count-up="{project_count}">{project_count:,}</span>개의 공식 레퍼런스를 참고해보세요.
-                </div>
+                <h1 class="folio-reference-hero-title">
+                    <span class="folio-reference-hero-count" data-folio-count-up="{project_count}">{project_count:,}</span><span class="folio-reference-hero-title-text">개의 공식 레퍼런스를 참고해보세요.</span>
+                </h1>
                 <p>{safe_description}</p>
             </div>
             <div class="folio-reference-hero-visual" aria-label="{safe_label}">
@@ -128,9 +139,8 @@ def _render_reference_grid(projects: list[dict], platform_key: str, visible_coun
             project,
             platform_key,
             index,
-            is_visible=index < visible_count,
         )
-        for index, project in enumerate(projects)
+        for index, project in enumerate(projects[:visible_count])
     )
     st.markdown(
         f'<section class="folio-reference-grid" aria-label="레퍼런스 카드 목록">{cards_html}</section>',
@@ -139,20 +149,27 @@ def _render_reference_grid(projects: list[dict], platform_key: str, visible_coun
     render_card_preview_script()
 
 
-def _reference_card_slot_html(project: dict, platform_key: str, index: int, *, is_visible: bool) -> str:
-    hidden_class = "" if is_visible else " is-hidden"
+def _reference_card_slot_html(project: dict, platform_key: str, index: int) -> str:
     card_html = project_card_html(
         project,
         home_page=_REFERENCE_PAGE,
-        extra_query_params={"platform": platform_key},
+        extra_query_params=_reference_card_query_params(platform_key),
     )
     return (
-        f'<div class="folio-reference-card-slot{hidden_class}" '
+        '<div class="folio-reference-card-slot" '
         f'data-folio-reference-card data-reference-index="{index}">{card_html}</div>'
     )
 
 
-def _render_incremental_loader(visible_count: int, total_count: int) -> None:
+def _reference_card_query_params(platform_key: str) -> dict[str, str]:
+    params = {"platform": platform_key}
+    visible = st.query_params.get(_VISIBLE_QUERY_PARAM)
+    if visible:
+        params[_VISIBLE_QUERY_PARAM] = visible
+    return params
+
+
+def _render_incremental_loader(platform_key: str, visible_count: int, total_count: int) -> None:
     if visible_count >= total_count:
         st.markdown('<div class="folio-reference-end">모든 레퍼런스를 불러왔습니다.</div>', unsafe_allow_html=True)
         return
@@ -163,10 +180,19 @@ def _render_incremental_loader(visible_count: int, total_count: int) -> None:
         f'{remaining}개 더 볼 수 있습니다.</div>',
         unsafe_allow_html=True,
     )
-    _render_auto_load_script()
+    if st.button(
+        f"{min(_REFERENCE_PAGE_SIZE, remaining)}개 더 보기",
+        key=f"reference_load_more_{platform_key}",
+        use_container_width=True,
+    ):
+        st.query_params[_VISIBLE_QUERY_PARAM] = str(_next_visible_count(visible_count, total_count))
+        st.rerun()
+    _render_auto_load_script(platform_key, visible_count, total_count)
 
 
-def _render_auto_load_script() -> None:
+def _render_auto_load_script(platform_key: str, visible_count: int, total_count: int) -> None:
+    next_visible_count = _next_visible_count(visible_count, total_count)
+    button_selector = f".st-key-reference_load_more_{platform_key} button"
     components.html(
         """
         <script>
@@ -174,9 +200,9 @@ def _render_auto_load_script() -> None:
             var parentWindow = window.parent;
             var parentDocument = parentWindow.document;
             var sentinelSelector = '.folio-reference-loading-sentinel';
-            var cardSelector = '[data-folio-reference-card]';
+            var buttonSelector = __BUTTON_SELECTOR__;
+            var nextVisibleCount = __NEXT_VISIBLE_COUNT__;
             var boundAttribute = 'data-folio-reference-scroll-bound';
-            var pageSize = 12;
             var ticking = false;
             var loading = false;
 
@@ -190,52 +216,16 @@ def _render_auto_load_script() -> None:
                 return rect.top < viewportHeight + 260;
             }
 
-            function visibleCards() {
-                return Array.from(parentDocument.querySelectorAll(cardSelector + ':not(.is-hidden)'));
-            }
-
-            function hiddenCards() {
-                return Array.from(parentDocument.querySelectorAll(cardSelector + '.is-hidden'));
-            }
-
-            function updateSentinel() {
-                var sentinel = parentDocument.querySelector(sentinelSelector);
-                if (!sentinel) {
-                    return;
-                }
-                var hidden = hiddenCards();
-                if (!hidden.length) {
-                    sentinel.className = 'folio-reference-end';
-                    sentinel.textContent = '모든 레퍼런스를 불러왔습니다.';
-                    return;
-                }
-                var visible = visibleCards().length;
-                var total = visible + hidden.length;
-                sentinel.dataset.visible = String(visible);
-                sentinel.dataset.total = String(total);
-                sentinel.textContent = hidden.length.toLocaleString('ko-KR') + '개 더 볼 수 있습니다.';
-            }
-
             function loadMore() {
                 if (loading || !nearBottom()) {
                     return;
                 }
-                var cards = hiddenCards();
-                if (!cards.length) {
-                    updateSentinel();
+                var button = parentDocument.querySelector(buttonSelector);
+                if (!button) {
                     return;
                 }
                 loading = true;
-                cards.slice(0, pageSize).forEach(function(card) {
-                    card.classList.remove('is-hidden');
-                });
-                updateSentinel();
-                parentWindow.setTimeout(function() {
-                    loading = false;
-                    if (nearBottom()) {
-                        loadMore();
-                    }
-                }, 160);
+                button.click();
             }
 
             function onScroll() {
@@ -256,45 +246,32 @@ def _render_auto_load_script() -> None:
                 parentWindow.addEventListener("keydown", onScroll, { passive: true });
                 parentDocument.addEventListener("scroll", onScroll, { passive: true, capture: true });
 
-                Array.from(parentDocument.querySelectorAll("body, body *")).forEach(function(element) {
-                    if (element.getAttribute(boundAttribute) === "1") {
-                        return;
-                    }
-                    var style = parentWindow.getComputedStyle(element);
-                    if (/(auto|scroll)/.test(style.overflowY) && element.scrollHeight > element.clientHeight) {
-                        element.setAttribute(boundAttribute, "1");
-                        element.addEventListener("scroll", onScroll, { passive: true });
-                    }
-                });
-            }
-
-            if ("IntersectionObserver" in parentWindow) {
-                var observer = new parentWindow.IntersectionObserver(function(entries) {
-                    entries.forEach(function(entry) {
-                        if (entry.isIntersecting) {
-                            loadMore();
+                Array.from(parentDocument.querySelectorAll('section.stMain, [data-testid="stMain"], body *'))
+                    .filter(function(element) {
+                        if (element.getAttribute(boundAttribute) === 'true') {
+                            return false;
                         }
+                        var style = parentWindow.getComputedStyle(element);
+                        var canScroll = /(auto|scroll|overlay)/.test(style.overflowY);
+                        return canScroll && element.scrollHeight > element.clientHeight + 20;
+                    })
+                    .forEach(function(element) {
+                        element.setAttribute(boundAttribute, 'true');
+                        element.addEventListener("scroll", onScroll, { passive: true });
+                        element.addEventListener("wheel", onScroll, { passive: true });
+                        element.addEventListener("touchmove", onScroll, { passive: true });
                     });
-                }, { root: null, rootMargin: "260px 0px" });
-                var sentinel = parentDocument.querySelector(sentinelSelector);
-                if (sentinel) {
-                    observer.observe(sentinel);
-                }
             }
 
-            updateSentinel();
             bindScrollTargets();
-            if ("MutationObserver" in parentWindow) {
-                var mutationObserver = new parentWindow.MutationObserver(bindScrollTargets);
-                mutationObserver.observe(parentDocument.body, { childList: true, subtree: true });
-            }
+            parentWindow.setTimeout(bindScrollTargets, 500);
+            parentWindow.setTimeout(bindScrollTargets, 1500);
             parentWindow.setTimeout(loadMore, 300);
             parentWindow.setTimeout(loadMore, 900);
-            parentWindow.setTimeout(bindScrollTargets, 1200);
-            parentWindow.setInterval(loadMore, 1200);
-            parentWindow.setInterval(bindScrollTargets, 1800);
         })();
         </script>
-        """,
+        """
+        .replace("__BUTTON_SELECTOR__", json.dumps(button_selector))
+        .replace("__NEXT_VISIBLE_COUNT__", str(next_visible_count)),
         height=0,
     )

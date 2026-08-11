@@ -13,43 +13,35 @@ _CONTACT_MAILTO = (
 )
 _SERVICE_STEPS = (
     (
-        "01 RECORD",
-        "맥락을 함께 기록합니다.",
+        "01 DISCOVER",
+        "좋은 시각화 사례를 발견합니다.",
         (
-            "제목, 소개, 태그, 본문, 결과물 링크를 한 화면에 묶습니다.",
-            "왜 만들었는지와 무엇을 만들었는지가 함께 남습니다.",
+            "Tableau, Power BI, Data Studio, Streamlit 레퍼런스를 한곳에서 탐색합니다.",
+            "플랫폼보다 주제와 문제의식 중심으로 프로젝트를 비교합니다.",
         ),
     ),
     (
-        "02 SHARE",
-        "공개하고 탐색합니다.",
+        "02 EXPERIENCE",
+        "직접 열어보고 체험합니다.",
         (
-            "홈 갤러리에서 최근 등록순, 조회순, 좋아요순으로 프로젝트를 살펴봅니다.",
-            "관심 있는 프로젝트는 상세 페이지에서 바로 확인합니다.",
+            "임베드 가능한 대시보드는 상세 페이지에서 바로 조작합니다.",
+            "임베드가 어려운 프로젝트는 원본 링크와 맥락을 함께 확인합니다.",
         ),
     ),
     (
-        "03 GROW",
-        "반응을 보고 개선합니다.",
+        "03 SHARE",
+        "내 프로젝트도 연결합니다.",
         (
-            "조회, 좋아요, 공유로 프로젝트의 반응을 확인합니다.",
-            "다음 단계에서는 댓글을 붙여 피드백까지 연결합니다.",
+            "제작자는 자신의 결과물과 분석 과정을 등록해 공개할 수 있습니다.",
+            "댓글과 반응은 다음 개선을 위한 작은 피드백 루프가 됩니다.",
         ),
     ),
-)
-_CAPABILITIES = (
-    ("프로젝트 등록", "프로젝트명, 한 줄 소개, 태그, 본문을 입력합니다."),
-    ("결과물 연결", "대시보드, 보고서, GitHub 주소를 연결합니다."),
-    ("갤러리 탐색", "최근 등록순, 조회순, 좋아요순으로 프로젝트를 둘러봅니다."),
-    ("반응 확인", "조회수, 좋아요, 공유 링크로 반응을 확인합니다."),
-    ("피드백 확장", "댓글을 통해 프로젝트별 의견을 남기는 흐름을 준비합니다."),
-    ("포트폴리오 관리", "마이페이지에서 프로필과 등록 프로젝트를 관리합니다."),
 )
 _VISION_PHASES = (
-    ("folio-about-phase-1", "PHASE 1", "Portfolio<br />Platform"),
-    ("folio-about-phase-2", "PHASE 2", "Community"),
-    ("folio-about-phase-3", "PHASE 3", "Best Practice<br />Archive"),
-    ("folio-about-phase-4", "PHASE 4", "Career<br />Network"),
+    ("folio-about-phase-1", "STEP 1", "좋은 사례가<br />모입니다"),
+    ("folio-about-phase-2", "STEP 2", "비교할 기준이<br />생깁니다"),
+    ("folio-about-phase-3", "STEP 3", "만든 사람이<br />드러납니다"),
+    ("folio-about-phase-4", "STEP 4", "다음 기회로<br />이어집니다"),
 )
 
 
@@ -95,15 +87,15 @@ def _team_section() -> str:
             <div class="folio-about-team-copy">
                 <div class="folio-about-eyebrow">TEAM SNOWBALL IMPACT</div>
                 <h1>
-                    <span class="folio-about-line">작은 기록이 쌓여</span>
-                    <span class="folio-about-line">다음 프로젝트의 근거가 되도록.</span>
+                    <span class="folio-about-line">좋은 시각화 사례를 모아</span>
+                    <span class="folio-about-line">다음 질문의 출발점이 되도록.</span>
                 </h1>
                 <p>
                     <span class="folio-about-line">Snowball Impact는 FOLIO를 만들고 있는 팀입니다.</span>
-                    <span class="folio-about-line">프로젝트가 한 번의 제출로 끝나지 않고, 다음 시도와 연결되는 구조를 실험하고 있습니다.</span>
+                    <span class="folio-about-line">흩어진 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 구조를 실험하고 있습니다.</span>
                 </p>
                 <div class="folio-about-team-status">
-                    <span>지금은 서비스 MVP를 직접 구현하며 검증하는 단계입니다.</span>
+                    <span>지금은 공개 레퍼런스 갤러리와 제작자 직접 등록 흐름을 함께 검증하는 단계입니다.</span>
                     <a class="folio-about-contact" href="{_CONTACT_MAILTO}">Contact Us</a>
                 </div>
             </div>
@@ -114,21 +106,17 @@ def _team_section() -> str:
 
 def _service_section() -> str:
     service_steps = "\n".join(_service_step_html(*step) for step in _SERVICE_STEPS)
-    capabilities = "\n".join(_capability_html(*capability) for capability in _CAPABILITIES)
     return f"""
     <section class="folio-about-section">
         <div class="folio-about-section-heading">
-            <h2>FOLIO는 프로젝트를 어떻게 남기나요?</h2>
+            <h2>FOLIO는 어떤 프로젝트를 보여주나요?</h2>
             <p>
-                <span class="folio-about-line">결과를 올리는 데서 끝나지 않습니다.</span>
-                <span class="folio-about-line">기록, 공개, 피드백의 흐름으로 프로젝트를 관리합니다.</span>
+                <span class="folio-about-line">파일이나 링크만 모으는 공간이 아닙니다.</span>
+                <span class="folio-about-line">문제의식, 분석 과정, 인터랙티브 결과물, 사용자 의견을 함께 축적합니다.</span>
             </p>
         </div>
         <div class="folio-about-service-flow">
             {service_steps}
-        </div>
-        <div class="folio-about-capabilities">
-            {capabilities}
         </div>
     </section>
     """
@@ -146,8 +134,8 @@ def _vision_section() -> str:
             {phases}
             <div class="folio-about-phase-note">
                 <strong>Snowball Impact</strong>
-                <span class="folio-about-line">프로젝트를 모으고, 피드백을 연결하고,</span>
-                <span class="folio-about-line">좋은 사례를 축적해 커리어 기회로 확장합니다.</span>
+                <span class="folio-about-line">좋은 프로젝트가 모이면 기준이 되고,</span>
+                <span class="folio-about-line">기준이 생기면 사람과 기회가 모입니다.</span>
             </div>
         </div>
     </section>
@@ -161,15 +149,6 @@ def _service_step_html(label: str, title: str, lines: tuple[str, str]) -> str:
         <small>{label}</small>
         <h3>{title}</h3>
         <p>{body}</p>
-    </div>
-    """
-
-
-def _capability_html(title: str, body: str) -> str:
-    return f"""
-    <div class="folio-about-capability">
-        <strong>{title}</strong>
-        <span>{body}</span>
     </div>
     """
 

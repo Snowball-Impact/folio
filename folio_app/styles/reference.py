@@ -3,19 +3,20 @@
 CSS = """
 .folio-reference-hero-shell {
     align-items: center;
-    background: #fff;
-    border: 1px solid rgba(170, 190, 225, 0.45);
-    border-radius: 8px;
-    box-shadow: 0 14px 34px rgba(11, 31, 63, 0.06);
-    display: flex;
-    gap: 32px;
-    justify-content: space-between;
+    background: var(--folio-surface);
+    border: 1px solid var(--folio-border);
+    border-radius: 16px;
+    color: var(--folio-navy);
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
     margin: 24px 0 22px;
-    min-height: 258px;
-    padding: 34px 44px;
+    min-height: 220px;
+    padding: 28px 42px 34px;
 }
 
 .folio-reference-hero-copy {
+    align-items: flex-start;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -23,29 +24,43 @@ CSS = """
     min-width: 0;
 }
 
-.folio-reference-hero-title {
+.folio-reference-hero-copy .folio-page-hero-eyebrow {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    margin: 0;
+}
+
+.folio-reference-hero-copy h1.folio-reference-hero-title {
     color: var(--folio-navy);
-    font-size: clamp(36px, 4.4vw, 56px);
-    font-weight: 900;
+    font-size: 2.45rem;
+    font-weight: 800;
     letter-spacing: 0;
-    line-height: 1.6;
-    margin: 0 0 -0.3em;
-    max-width: 820px;
+    line-height: 1.22;
+    margin: 0;
+    max-width: none;
+    text-wrap: nowrap;
+    white-space: nowrap;
     word-break: keep-all;
 }
 
-.folio-reference-hero-title span {
+.folio-reference-hero-copy h1.folio-reference-hero-title .folio-reference-hero-count {
     color: var(--folio-blue);
     display: inline-block;
     min-width: 1.8ch;
 }
 
+.folio-reference-hero-title-text {
+    color: var(--folio-navy);
+}
+
 .folio-reference-hero-copy p {
-    color: #425879;
-    font-size: 16px;
+    color: var(--folio-muted);
+    font-size: 0.98rem;
     line-height: 1.65;
     margin: 0;
-    max-width: 680px;
+    max-width: 460px;
     word-break: keep-all;
 }
 
@@ -80,39 +95,46 @@ CSS = """
 }
 
 .folio-reference-hero-visual {
-    align-items: center;
-    align-self: stretch;
+    align-items: flex-end;
     display: flex;
-    flex: 0 0 min(34vw, 390px);
     flex-direction: column;
     justify-content: center;
-    min-height: 210px;
+    min-height: 0;
+    min-width: 0;
 }
 
 .folio-reference-hero-logo {
     align-items: center;
     display: flex;
     flex: 1 1 auto;
-    justify-content: center;
+    justify-content: flex-end;
     min-height: 148px;
     width: 100%;
 }
 
-.folio-reference-logo-image {
+.folio-reference-hero-logo img.folio-reference-logo-image {
     display: block;
-    max-height: 190px;
-    max-width: 100%;
-    object-fit: contain;
-    width: 100%;
-}
-
-.folio-reference-logo-image-datastudio,
-.folio-reference-logo-image-tableau {
+    height: auto;
     max-height: 170px;
+    max-width: 390px;
+    object-fit: contain;
+    width: auto;
 }
 
-.folio-reference-logo-image-streamlit {
-    max-height: 150px;
+.folio-reference-hero-logo img.folio-reference-logo-image-datastudio,
+.folio-reference-hero-logo img.folio-reference-logo-image-tableau {
+    max-height: 152px;
+}
+
+.folio-reference-hero-logo img.folio-reference-logo-image-streamlit {
+    max-height: 136px;
+}
+
+@media (max-width: 1180px) {
+    .folio-reference-hero-copy h1.folio-reference-hero-title {
+        text-wrap: balance;
+        white-space: normal;
+    }
 }
 
 .folio-reference-grid {
@@ -143,9 +165,31 @@ CSS = """
 .folio-reference-end {
     color: var(--folio-muted);
     font-size: 13px;
-    margin: 6px 0 46px;
+    margin: 6px 0 12px;
     min-height: 32px;
     text-align: center;
+}
+
+.st-key-reference_load_more_tableau button,
+.st-key-reference_load_more_powerbi button,
+.st-key-reference_load_more_datastudio button,
+.st-key-reference_load_more_streamlit button {
+    background: #ffffff !important;
+    border: 1px solid var(--folio-border) !important;
+    border-radius: 8px !important;
+    color: var(--folio-blue) !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    min-height: 40px !important;
+    margin: 0 0 46px !important;
+}
+
+.st-key-reference_load_more_tableau button:hover,
+.st-key-reference_load_more_powerbi button:hover,
+.st-key-reference_load_more_datastudio button:hover,
+.st-key-reference_load_more_streamlit button:hover {
+    background: #eaf2ff !important;
+    border-color: var(--folio-blue) !important;
 }
 
 .st-key-folio_header_nav .st-key-nav_Reference,
@@ -224,31 +268,43 @@ CSS = """
 
 @media (max-width: 860px) {
     .folio-reference-hero-shell {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 22px;
-        padding: 28px 24px;
+        grid-template-columns: 1fr;
+        min-height: 180px;
+        padding: 24px 8px 34px;
+    }
+
+    .folio-reference-hero-copy {
+        align-items: center;
+        text-align: center;
+        width: 100%;
+    }
+
+    .folio-reference-hero-copy h1.folio-reference-hero-title {
+        font-size: 1.9rem;
+        text-wrap: balance;
+        white-space: normal;
+    }
+
+    .folio-reference-hero-copy p {
+        text-align: center;
     }
 
     .folio-reference-hero-visual {
-        align-self: stretch;
-        flex: 0 0 auto;
-        min-height: 150px;
-        justify-content: flex-start;
+        min-height: 0;
     }
 
     .folio-reference-hero-logo {
-        justify-content: flex-start;
-        min-height: 108px;
+        min-height: 96px;
     }
 
     .folio-reference-hero-tabs {
-        justify-content: flex-start;
+        justify-content: center;
     }
 
-    .folio-reference-logo-image {
+    .folio-reference-hero-logo img.folio-reference-logo-image {
         max-height: 120px;
-        width: min(100%, 320px);
+        max-width: 320px;
+        width: auto;
     }
 
     .folio-reference-grid {

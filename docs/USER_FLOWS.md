@@ -1,12 +1,13 @@
 # FOLIO 사용자 플로우
 
-이 문서는 사용자가 FOLIO를 발견하고, 가입하고, 프로젝트를 포트폴리오 자산으로 축적하는 핵심 여정을 설명한다.
+이 문서는 사용자가 FOLIO에서 좋은 데이터 시각화 레퍼런스를 발견하고, 프로젝트를 경험하고, 직접 등록한 뒤 의견을 나누는 핵심 여정을 설명한다.
 
 ## 1. 전체 사용자 여정
 
 ```mermaid
 flowchart LR
     Discover[Home에서 프로젝트 탐색]
+    Reference[Reference에서 플랫폼별 사례 탐색]
     Detail[프로젝트 상세 확인]
     Signup[회원가입]
     Verify[이메일 인증]
@@ -18,6 +19,7 @@ flowchart LR
     Engage[조회·좋아요 축적]
 
     Discover --> Detail
+    Discover --> Reference --> Detail
     Detail --> Signup
     Signup --> Verify --> Login --> Consent
     Consent --> Submit --> Publish
@@ -93,6 +95,7 @@ flowchart TD
     Preview[Home 카드 실시간 미리보기]
     Body[Quill로 프로젝트 리포트 작성]
     Links[BI·GitHub·ETC 링크 입력]
+    Thumbnail[썸네일 방식 선택]
     Validate{필수값·URL 검증}
     Save[projects INSERT]
     Detail[등록 프로젝트 상세로 이동]
@@ -101,7 +104,7 @@ flowchart TD
     Auth -- 아니오 --> Login[Login 이동]
     Auth -- 예 --> Basic
     Basic <--> Preview
-    Basic --> Body --> Links --> Validate
+    Basic --> Body --> Links --> Thumbnail --> Validate
     Validate -- 실패 --> Feedback[입력 위치에 오류 표시]
     Feedback --> Basic
     Validate -- 성공 --> Save --> Detail
@@ -110,6 +113,7 @@ flowchart TD
 - PC에서는 기본 정보와 카드 미리보기를 2열로, 모바일에서는 1열로 배치한다.
 - 리포트는 문제 정의·사용 데이터·분석 과정·핵심 인사이트 구조를 권장한다.
 - 본문은 HTML 허용 목록으로 정제한 뒤 저장한다.
+- 썸네일은 기본 커버, 직접 URL, 서버 자동 캡처 중 하나를 선택한다. 자동 캡처에서 다른 방식으로 바꾸면 기존 캡처 파일을 삭제해 이전 이미지가 남지 않게 한다.
 
 ## 5. 공개 탐색과 상세
 
@@ -118,7 +122,9 @@ flowchart LR
     Home[Home]
     Search[검색어]
     Tag[태그 필터]
+    Platform[플랫폼 필터]
     Sort[최신·조회·좋아요 정렬]
+    Reference[Reference 플랫폼 탭]
     Card[프로젝트 카드]
     Detail[상세 리포트]
     View[세션당 조회수 1회 증가]
@@ -126,12 +132,16 @@ flowchart LR
 
     Home --> Search --> Card
     Home --> Tag --> Card
+    Home --> Platform --> Card
     Home --> Sort --> Card
+    Reference --> Card
     Card --> Detail --> View
     Detail --> Like
     Like -- 비로그인 --> Login[Login 이동]
-    Like -- 로그인 --> Toggle[좋아요 추가·취소]
+Like -- 로그인 --> Toggle[좋아요 추가·취소]
 ```
+
+Reference 페이지는 `Tableau`, `Power BI`, `Data Studio`, `Streamlit` 탭으로 분리된다. 최초 12개 카드가 보이고, 하단 도달 시 다음 12개가 같은 URL의 `visible` query parameter를 통해 추가 렌더링된다. 목록 끝에서는 더 보기 버튼이 사라지고 완료 문구만 남는다.
 
 ## 6. My Page 관리
 

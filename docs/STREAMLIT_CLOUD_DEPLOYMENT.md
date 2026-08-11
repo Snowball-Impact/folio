@@ -65,6 +65,8 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 4. 등록 완료 후 메시지가 `썸네일을 자동 캡처했습니다.`를 포함하는지 확인한다.
 5. Supabase Storage의 `project-thumbnails` bucket에 `projects/<project-id>/thumbnail.jpg`가 생성됐는지 확인한다.
 6. 홈 카드와 상세 페이지에 썸네일이 표시되는지 확인한다.
+7. 같은 프로젝트를 기본 커버나 직접 URL 썸네일로 바꿨을 때 기존 `projects/<project-id>/thumbnail.jpg`가 삭제되는지 확인한다.
+8. 다시 자동 캡처로 바꿨을 때 public URL에 cache-busting query가 붙고, 홈 카드에서 새 이미지가 보이는지 확인한다.
 
 실패하면 Streamlit Cloud logs에서 아래 항목을 먼저 본다.
 
@@ -72,6 +74,7 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 - Selenium session 생성 실패
 - iframe 대상 사이트의 embed 차단 또는 timeout
 - Supabase Storage bucket 생성/업로드 권한 실패
+- 썸네일 mode 전환 후 기존 Storage 파일 삭제 실패
 
 ## 5. 커스텀 도메인 우회
 

@@ -3,11 +3,15 @@ from unittest.mock import ANY, patch
 
 from folio_app.services.project_thumbnails import (
     ThumbnailCaptureResult,
+    _cache_busted_url,
     _fullscreen_iframe_capture_url,
+    _project_thumbnail_storage_path,
     _resolve_chrome_binary,
     _resolve_chromedriver_path,
+    delete_project_thumbnail_file,
     maybe_capture_project_thumbnail,
     thumbnail_capture_source_url,
+    try_delete_project_thumbnail_file,
 )
 
 
@@ -54,6 +58,20 @@ class ProjectThumbnailTests(unittest.TestCase):
         with patch("folio_app.services.project_thumbnails.shutil.which", return_value="/usr/bin/chromedriver"):
             self.assertEqual(_resolve_chromedriver_path(), "/usr/bin/chromedriver")
 
+    def test_project_thumbnail_storage_path_is_deterministic(self) -> None:
+        self.assertEqual(
+            _project_thumbnail_storage_path("project/id"),
+            "projects/project_id/thumbnail.jpg",
+        )
+
+    @patch("folio_app.services.project_thumbnails.time.time", return_value=12345)
+    def test_cache_busted_url_adds_capture_version(self, _time) -> None:
+        self.assertEqual(_cache_busted_url("https://cdn.example.com/thumb.jpg"), "https://cdn.example.com/thumb.jpg?v=12345")
+        self.assertEqual(
+            _cache_busted_url("https://cdn.example.com/thumb.jpg?token=abc"),
+            "https://cdn.example.com/thumb.jpg?token=abc&v=12345",
+        )
+
     def test_non_capture_mode_is_skipped(self) -> None:
         result = maybe_capture_project_thumbnail("project-id", {"thumbnail_mode": "auto_cover"})
 
@@ -90,6 +108,39 @@ class ProjectThumbnailTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertFalse(result.skipped)
+
+    @patch("folio_app.services.project_thumbnails.get_settings")
+    def test_delete_project_thumbnail_removes_storage_file(self, get_settings) -> None:
+        class StorageBucket:
+            def __init__(self) -> None:
+                self.removed = []
+
+            def remove(self, paths):
+                self.removed.extend(paths)
+
+        class Storage:
+            def __init__(self) -> None:
+                self.bucket = StorageBucket()
+                self.bucket_name = ""
+
+            def from_(self, bucket_name):
+                self.bucket_name = bucket_name
+                return self.bucket
+
+        class Client:
+            def __init__(self) -> None:
+                self.storage = Storage()
+
+        client = Client()
+        get_settings.return_value.thumbnail_storage_bucket = "project-thumbnails"
+
+        self.assertTrue(delete_project_thumbnail_file("project-id", client=client))
+        self.assertEqual(client.storage.bucket_name, "project-thumbnails")
+        self.assertEqual(client.storage.bucket.removed, ["projects/project-id/thumbnail.jpg"])
+
+    @patch("folio_app.services.project_thumbnails.delete_project_thumbnail_file", side_effect=RuntimeError("storage"))
+    def test_try_delete_project_thumbnail_file_reports_failure(self, _delete) -> None:
+        self.assertFalse(try_delete_project_thumbnail_file("project-id"))
 
 
 if __name__ == "__main__":
