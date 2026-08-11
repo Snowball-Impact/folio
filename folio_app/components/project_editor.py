@@ -12,6 +12,7 @@ from folio_app.components.project_form import (
     validate_project_form,
 )
 from folio_app.navigation import navigate
+from folio_app.services.project_normalizers import THUMBNAIL_MODE_CAPTURE
 from folio_app.services.project_drafts import (
     apply_pending_draft_clear,
     clear_project_draft,
@@ -39,6 +40,8 @@ def render_submit_project_form(user_id: str) -> None:
         etc_url=draft["report_url"],
         submit_label="프로젝트 등록하기",
         platform_key=draft["platform"],
+        thumbnail_url=draft["thumbnail_url"],
+        thumbnail_mode=draft["thumbnail_mode"],
         secondary_label="초안 지우기",
     )
     save_project_draft(st.session_state, user_id, draft_id, form_data)
@@ -54,9 +57,11 @@ def render_submit_project_form(user_id: str) -> None:
     if parsed_body is None:
         return
 
-    result = create_project(
-        user_id,
-        build_project_payload(form_data, parsed_body),
+    payload = build_project_payload(form_data, parsed_body)
+    result = _run_with_thumbnail_progress(
+        form_data,
+        lambda progress_callback: create_project(user_id, payload, progress_callback=progress_callback),
+        "프로젝트를 등록하고 썸네일을 자동 캡처 중입니다.",
     )
 
     if result.ok:
@@ -87,6 +92,7 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
         etc_url=draft["report_url"],
         platform_key=draft["platform"],
         thumbnail_url=draft["thumbnail_url"],
+        thumbnail_mode=draft["thumbnail_mode"],
         is_public=bool(draft["is_public"]),
         show_visibility_setting=True,
         submit_label="수정 완료",
@@ -106,10 +112,16 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
     if parsed_body is None:
         return
 
-    result = update_project(
-        project["id"],
-        author_id,
-        build_project_payload(form_data, parsed_body),
+    payload = build_project_payload(form_data, parsed_body)
+    result = _run_with_thumbnail_progress(
+        form_data,
+        lambda progress_callback: update_project(
+            project["id"],
+            author_id,
+            payload,
+            progress_callback=progress_callback,
+        ),
+        "프로젝트를 수정하고 썸네일을 자동 캡처 중입니다.",
     )
 
     if result.ok:
@@ -132,6 +144,7 @@ def _submit_project_defaults() -> dict:
         "report_url": "",
         "platform": "other",
         "thumbnail_url": "",
+        "thumbnail_mode": "auto_cover",
         "is_public": True,
     }
 
@@ -147,6 +160,7 @@ def _edit_project_defaults(project: dict) -> dict:
         "report_url": project.get("report_url") or "",
         "platform": reference_platform_for_project(project) or "other",
         "thumbnail_url": project.get("thumbnail_url") or "",
+        "thumbnail_mode": project.get("thumbnail_mode") or ("manual_url" if project.get("thumbnail_url") else "auto_cover"),
         "is_public": bool(project.get("is_public")),
     }
 
@@ -160,3 +174,20 @@ def _validated_project_body(form_data: dict[str, str]) -> dict[str, str] | None:
         st.error(url_error)
         return None
     return parsed_body
+
+
+def _run_with_thumbnail_progress(form_data: dict, action, message: str):
+    if form_data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
+        return action(None)
+
+    progress = st.progress(12, text=message)
+    try:
+        def update_progress(value: int, text: str) -> None:
+            progress.progress(value, text=text)
+
+        progress.progress(28, text="프로젝트 정보를 저장하는 중입니다.")
+        result = action(update_progress)
+        progress.progress(100, text="썸네일 처리 요청이 완료되었습니다.")
+        return result
+    finally:
+        progress.empty()

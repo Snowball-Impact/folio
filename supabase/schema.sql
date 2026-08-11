@@ -53,6 +53,7 @@ create table if not exists public.projects (
     report_url text,
     github_url text,
     thumbnail_url text,
+    thumbnail_mode text not null default 'auto_cover' check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture')),
     ai_summary text,
     tags text[] not null default '{}',
     view_count integer not null default 0,
@@ -129,6 +130,22 @@ create index if not exists project_views_project_date_idx on public.project_view
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
 create index if not exists user_policy_consents_policy_version_id_idx on public.user_policy_consents(policy_version_id);
+
+alter table public.projects
+add column if not exists thumbnail_mode text not null default 'auto_cover';
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'projects_thumbnail_mode_check'
+          and conrelid = 'public.projects'::regclass
+    ) then
+        alter table public.projects
+        add constraint projects_thumbnail_mode_check
+        check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture'));
+    end if;
+end $$;
 
 do $$
 begin

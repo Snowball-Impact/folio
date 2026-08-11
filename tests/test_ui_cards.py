@@ -1,4 +1,5 @@
 import unittest
+from datetime import UTC, datetime
 
 from folio_app.components.portfolio_items import portfolio_item_html
 from folio_app.components.ui import _cover_variant, render_project_card_html
@@ -150,7 +151,7 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         project = {
             "id": "project-recent",
             "title": "새 프로젝트",
-            "created_at": "2026-08-02T00:00:00+09:00",
+            "created_at": datetime.now(UTC).isoformat(),
         }
 
         rendered = render_project_card_html(project)
@@ -163,7 +164,7 @@ class AutomaticProjectCoverTests(unittest.TestCase):
             "id": "project-comment-recent",
             "title": "댓글이 달린 프로젝트",
             "created_at": "2020-01-01T00:00:00+00:00",
-            "latest_comment_at": "2026-08-02T00:00:00+09:00",
+            "latest_comment_at": datetime.now(UTC).isoformat(),
         }
 
         rendered = render_project_card_html(project)

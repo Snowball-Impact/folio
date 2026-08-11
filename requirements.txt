@@ -3,3 +3,5 @@ supabase==2.31.0
 python-dotenv==1.0.1
 streamlit-cookies-manager==0.2.0
 streamlit-quill==0.0.3
+selenium==4.44.0
+Pillow==11.1.0

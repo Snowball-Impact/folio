@@ -23,7 +23,7 @@ FOLIO는 데이터·AI·웹 앱 등 디지털 프로젝트를 포트폴리오 �
 - 프로젝트 상세 댓글·1단계 답글·본인 삭제, 댓글 수와 미확인/활동 `NEW` 표시
 - 댓글 작성 시 프로젝트 작성자에게 알림 생성, 헤더 알림 배지, 알림 목록, 선택적 이메일 알림
 - Power BI iframe 또는 embed URL 표시
-- 보고서/GitHub/썸네일 URL 선택 입력
+- 보고서/GitHub URL 입력과 기본 커버·직접 URL·자동 캡처 기반 썸네일 설정
 - 프로젝트 본문 HTML 허용 목록 정제
 
 ## 실행
@@ -58,6 +58,9 @@ SMTP_PASSWORD=your-smtp-password
 SMTP_FROM_EMAIL=noreply@example.com
 SMTP_FROM_NAME=FOLIO
 SMTP_USE_TLS=true
+THUMBNAIL_STORAGE_BUCKET=project-thumbnails
+CHROME_BINARY_PATH=
+CHROMEDRIVER_PATH=
 ```
 
 4. 앱을 실행합니다.
@@ -213,6 +216,9 @@ SMTP_USE_TLS = "true"
 ```
 
 `GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목이다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않는다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 한다.
+`THUMBNAIL_STORAGE_BUCKET`은 자동 캡처 썸네일을 저장하는 Supabase Storage public bucket 이름이며, 비워두면 `project-thumbnails`를 사용한다.
+Streamlit Community Cloud처럼 Linux 시스템 패키지가 필요한 배포 환경에서는 루트의 `packages.txt`가 `chromium`, `chromium-driver`를 설치한다.
+Selenium이 Chrome 또는 Chrome driver를 자동으로 찾지 못하는 환경에서는 `CHROME_BINARY_PATH`, `CHROMEDRIVER_PATH`에 실행 파일 경로를 지정한다.
 
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 

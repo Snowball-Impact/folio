@@ -45,6 +45,7 @@ erDiagram
         text report_url
         text github_url
         text thumbnail_url
+        text thumbnail_mode
         text ai_summary
         text_array tags
         integer view_count

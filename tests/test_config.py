@@ -2,7 +2,15 @@ import os
 import unittest
 from unittest.mock import MagicMock, patch
 
-from folio_app.config import Settings, _read_bool_setting, _read_first_setting, _read_int_setting, _read_secret_section, _read_setting
+from folio_app.config import (
+    Settings,
+    _read_bool_setting,
+    _read_first_setting,
+    _read_int_setting,
+    _read_secret_section,
+    _read_setting,
+    get_settings,
+)
 
 
 class SettingsLoadingTests(unittest.TestCase):
@@ -111,3 +119,18 @@ class SettingsLoadingTests(unittest.TestCase):
             with patch("folio_app.config.st.secrets", {}):
                 self.assertEqual(_read_int_setting("SMTP_PORT", 587), 2525)
                 self.assertFalse(_read_bool_setting("SMTP_USE_TLS", True))
+
+    def test_thumbnail_capture_paths_are_loaded_from_environment(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "CHROME_BINARY_PATH": "/usr/bin/chromium",
+                "CHROMEDRIVER_PATH": "/usr/bin/chromedriver",
+            },
+            clear=True,
+        ):
+            with patch("folio_app.config.st.secrets", {}):
+                settings = get_settings()
+
+        self.assertEqual(settings.chrome_binary_path, "/usr/bin/chromium")
+        self.assertEqual(settings.chromedriver_path, "/usr/bin/chromedriver")

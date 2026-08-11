@@ -7,6 +7,7 @@ from folio_app.components.project_form import (
     tags_with_platform,
     validate_project_form,
 )
+from folio_app.services.project_normalizers import clean_project_payload
 from folio_app.services.project_references import reference_platform_for_project
 
 
@@ -25,6 +26,7 @@ class ProjectFormTests(unittest.TestCase):
             "report_url": "javascript:alert(1)",
             "github_url": "",
             "thumbnail_url": "",
+            "thumbnail_mode": "auto_cover",
         }
         _, missing, url_error = validate_project_form(form_data)
         self.assertEqual(missing, [])
@@ -39,6 +41,7 @@ class ProjectFormTests(unittest.TestCase):
             "report_url": "",
             "github_url": "",
             "thumbnail_url": "",
+            "thumbnail_mode": "auto_cover",
         }
 
         _, missing, url_error = validate_project_form(form_data)
@@ -55,6 +58,7 @@ class ProjectFormTests(unittest.TestCase):
             "report_url": "",
             "github_url": "",
             "thumbnail_url": "",
+            "thumbnail_mode": "auto_cover",
             "tags": "python",
             "is_public": False,
         }
@@ -83,6 +87,7 @@ class ProjectFormTests(unittest.TestCase):
                 "report_url": "",
                 "github_url": "",
                 "thumbnail_url": "",
+                "thumbnail_mode": "auto_cover",
                 "tags": "고객 분석",
                 "platform": "datastudio",
                 "is_public": True,
@@ -97,6 +102,51 @@ class ProjectFormTests(unittest.TestCase):
 
         self.assertEqual(payload["tags"], ["Data Studio", "고객 분석"])
         self.assertEqual(reference_platform_for_project(payload), "datastudio")
+
+    def test_manual_thumbnail_requires_valid_url(self) -> None:
+        form_data = {
+            "title": "프로젝트",
+            "one_liner": "",
+            "project_body": "## 문제 정의\n내용",
+            "power_bi_url": "",
+            "report_url": "",
+            "github_url": "",
+            "thumbnail_url": "",
+            "thumbnail_mode": "manual_url",
+        }
+
+        _, missing, url_error = validate_project_form(form_data)
+
+        self.assertEqual(missing, [])
+        self.assertIn("썸네일 URL", url_error or "")
+
+    def test_capture_thumbnail_requires_capture_source(self) -> None:
+        form_data = {
+            "title": "프로젝트",
+            "one_liner": "",
+            "project_body": "## 문제 정의\n내용",
+            "power_bi_url": "",
+            "report_url": "",
+            "github_url": "",
+            "thumbnail_url": "",
+            "thumbnail_mode": "capture",
+        }
+
+        _, missing, url_error = validate_project_form(form_data)
+
+        self.assertEqual(missing, [])
+        self.assertIn("자동 캡처", url_error or "")
+
+    def test_auto_cover_clears_thumbnail_url_in_clean_payload(self) -> None:
+        payload = clean_project_payload(
+            {
+                "thumbnail_mode": "auto_cover",
+                "thumbnail_url": "https://example.com/thumb.png",
+            }
+        )
+
+        self.assertEqual(payload["thumbnail_mode"], "auto_cover")
+        self.assertIsNone(payload["thumbnail_url"])
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ DRAFT_FIELDS = (
     "report_url",
     "github_url",
     "thumbnail_url",
+    "thumbnail_mode",
     "is_public",
 )
 
@@ -26,6 +27,8 @@ WIDGET_SUFFIXES = (
     "power_bi_url",
     "github_url",
     "etc_url",
+    "thumbnail_mode",
+    "thumbnail_url",
     "is_public",
 )
 

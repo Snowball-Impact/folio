@@ -6,9 +6,19 @@ from urllib.parse import urlparse
 
 from folio_app.services.project_content import sanitize_project_html
 
+THUMBNAIL_MODE_AUTO_COVER = "auto_cover"
+THUMBNAIL_MODE_MANUAL_URL = "manual_url"
+THUMBNAIL_MODE_CAPTURE = "capture"
+THUMBNAIL_MODES = {
+    THUMBNAIL_MODE_AUTO_COVER,
+    THUMBNAIL_MODE_MANUAL_URL,
+    THUMBNAIL_MODE_CAPTURE,
+}
+
 
 def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
     data: dict[str, Any] = {}
+    thumbnail_mode = normalize_thumbnail_mode(payload.get("thumbnail_mode"))
     if "title" in payload:
         data["title"] = payload.get("title", "").strip()
     if "one_liner" in payload:
@@ -28,7 +38,13 @@ def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if "github_url" in payload:
         data["github_url"] = normalize_optional_url(payload.get("github_url", ""))
     if "thumbnail_url" in payload:
-        data["thumbnail_url"] = normalize_optional_url(payload.get("thumbnail_url", ""))
+        data["thumbnail_url"] = (
+            None
+            if thumbnail_mode == THUMBNAIL_MODE_AUTO_COVER
+            else normalize_optional_url(payload.get("thumbnail_url", ""))
+        )
+    if "thumbnail_mode" in payload:
+        data["thumbnail_mode"] = thumbnail_mode
     if "tags" in payload:
         data["tags"] = normalize_tags(payload.get("tags", ""))
     if "is_public" in payload:
@@ -48,6 +64,13 @@ def normalize_tags(value: str | list[str]) -> list[str]:
         if normalized and normalized not in tags:
             tags.append(normalized)
     return tags[:10]
+
+
+def normalize_thumbnail_mode(value: object) -> str:
+    mode = str(value or "").strip()
+    if mode in THUMBNAIL_MODES:
+        return mode
+    return THUMBNAIL_MODE_AUTO_COVER
 
 
 def normalize_optional_url(value: str | None) -> str | None:
@@ -90,4 +113,3 @@ class _IframeSrcParser(HTMLParser):
             if name.lower() == "src" and value:
                 self.src = value.strip()
                 return
-

@@ -17,6 +17,7 @@ class ProjectDraftTests(unittest.TestCase):
             "project_body": "원본 본문",
             "is_public": True,
             "thumbnail_url": "https://example.com/original.png",
+            "thumbnail_mode": "manual_url",
         }
 
     def test_missing_draft_returns_independent_defaults(self) -> None:
@@ -39,6 +40,7 @@ class ProjectDraftTests(unittest.TestCase):
         self.assertEqual(restored["project_body"], "초안")
         self.assertIs(restored["is_public"], False)
         self.assertEqual(restored["thumbnail_url"], self.defaults["thumbnail_url"])
+        self.assertEqual(restored["thumbnail_mode"], self.defaults["thumbnail_mode"])
 
     def test_unknown_form_fields_are_not_saved(self) -> None:
         save_project_draft(self.state, "user-1", "submit", {"title": "초안", "secret": "ignore"})

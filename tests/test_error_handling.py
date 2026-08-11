@@ -7,6 +7,7 @@ from folio_app.services.project_mutations import (
     create_project,
     delete_project,
     set_project_liked,
+    update_project,
 )
 from folio_app.services.project_queries import (
     _execute_public_read,
@@ -33,6 +34,25 @@ class SafeMutationMessageTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertNotIn(PROVIDER_DETAIL, result.message)
+
+    @patch("folio_app.services.auth.ensure_authenticated_session")
+    @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_update_reports_missing_thumbnail_mode_schema(self, get_client, ensure_auth) -> None:
+        from folio_app.services.auth import AuthResult
+
+        ensure_auth.return_value = AuthResult(True, "ok")
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.side_effect = RuntimeError("column projects.thumbnail_mode does not exist")
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = update_project("project-id", "author-id", {"thumbnail_mode": "capture"})
+
+        self.assertFalse(result.ok)
+        self.assertIn("projects.thumbnail_mode", result.message)
 
     @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_delete_error_does_not_expose_provider_detail(self, get_client) -> None:

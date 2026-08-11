@@ -123,7 +123,7 @@ folio_app/
 
 ### 데이터 모델
 
-현재 `projects`는 `author_id`, `one_liner`, `problem`, `dataset`, `process`, `insights`, `power_bi_url`, `report_url`, `github_url`, `thumbnail_url`, `tags`, `is_public` 중심이다.
+현재 `projects`는 `author_id`, `one_liner`, `problem`, `dataset`, `process`, `insights`, `power_bi_url`, `report_url`, `github_url`, `thumbnail_url`, `thumbnail_mode`, `tags`, `is_public` 중심이다.
 
 PRD v2.0 전환에 필요한 필드:
 

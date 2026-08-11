@@ -63,6 +63,9 @@ class Settings:
     smtp_from_email: str = ""
     smtp_from_name: str = "FOLIO"
     smtp_use_tls: bool = True
+    thumbnail_storage_bucket: str = "project-thumbnails"
+    chrome_binary_path: str = ""
+    chromedriver_path: str = ""
 
     @property
     def is_supabase_configured(self) -> bool:
@@ -139,6 +142,10 @@ def get_settings() -> Settings:
         smtp_from_email=_read_setting("SMTP_FROM_EMAIL") or _read_secret_section("smtp", "SMTP_FROM_EMAIL", "from_email"),
         smtp_from_name=_read_setting("SMTP_FROM_NAME") or _read_secret_section("smtp", "SMTP_FROM_NAME", "from_name") or "FOLIO",
         smtp_use_tls=_read_bool_setting("SMTP_USE_TLS", True),
+        thumbnail_storage_bucket=_read_setting("THUMBNAIL_STORAGE_BUCKET", "project-thumbnails")
+        or _read_secret_section("supabase", "thumbnail_storage_bucket"),
+        chrome_binary_path=_read_setting("CHROME_BINARY_PATH"),
+        chromedriver_path=_read_setting("CHROMEDRIVER_PATH"),
     )
 
 

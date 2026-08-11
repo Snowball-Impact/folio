@@ -8,6 +8,11 @@ from folio_app.components.project_body import (
     render_project_body_editor,
 )
 from folio_app.components.ui import clean_html, plain_text, render_project_card_html
+from folio_app.services.project_normalizers import (
+    THUMBNAIL_MODE_AUTO_COVER,
+    THUMBNAIL_MODE_CAPTURE,
+    THUMBNAIL_MODE_MANUAL_URL,
+)
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
 from folio_app.services.project_references import REFERENCE_PLATFORM_BY_KEY, REFERENCE_PLATFORMS
 
@@ -15,6 +20,11 @@ from folio_app.services.project_references import REFERENCE_PLATFORM_BY_KEY, REF
 PROJECT_TITLE_MAX_CHARS = 48
 PROJECT_ONE_LINER_MAX_CHARS = 56
 PROJECT_PLATFORM_OTHER_KEY = "other"
+PROJECT_THUMBNAIL_MODE_OPTIONS = (
+    THUMBNAIL_MODE_AUTO_COVER,
+    THUMBNAIL_MODE_MANUAL_URL,
+    THUMBNAIL_MODE_CAPTURE,
+)
 
 
 def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], list[str], str | None]:
@@ -31,6 +41,7 @@ def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], li
         form_data["report_url"],
         form_data["github_url"],
         form_data["thumbnail_url"],
+        form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER),
     )
     if text_errors:
         url_error = "\n".join([*text_errors, *([url_error] if url_error else [])])
@@ -49,6 +60,7 @@ def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]
         "report_url": form_data["report_url"],
         "github_url": form_data["github_url"],
         "thumbnail_url": form_data["thumbnail_url"],
+        "thumbnail_mode": form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER),
         "tags": tags_with_platform(form_data["tags"], form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
         "is_public": form_data["is_public"],
     }
@@ -88,6 +100,7 @@ def render_project_form(
     submit_label: str,
     platform_key: str = PROJECT_PLATFORM_OTHER_KEY,
     thumbnail_url: str = "",
+    thumbnail_mode: str = THUMBNAIL_MODE_AUTO_COVER,
     is_public: bool = True,
     show_visibility_setting: bool = False,
     secondary_label: str | None = None,
@@ -95,7 +108,7 @@ def render_project_form(
     _render_project_form_intro()
 
     with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
-        overview_col, preview_col = st.columns([3, 2], gap="large")
+        overview_col, preview_col = st.columns([1, 1], gap="large")
         with overview_col:
             _render_form_section_heading("기본 정보", "프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.")
             title_input = st.text_input(
@@ -129,12 +142,36 @@ def render_project_form(
             if _raw_tag_count(tags_input) > 10:
                 st.warning("태그는 앞에서부터 최대 10개까지만 저장됩니다.")
 
+            thumbnail_mode_input = _current_thumbnail_mode(key_prefix, thumbnail_mode)
+            thumbnail_url_input = _current_thumbnail_url(key_prefix, thumbnail_url, thumbnail_mode_input)
+
         with preview_col:
             st.markdown(
                 '<div class="folio-form-preview-heading"><strong>카드 미리보기</strong></div>',
                 unsafe_allow_html=True,
             )
-            _render_project_preview(title_input, one_liner_input, tags_input, "", platform_input)
+            _render_project_preview(
+                title_input,
+                one_liner_input,
+                tags_input,
+                "",
+                platform_input,
+                thumbnail_url=thumbnail_url_input if thumbnail_mode_input != THUMBNAIL_MODE_AUTO_COVER else "",
+            )
+            with st.container(border=False, key=f"{key_prefix}_thumbnail_settings"):
+                thumbnail_mode_input = _render_thumbnail_mode_selector(key_prefix, thumbnail_mode)
+                thumbnail_url_input = ""
+                if thumbnail_mode_input == THUMBNAIL_MODE_MANUAL_URL:
+                    thumbnail_url_input = st.text_input(
+                        "썸네일 URL",
+                        value=thumbnail_url,
+                        placeholder="https://...",
+                        key=f"{key_prefix}_thumbnail_url",
+                    )
+                    _render_url_feedback(thumbnail_url_input, "썸네일 URL")
+                elif thumbnail_mode_input == THUMBNAIL_MODE_CAPTURE:
+                    thumbnail_url_input = thumbnail_url
+                    st.caption("등록 후 Embed Code 또는 Web Application URL 기준으로 대표 이미지를 생성합니다.")
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
         _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
@@ -173,15 +210,18 @@ def render_project_form(
     if show_visibility_setting:
         visibility_col, actions_col = st.columns([2, 1], gap="large", vertical_alignment="bottom")
         with visibility_col, st.container(border=True, key=f"{key_prefix}_visibility_setting"):
-            st.markdown(
-                '<div class="folio-visibility-setting-copy"><strong>공개 설정</strong><span>공개를 끄면 목록과 검색에서 숨겨지고 작성자만 볼 수 있습니다.</span></div>',
-                unsafe_allow_html=True,
-            )
-            is_public_input = st.toggle(
-                "프로젝트 공개",
-                value=is_public,
-                key=f"{key_prefix}_is_public",
-            )
+            copy_col, toggle_col = st.columns([3, 1], gap="medium", vertical_alignment="center")
+            with copy_col:
+                st.markdown(
+                    '<div class="folio-visibility-setting-copy"><strong>공개 설정</strong><span>공개를 끄면 목록과 검색에서 숨겨지고 작성자만 볼 수 있습니다.</span></div>',
+                    unsafe_allow_html=True,
+                )
+            with toggle_col:
+                is_public_input = st.toggle(
+                    "프로젝트 공개",
+                    value=is_public,
+                    key=f"{key_prefix}_is_public",
+                )
         with actions_col:
             secondary_col, action_col = st.columns(2)
             with secondary_col:
@@ -231,11 +271,10 @@ def render_project_form(
             "platform": platform_input,
             "project_body": project_body,
             "power_bi_url": power_bi_url_input,
-            # Web application URL is stored in the legacy report_url column. Thumbnail is
-            # no longer editable, but retaining it prevents edits from clearing it.
             "report_url": etc_url_input,
             "github_url": github_url_input,
-            "thumbnail_url": thumbnail_url,
+            "thumbnail_url": thumbnail_url_input,
+            "thumbnail_mode": thumbnail_mode_input,
             "is_public": is_public_input,
         },
         submitted,
@@ -297,11 +336,42 @@ def _render_platform_selector(key_prefix: str, platform_key: str) -> str:
     )
 
 
+def _render_thumbnail_mode_selector(key_prefix: str, thumbnail_mode: str) -> str:
+    selected_mode = thumbnail_mode if thumbnail_mode in PROJECT_THUMBNAIL_MODE_OPTIONS else THUMBNAIL_MODE_AUTO_COVER
+    labels = {
+        THUMBNAIL_MODE_AUTO_COVER: "기본 커버",
+        THUMBNAIL_MODE_MANUAL_URL: "URL 직접 입력",
+        THUMBNAIL_MODE_CAPTURE: "화면 자동 캡처",
+    }
+    return st.radio(
+        "썸네일 설정",
+        PROJECT_THUMBNAIL_MODE_OPTIONS,
+        index=PROJECT_THUMBNAIL_MODE_OPTIONS.index(selected_mode),
+        format_func=lambda mode: labels[mode],
+        horizontal=True,
+        key=f"{key_prefix}_thumbnail_mode",
+    )
+
+
+def _current_thumbnail_mode(key_prefix: str, thumbnail_mode: str) -> str:
+    state_value = st.session_state.get(f"{key_prefix}_thumbnail_mode", thumbnail_mode)
+    return state_value if state_value in PROJECT_THUMBNAIL_MODE_OPTIONS else THUMBNAIL_MODE_AUTO_COVER
+
+
+def _current_thumbnail_url(key_prefix: str, thumbnail_url: str, thumbnail_mode: str) -> str:
+    if thumbnail_mode == THUMBNAIL_MODE_AUTO_COVER:
+        return ""
+    if thumbnail_mode == THUMBNAIL_MODE_MANUAL_URL:
+        return str(st.session_state.get(f"{key_prefix}_thumbnail_url", thumbnail_url) or "")
+    return thumbnail_url
+
+
 def _validate_optional_urls(
     power_bi_url: str,
     report_url: str,
     github_url: str,
     thumbnail_url: str,
+    thumbnail_mode: str,
 ) -> str | None:
     if power_bi_url.strip() and normalize_power_bi_embed_url(power_bi_url) is None:
         return "Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다."
@@ -311,8 +381,14 @@ def _validate_optional_urls(
         invalid_fields.append("보고서 URL")
     if github_url.strip() and normalize_optional_url(github_url) is None:
         invalid_fields.append("GitHub URL")
-    if thumbnail_url.strip() and normalize_optional_url(thumbnail_url) is None:
+    if thumbnail_mode == THUMBNAIL_MODE_MANUAL_URL and not thumbnail_url.strip():
         invalid_fields.append("썸네일 URL")
+    elif thumbnail_url.strip() and normalize_optional_url(thumbnail_url) is None:
+        invalid_fields.append("썸네일 URL")
+    if thumbnail_mode == THUMBNAIL_MODE_CAPTURE and not (
+        normalize_power_bi_embed_url(power_bi_url) or normalize_optional_url(report_url)
+    ):
+        return "자동 캡처를 사용하려면 Embed Code 또는 Web Application URL이 필요합니다."
 
     if invalid_fields:
         return f"{', '.join(invalid_fields)}은 http:// 또는 https://로 시작해야 합니다."
@@ -360,6 +436,7 @@ def _render_project_preview(
     tags: str,
     project_body: str,
     platform_key: str = PROJECT_PLATFORM_OTHER_KEY,
+    thumbnail_url: str = "",
 ) -> None:
     preview = {
         "title": title.strip() or "프로젝트명이 여기에 표시됩니다.",
@@ -368,6 +445,7 @@ def _render_project_preview(
         "tags": tags_with_platform(tags, platform_key),
         "view_count": 0,
         "like_count": 0,
+        "thumbnail_url": thumbnail_url,
     }
     st.markdown(
         render_project_card_html(preview, fallback_text="프로젝트 소개가 여기에 표시됩니다."),

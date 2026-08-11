@@ -11,6 +11,7 @@ from folio_app.services.project_normalizers import (
     normalize_optional_url,
     normalize_power_bi_embed_url,
     normalize_tags as _normalize_tags,
+    normalize_thumbnail_mode,
 )
 from folio_app.services.project_queries import (
     _attach_related_data,
@@ -61,6 +62,7 @@ __all__ = [
     "list_public_projects",
     "normalize_optional_url",
     "normalize_power_bi_embed_url",
+    "normalize_thumbnail_mode",
     "set_project_liked",
     "update_project",
 ]

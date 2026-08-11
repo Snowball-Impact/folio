@@ -164,6 +164,10 @@ div[data-testid="stForm"] button {
     width: 100%;
 }
 
+[class*="_thumbnail_settings"] {
+    margin-top: 18px !important;
+}
+
 [class*="_form_section_links"] [data-testid="stHorizontalBlock"] {
     align-items: flex-start;
 }
@@ -236,8 +240,8 @@ div[data-testid="stForm"] button {
     padding: 16px 18px !important;
 }
 
-[class*="_visibility_setting"] [data-testid="stVerticalBlock"] {
-    gap: 8px !important;
+[class*="_visibility_setting"] [data-testid="stHorizontalBlock"] {
+    align-items: center !important;
 }
 
 .folio-visibility-setting-copy {
@@ -256,6 +260,15 @@ div[data-testid="stForm"] button {
     color: var(--folio-muted);
     font-size: 0.78rem;
     line-height: 1.45;
+}
+
+[class*="_visibility_setting"] .stToggle {
+    display: flex !important;
+    justify-content: flex-end !important;
+}
+
+[class*="_visibility_setting"] .stToggle [data-testid="stWidgetLabel"] {
+    justify-content: flex-end !important;
 }
 
 /* ── Responsive ── */
