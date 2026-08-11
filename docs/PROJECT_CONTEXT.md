@@ -423,6 +423,7 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 ## 작업 원칙
 
 - **모든 작업은 GitHub 이슈로 관리한다** (버그·기능·완료된 작업 기록 포함). 처리 흐름(분석 → 범위 확인 → 구현 → 검증 → 코멘트 → 명시적 승인 후 닫기)은 `docs/ENGINEERING_PLAYBOOK.md` 14번 섹션 참고.
+- 기본 협업 스타일은 **Ponytail + Caveman**이다. 코드는 Ponytail처럼 최소 동작 변경, 기존 패턴·stdlib·native 우선, 불필요한 dependency/abstraction 제거를 기준으로 짠다. 사용자 보고는 Caveman처럼 짧게, 결론 먼저, 개조식으로, 군더더기 없이 하되 보안·검증·배포 리스크는 생략하지 않는다.
 - 단순 CSS/문구 변경은 검증 생략.
 - Python 구조 변경은 관련 파일만 Read 후 수정.
 - Streamlit 전역 CSS 오염 주의 — 컨테이너 key 기반 스코프 우선.
