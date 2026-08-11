@@ -134,30 +134,6 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn(">홍길동<", rendered)
         self.assertNotIn(" · ", rendered)
 
-    def test_card_includes_hover_preview_when_preview_url_is_present(self) -> None:
-        project = {
-            "id": "project-preview",
-            "title": "미리보기 프로젝트",
-        }
-
-        rendered = render_project_card_html(project, preview_url="https://example.com/report")
-
-        self.assertIn("folio-home-card-has-preview", rendered)
-        self.assertIn("folio-home-card-preview", rendered)
-        self.assertIn('data-folio-preview-src="https://example.com/report"', rendered)
-        self.assertIn("folio-home-card-preview-dashboard", rendered)
-
-    def test_card_uses_streamlit_preview_class_for_streamlit_app_url(self) -> None:
-        project = {
-            "id": "project-streamlit-preview",
-            "title": "스트림릿 미리보기 프로젝트",
-        }
-
-        rendered = render_project_card_html(project, preview_url="https://demo.streamlit.app?embed=true")
-
-        self.assertIn("folio-home-card-preview-streamlit", rendered)
-        self.assertNotIn("folio-home-card-preview-dashboard", rendered)
-
     def test_card_omits_hover_preview_without_preview_url(self) -> None:
         project = {
             "id": "project-no-preview",
@@ -168,6 +144,7 @@ class AutomaticProjectCoverTests(unittest.TestCase):
 
         self.assertNotIn("folio-home-card-has-preview", rendered)
         self.assertNotIn("folio-home-card-preview", rendered)
+        self.assertNotIn("data-folio-preview-src", rendered)
 
     def test_card_shows_activity_badge_for_recent_project(self) -> None:
         project = {
@@ -205,6 +182,32 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         rendered = portfolio_item_html(project)
         self.assertIn("folio-portfolio-card-new-badge", rendered)
         self.assertIn("NEW", rendered)
+
+    def test_portfolio_item_shows_powerbi_processing_status_badge(self) -> None:
+        project = {
+            "id": "project-processing",
+            "title": "처리 중 프로젝트",
+            "tags": [],
+            "status": "processing",
+        }
+
+        rendered = portfolio_item_html(project)
+
+        self.assertIn("folio-portfolio-card-status-badge", rendered)
+        self.assertIn("처리 중", rendered)
+
+    def test_portfolio_item_shows_powerbi_failed_status_badge(self) -> None:
+        project = {
+            "id": "project-failed",
+            "title": "실패 프로젝트",
+            "tags": [],
+            "status": "failed",
+        }
+
+        rendered = portfolio_item_html(project)
+
+        self.assertIn("folio-portfolio-card-status-badge", rendered)
+        self.assertIn("게시 실패", rendered)
 
 
 if __name__ == "__main__":

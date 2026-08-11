@@ -122,7 +122,6 @@ def render_project_card_html(
     compact: bool = False,
     fallback_text: str = "",
     href: str | None = None,
-    preview_url: str | None = None,
 ) -> str:
     title_html = html.escape(project.get("title") or "프로젝트명이 여기에 표시됩니다.")
     cover_html = _card_cover(project, compact=compact)
@@ -131,16 +130,14 @@ def render_project_card_html(
     metrics_html = render_project_metrics(project)
     tags_block = _card_tags(project)
     overlay_link_html = _card_overlay_link(project, href)
-    preview_html = _card_preview(preview_url)
     activity_badge_html = _card_activity_badge(project)
 
-    card_class = _card_class(compact=compact, preview_url=preview_url, has_thumbnail=_has_card_thumbnail(project))
+    card_class = _card_class(compact=compact, has_thumbnail=_has_card_thumbnail(project))
     card_html = f"""
     <div class="{card_class}">
         {overlay_link_html}
         {activity_badge_html}
         {cover_html}
-        {preview_html}
         <div class="folio-home-card-overlay">
             <div class="folio-home-card-title-zone">
                 <h3 class="folio-home-card-title">{title_html}</h3>
@@ -161,24 +158,13 @@ def render_project_card_html(
     return clean_html(card_html)
 
 
-def _card_class(*, compact: bool, preview_url: str | None, has_thumbnail: bool = False) -> str:
+def _card_class(*, compact: bool, has_thumbnail: bool = False) -> str:
     classes = ["folio-home-card"]
     if compact:
         classes.append("folio-home-card-compact")
     if has_thumbnail:
         classes.append("folio-home-card-has-thumbnail")
-    if preview_url:
-        classes.append("folio-home-card-has-preview")
-        classes.append(_preview_type_class(preview_url))
     return " ".join(classes)
-
-
-def _preview_type_class(preview_url: str) -> str:
-    parsed = urlparse(preview_url)
-    hostname = parsed.hostname or ""
-    if hostname == "streamlit.app" or hostname.endswith(".streamlit.app"):
-        return "folio-home-card-preview-streamlit"
-    return "folio-home-card-preview-dashboard"
 
 
 def _card_activity_badge(project: dict) -> str:
@@ -284,11 +270,3 @@ def _card_overlay_link(project: dict, href: str | None) -> str:
     )
 
 
-def _card_preview(preview_url: str | None) -> str:
-    if not preview_url:
-        return ""
-    return f"""
-    <div class="folio-home-card-preview" data-folio-preview-src="{html.escape(preview_url, quote=True)}">
-        <div class="folio-home-card-preview-label">대시보드 미리보기</div>
-    </div>
-    """

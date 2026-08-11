@@ -20,6 +20,7 @@ from folio_app.services.auth import get_current_user
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
+    delete_project,
     get_project,
     increment_view_count,
     is_project_liked,
@@ -134,6 +135,7 @@ def _render_hero_footer_actions(
         )
         _render_detail_like_button(project_id, like_count, user)
         _render_detail_edit_button(project, project_id, user)
+        _render_detail_delete_button(project, project_id, user)
         render_project_share_handler(project_id)
 
 
@@ -226,6 +228,48 @@ def _render_detail_edit_button(project: dict, project_id: str, user: dict | None
     ):
         st.session_state["editing_project_id"] = project_id
         navigate("My Page")
+
+
+def _render_detail_delete_button(project: dict, project_id: str, user: dict | None) -> None:
+    if not _is_project_owner(project, user):
+        return
+
+    if st.button(
+        "삭제",
+        key="detail_delete_project_action",
+        icon=":material/delete:",
+        use_container_width=False,
+    ):
+        _confirm_detail_project_deletion(project, project_id, user["id"])
+
+
+@st.dialog("프로젝트 삭제")
+def _confirm_detail_project_deletion(project: dict, project_id: str, author_id: str) -> None:
+    _render_detail_project_deletion_dialog(project, project_id, author_id)
+
+
+def _render_detail_project_deletion_dialog(project: dict, project_id: str, author_id: str) -> None:
+    title = project.get("title") or "제목 없는 프로젝트"
+    st.write(f"‘{title}’ 프로젝트를 삭제할까요?")
+    st.caption("삭제한 프로젝트는 복구할 수 없습니다.")
+
+    cancel_col, delete_col = st.columns(2)
+    with cancel_col:
+        if st.button("취소", key=f"detail_delete_cancel_{project_id}", use_container_width=True):
+            st.rerun()
+    with delete_col:
+        if st.button(
+            "삭제하기",
+            key=f"detail_delete_confirm_{project_id}",
+            type="primary",
+            use_container_width=True,
+        ):
+            result = delete_project(project_id, author_id)
+            if result.ok:
+                st.session_state["home_notice"] = result.message
+                navigate("Home")
+            else:
+                st.error(result.message)
 
 
 def _is_project_owner(project: dict, user: dict | None) -> bool:

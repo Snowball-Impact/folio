@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from postgrest.types import CountMethod, ReturnMethod
 
 from folio_app.services.auth import AuthResult
-from folio_app.services.project_mutations import update_project
+from folio_app.services.project_mutations import delete_project, update_project
 from folio_app.services.project_queries import _filter_public_projects, list_public_projects
 from folio_app.services.project_types import ProjectServiceError
 
@@ -75,6 +75,26 @@ class ProjectMutationTests(unittest.TestCase):
         self.assertTrue(result.ok)
         delete_thumbnail.assert_not_called()
 
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
+    @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_delete_project_soft_deletes_instead_of_physical_delete(self, get_client, _auth) -> None:
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=None, count=1)
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = delete_project("project-id", "author-id")
+
+        self.assertTrue(result.ok)
+        builder.update.assert_called_once()
+        update_payload = builder.update.call_args.args[0]
+        self.assertEqual(update_payload["status"], "deleted")
+        self.assertFalse(update_payload["is_public"])
+        self.assertIn("deleted_at", update_payload)
+
 
 class FilterPublicProjectsTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -95,6 +115,19 @@ class FilterPublicProjectsTests(unittest.TestCase):
     def test_filters_by_exact_tag(self) -> None:
         result = _filter_public_projects(self.projects, tag="고객")
         self.assertEqual([project["id"] for project in result], ["299"])
+
+    def test_public_filter_only_keeps_published_projects(self) -> None:
+        projects = [
+            {"id": "published", "title": "A", "status": "published"},
+            {"id": "legacy", "title": "B"},
+            {"id": "processing", "title": "C", "status": "processing"},
+            {"id": "failed", "title": "D", "status": "failed"},
+            {"id": "deleted", "title": "E", "status": "deleted"},
+        ]
+
+        result = _filter_public_projects(projects)
+
+        self.assertEqual([project["id"] for project in result], ["published", "legacy"])
 
     def test_does_not_mutate_cached_source_rows(self) -> None:
         result = _filter_public_projects(self.projects)

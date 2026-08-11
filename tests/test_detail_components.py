@@ -1,13 +1,15 @@
 import unittest
+from unittest.mock import MagicMock, patch
 
-from folio_app.components.dashboard import embedded_dashboard_html
+from folio_app.components.dashboard import embedded_dashboard_html, powerbi_report_html
 from folio_app.components.project_detail_content import (
     project_report_html,
     project_report_sections,
     project_visual_context,
 )
 from folio_app.components.share import project_action_group_html, project_share_button_html
-from folio_app.pages.project_detail import _detail_hero_card_html, _is_project_owner
+from folio_app.pages.project_detail import _detail_hero_card_html, _is_project_owner, _render_detail_project_deletion_dialog
+from folio_app.services.project_types import ProjectResult
 
 
 class DashboardComponentTests(unittest.TestCase):
@@ -17,6 +19,15 @@ class DashboardComponentTests(unittest.TestCase):
         self.assertIn("Embedded dashboard", rendered)
         self.assertIn("https://example.com/report?title=&quot;x&quot;&amp;q=&lt;tag&gt;", rendered)
         self.assertNotIn('src="https://example.com/report?title="x"&q=<tag>"', rendered)
+
+    def test_powerbi_report_uses_js_sdk_embed_config(self) -> None:
+        rendered = powerbi_report_html("report-id", "https://app.powerbi.com/reportEmbed", "embed-token")
+
+        self.assertIn("powerbi-client", rendered)
+        self.assertIn('"report-id"', rendered)
+        self.assertIn('"https://app.powerbi.com/reportEmbed"', rendered)
+        self.assertIn('"embed-token"', rendered)
+        self.assertIn("TokenType.Embed", rendered)
 
 
 class ShareComponentTests(unittest.TestCase):
@@ -66,6 +77,29 @@ class DetailHelperTests(unittest.TestCase):
         self.assertIn("#PowerBI", rendered)
         self.assertNotIn("folio-home-card-preview", rendered)
 
+    @patch("folio_app.pages.project_detail.navigate")
+    @patch("folio_app.pages.project_detail.delete_project")
+    @patch("folio_app.pages.project_detail.st.session_state", new_callable=dict)
+    @patch("folio_app.pages.project_detail.st.button")
+    @patch("folio_app.pages.project_detail.st.columns")
+    def test_detail_delete_dialog_deletes_and_returns_home(
+        self,
+        columns,
+        button,
+        session_state,
+        delete_project,
+        navigate,
+    ) -> None:
+        columns.return_value = [_context_column(), _context_column()]
+        button.side_effect = [False, True]
+        delete_project.return_value = ProjectResult(True, "프로젝트가 삭제되었습니다.", "project-1")
+
+        _render_detail_project_deletion_dialog({"title": "삭제 테스트"}, "project-1", "user-1")
+
+        delete_project.assert_called_once_with("project-1", "user-1")
+        self.assertEqual(session_state["home_notice"], "프로젝트가 삭제되었습니다.")
+        navigate.assert_called_once_with("Home")
+
     def test_visual_context_detects_any_resource(self) -> None:
         context = project_visual_context(
             {
@@ -78,6 +112,18 @@ class DetailHelperTests(unittest.TestCase):
         self.assertIsNone(context["power_bi_url"])
         self.assertTrue(context["has_report"])
         self.assertFalse(context["has_github"])
+        self.assertTrue(context["has_visual_panel"])
+
+    def test_visual_context_detects_powerbi_processing_status(self) -> None:
+        context = project_visual_context(
+            {
+                "status": "processing",
+                "power_bi_url": "",
+                "report_url": "",
+                "github_url": "",
+            }
+        )
+
         self.assertTrue(context["has_visual_panel"])
 
     def test_report_sections_omit_empty_values(self) -> None:
@@ -98,6 +144,12 @@ class DetailHelperTests(unittest.TestCase):
         self.assertIn("프로젝트 리포트", rendered)
         self.assertIn("안전한 내용", rendered)
         self.assertNotIn("<script>", rendered)
+
+def _context_column():
+    column = MagicMock()
+    column.__enter__.return_value = column
+    column.__exit__.return_value = None
+    return column
 
 
 if __name__ == "__main__":

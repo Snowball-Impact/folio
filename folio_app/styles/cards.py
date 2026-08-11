@@ -11,9 +11,24 @@ CSS = """
     overflow: hidden;
     padding: 0;
     position: relative;
-    transform-origin: center center;
     transition: box-shadow 0.18s ease, transform 0.18s ease;
     z-index: 1;
+}
+
+.folio-home-card::after {
+    border: 5px solid transparent;
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    pointer-events: none;
+    position: absolute;
+    transition: border-color 0.18s ease;
+    z-index: 12;
+}
+
+.folio-home-card:hover::after,
+.folio-home-card:focus-within::after {
+    border-color: rgba(20, 89, 200, 0.96);
 }
 
 .folio-home-card-compact {
@@ -42,10 +57,6 @@ CSS = """
     pointer-events: none;
     position: absolute;
     z-index: 1;
-}
-
-.folio-home-card-cover-image + .folio-home-card-preview {
-    z-index: 2;
 }
 
 /* Streamlit's markdown renderer splits an anchor that wraps block-level

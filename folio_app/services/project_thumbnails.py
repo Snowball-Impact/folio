@@ -72,11 +72,40 @@ def maybe_capture_project_thumbnail(
         return ThumbnailCaptureResult(ok=False)
 
 
+def capture_project_thumbnail_from_html(
+    project_id: str,
+    document_html: str,
+    progress_callback: ThumbnailProgressCallback | None = None,
+) -> ThumbnailCaptureResult:
+    try:
+        _notify(progress_callback, 45, "캡처할 화면을 여는 중입니다.")
+        image_bytes = capture_thumbnail_document_bytes(document_html, progress_callback=progress_callback)
+        _notify(progress_callback, 82, "썸네일 이미지를 업로드하는 중입니다.")
+        public_url = upload_project_thumbnail(project_id, image_bytes)
+        _notify(progress_callback, 92, "프로젝트에 썸네일을 연결하는 중입니다.")
+        update_project_thumbnail_url(project_id, public_url)
+        return ThumbnailCaptureResult(ok=True, url=public_url)
+    except Exception:
+        logger.exception("Failed to capture project thumbnail from HTML")
+        return ThumbnailCaptureResult(ok=False)
+
+
 def thumbnail_capture_source_url(payload: dict) -> str | None:
     return normalize_power_bi_embed_url(payload.get("power_bi_url")) or normalize_optional_url(payload.get("report_url"))
 
 
 def capture_thumbnail_bytes(url: str, progress_callback: ThumbnailProgressCallback | None = None) -> bytes:
+    return _capture_thumbnail_target(_fullscreen_iframe_capture_url(url), progress_callback=progress_callback)
+
+
+def capture_thumbnail_document_bytes(
+    document_html: str,
+    progress_callback: ThumbnailProgressCallback | None = None,
+) -> bytes:
+    return _capture_thumbnail_target(_document_capture_url(document_html), progress_callback=progress_callback)
+
+
+def _capture_thumbnail_target(target_url: str, progress_callback: ThumbnailProgressCallback | None = None) -> bytes:
     try:
         from PIL import Image
         from selenium import webdriver
@@ -101,7 +130,7 @@ def capture_thumbnail_bytes(url: str, progress_callback: ThumbnailProgressCallba
     driver = webdriver.Chrome(service=service, options=options)
     try:
         driver.set_page_load_timeout(THUMBNAIL_CAPTURE_TIMEOUT_SECONDS)
-        driver.get(_fullscreen_iframe_capture_url(url))
+        driver.get(target_url)
         for second in range(THUMBNAIL_CAPTURE_WAIT_SECONDS):
             progress = 48 + int(((second + 1) / THUMBNAIL_CAPTURE_WAIT_SECONDS) * 28)
             _notify(
@@ -263,6 +292,10 @@ iframe {{
 </body>
 </html>"""
     return "data:text/html;charset=utf-8," + quote(html, safe="")
+
+
+def _document_capture_url(document_html: str) -> str:
+    return "data:text/html;charset=utf-8," + quote(document_html, safe="")
 
 
 def _notify(progress_callback: ThumbnailProgressCallback | None, value: int, text: str) -> None:

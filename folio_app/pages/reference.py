@@ -7,7 +7,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from folio_app.components.assets import static_image_src
-from folio_app.components.home_gallery import project_card_html, render_card_preview_script, render_count_up_script
+from folio_app.components.home_gallery import project_card_html, render_count_up_script
 from folio_app.components.ui import clean_html
 from folio_app.pages import project_detail
 from folio_app.services.project_references import (
@@ -146,7 +146,6 @@ def _render_reference_grid(projects: list[dict], platform_key: str, visible_coun
         f'<section class="folio-reference-grid" aria-label="레퍼런스 카드 목록">{cards_html}</section>',
         unsafe_allow_html=True,
     )
-    render_card_preview_script()
 
 
 def _reference_card_slot_html(project: dict, platform_key: str, index: int) -> str:

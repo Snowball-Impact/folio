@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Any, Callable
 
 from postgrest.types import CountMethod, ReturnMethod
 
-from folio_app.services.project_normalizers import THUMBNAIL_MODE_CAPTURE, clean_project_payload
+from folio_app.services.project_normalizers import (
+    PROJECT_STATUS_DELETED,
+    THUMBNAIL_MODE_CAPTURE,
+    clean_project_payload,
+)
 from folio_app.services.project_thumbnails import maybe_capture_project_thumbnail, try_delete_project_thumbnail_file
 from folio_app.services.project_queries import _fetch_like_counts, _fetch_public_projects, clear_project_caches
 from folio_app.services.project_types import ProjectResult, ViewCountResult
@@ -94,6 +99,12 @@ def update_project(
 
 
 def delete_project(project_id: str, author_id: str) -> ProjectResult:
+    from folio_app.services.auth import ensure_authenticated_session
+
+    auth_result = ensure_authenticated_session()
+    if not auth_result.ok:
+        return ProjectResult(False, auth_result.message)
+
     client = get_supabase_client()
     if client is None:
         return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
@@ -101,17 +112,27 @@ def delete_project(project_id: str, author_id: str) -> ProjectResult:
     try:
         response = (
             client.table("projects")
-            .delete()
+            .update(
+                {
+                    "status": PROJECT_STATUS_DELETED,
+                    "deleted_at": datetime.now(UTC).isoformat(),
+                    "is_public": False,
+                },
+                count=CountMethod.exact,
+                returning=ReturnMethod.minimal,
+            )
             .eq("id", project_id)
             .eq("author_id", author_id)
             .execute()
         )
-        if not response.data:
+        if response.count == 0:
             return ProjectResult(False, "삭제할 프로젝트를 찾을 수 없습니다.")
-        try_delete_project_thumbnail_file(project_id)
         clear_project_caches()
         return ProjectResult(True, "프로젝트가 삭제되었습니다.", project_id)
-    except Exception:
+    except Exception as exc:
+        if _is_status_schema_error(exc):
+            logger.exception("Project soft delete failed because status schema is missing")
+            return ProjectResult(False, "프로젝트 삭제를 적용하려면 Supabase projects.status 컬럼을 먼저 적용해야 합니다.")
         logger.exception("Failed to delete project")
         return ProjectResult(False, "프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.")
 
@@ -175,6 +196,11 @@ def _message_with_thumbnail_result(message: str, capture_result: object) -> str:
 def _is_thumbnail_mode_schema_error(exc: Exception) -> bool:
     message = str(exc).lower()
     return "thumbnail_mode" in message and ("column" in message or "schema cache" in message)
+
+
+def _is_status_schema_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "status" in message and ("column" in message or "schema cache" in message)
 
 
 def _thumbnail_mode_schema_message() -> str:

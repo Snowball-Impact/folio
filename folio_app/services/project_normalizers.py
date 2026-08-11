@@ -14,6 +14,44 @@ THUMBNAIL_MODES = {
     THUMBNAIL_MODE_MANUAL_URL,
     THUMBNAIL_MODE_CAPTURE,
 }
+PROJECT_TYPE_POWERBI = "powerbi"
+PROJECT_TYPE_TABLEAU = "tableau"
+PROJECT_TYPE_LOOKER = "looker"
+PROJECT_TYPE_STREAMLIT = "streamlit"
+PROJECT_TYPE_NOTEBOOK = "notebook"
+PROJECT_TYPE_HTML_REPORT = "html_report"
+PROJECT_TYPE_MARKDOWN_REPORT = "markdown_report"
+PROJECT_TYPE_WEB = "web"
+PROJECT_TYPE_OTHER = "other"
+PROJECT_TYPES = {
+    PROJECT_TYPE_POWERBI,
+    PROJECT_TYPE_TABLEAU,
+    PROJECT_TYPE_LOOKER,
+    PROJECT_TYPE_STREAMLIT,
+    PROJECT_TYPE_NOTEBOOK,
+    PROJECT_TYPE_HTML_REPORT,
+    PROJECT_TYPE_MARKDOWN_REPORT,
+    PROJECT_TYPE_WEB,
+    PROJECT_TYPE_OTHER,
+}
+PROJECT_STATUS_PROCESSING = "processing"
+PROJECT_STATUS_PUBLISHED = "published"
+PROJECT_STATUS_FAILED = "failed"
+PROJECT_STATUS_DELETED = "deleted"
+PROJECT_STATUSES = {
+    PROJECT_STATUS_PROCESSING,
+    PROJECT_STATUS_PUBLISHED,
+    PROJECT_STATUS_FAILED,
+    PROJECT_STATUS_DELETED,
+}
+EMBED_STATUS_SUPPORTED = "supported"
+EMBED_STATUS_EXTERNAL_ONLY = "external_only"
+EMBED_STATUS_FAILED = "failed"
+EMBED_STATUSES = {
+    EMBED_STATUS_SUPPORTED,
+    EMBED_STATUS_EXTERNAL_ONLY,
+    EMBED_STATUS_FAILED,
+}
 
 
 def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -45,6 +83,12 @@ def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
         )
     if "thumbnail_mode" in payload:
         data["thumbnail_mode"] = thumbnail_mode
+    if "project_type" in payload:
+        data["project_type"] = normalize_project_type(payload.get("project_type"))
+    if "status" in payload:
+        data["status"] = normalize_project_status(payload.get("status"))
+    if "embed_status" in payload:
+        data["embed_status"] = normalize_embed_status(payload.get("embed_status"))
     if "tags" in payload:
         data["tags"] = normalize_tags(payload.get("tags", ""))
     if "is_public" in payload:
@@ -71,6 +115,27 @@ def normalize_thumbnail_mode(value: object) -> str:
     if mode in THUMBNAIL_MODES:
         return mode
     return THUMBNAIL_MODE_AUTO_COVER
+
+
+def normalize_project_type(value: object) -> str:
+    project_type = str(value or "").strip()
+    if project_type in PROJECT_TYPES:
+        return project_type
+    return PROJECT_TYPE_OTHER
+
+
+def normalize_project_status(value: object) -> str:
+    status = str(value or "").strip()
+    if status in PROJECT_STATUSES:
+        return status
+    return PROJECT_STATUS_PUBLISHED
+
+
+def normalize_embed_status(value: object) -> str:
+    status = str(value or "").strip()
+    if status in EMBED_STATUSES:
+        return status
+    return EMBED_STATUS_EXTERNAL_ONLY
 
 
 def normalize_optional_url(value: str | None) -> str | None:

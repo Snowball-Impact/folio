@@ -386,10 +386,10 @@ MVP 정책:
 - 원본 업로드 크기 상한 설정
 - 저장 전 리사이징/압축
 - 최종 저장 파일은 가급적 500KB 이하 목표
-- 자동 대시보드 캡처는 MVP 필수 기능에서 제외
+- PBIX 게시 성공 시 자동 캡처 모드이면 Power BI report HTML을 서버에서 직접 렌더링해 대표 썸네일을 생성
 - 프로젝트 영구 삭제 시 연결 썸네일도 정리
 
-현재 자동캡처 코드가 존재하더라도, Power BI/PBIX MVP의 핵심 완료 조건으로 보지 않는다.
+자동 캡처는 사용자 업로드 썸네일을 대체하는 기본 흐름이 아니라, PBIX 게시 성공 후 대표 이미지가 필요할 때 쓰는 보조 기능이다.
 
 ---
 
@@ -477,6 +477,8 @@ PBIX Storage Policy:
 - 업로드 후 임시 처리한다.
 - Power BI Import 성공 확인 후 PBIX 임시 원본을 삭제한다.
 - Supabase Storage 1GB를 PBIX 보관 용도로 사용하지 않는다.
+- PBIX 업로드 상한은 MVP 기본값 100MB다.
+- Power BI Import polling은 MVP 기본값 100초다.
 - MVP에서는 PBIX 교체와 버전 관리를 지원하지 않는다.
 
 ---
@@ -763,7 +765,7 @@ pbix_import_failed
 - Kafka / Spark / Kubernetes
 - 과도한 MSA
 - 모든 콘텐츠 수집처 동시 개발
-- 자동 썸네일 캡처를 MVP 필수 조건으로 삼는 것
+- 모든 프로젝트에 자동 썸네일 캡처를 강제하는 것
 
 ---
 

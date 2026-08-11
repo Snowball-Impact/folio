@@ -30,9 +30,9 @@
 - Power BI Embed Token과 Client Secret은 서버 전용이며 DB와 클라이언트에 영구 노출하지 않는다.
 - PBIX는 임시 처리 후 Power BI Import가 끝나면 삭제하고, Supabase Storage에 영구 보관하지 않는다.
 - PBIX 업로드는 등록/수정 완료 버튼을 눌렀을 때 실행하며, 실패하면 프로젝트 생성/수정은 보류하고 입력 초안을 유지한다.
-- PBIX 최대 파일 크기는 10MB로 제한한다.
+- PBIX 최대 파일 크기는 100MB로 제한한다.
 - 수정 시 새 PBIX Import가 성공하면 기존 프로젝트 ID, 댓글, 조회수, 좋아요, 상세 URL은 유지하고 `powerbi_reports` 메타데이터만 교체한다. 실패하면 기존 Power BI 게시본은 유지한다.
-- Power BI Import polling은 MVP에서 최대 10초로 제한한다.
+- Power BI Import polling은 MVP에서 최대 100초로 제한한다.
 - 프로젝트 유형 후보는 Power BI, Tableau, Looker Studio, Streamlit, Notebook, HTML Report, Markdown Report, Web/App, 기타다.
 - HTML Report는 sandbox iframe으로만 표시하고, Markdown Report는 sanitize 후 렌더링한다. Notebook은 MVP에서 서버 실행/변환하지 않고 GitHub 또는 nbviewer URL 등록을 우선한다.
 - GitHub 연동은 Todo로만 둔다. 초기 아이디어는 public GitHub repo/file URL 기반 README 또는 파일 감지와 폼 자동 채움이며, OAuth/GitHub App/private repo import는 MVP 제외다.
@@ -268,7 +268,6 @@ folio_app/styles/
   cards.py              # 홈 프로젝트 카드 본체
   project_card_cover.py # 자동 커버 아트
   gallery_rail.py       # 홈 카드 레일/가로 스크롤/레일 버튼
-  card_preview.py       # 홈 hover iframe preview
   shared.py             # folio-tags/folio-tag/folio-detail-meta/folio-muted (카드·히어로·상세 공용)
   auth.py               # 로그인/회원가입 카드
   notifications.py      # 알림 페이지
@@ -620,8 +619,8 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 
 - **홈 갤러리**
   - 프로젝트 목록은 최근 등록순, 조회순, 좋아요순 3개 카드 레일 구조를 유지한다.
-  - 카드 hover 시 대표 Power BI iframe을 lazy mount해 OTT 패널처럼 샘플을 보여준다.
-  - hover 확대는 홈 갤러리 레일에만 적용하고, 등록 페이지 카드 미리보기에는 적용하지 않는다.
+  - 카드 hover iframe preview는 사용하지 않는다.
+  - hover는 홈/레퍼런스 카드에서 약한 상승감과 5px 파란 테두리만 사용한다.
   - 카드 썸네일은 16:9를 유지하고, 자동 커버는 24종 색/패턴 베리에이션을 사용한다. 너무 알록달록하거나 어두운 팔레트는 피하고, 원래의 선명한 미디어 타일 느낌을 기준으로 둔다.
 - **프로젝트 상세**
   - 히어로 썸네일은 16:9로 고정한다.
@@ -827,3 +826,25 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m unittest tests.test_project_form tests.test_project_references tests.test_detail_components tests.test_project_queries -v`
 - `http://localhost:8501/?page=Reference&platform=datastudio`에서 무한스크롤 `12 -> 36 -> 48 -> 60 -> 72 -> 80` 로드 확인. 마지막에는 "더 보기" 버튼이 사라지고 "모든 레퍼런스를 불러왔습니다."만 표시된다.
 - `powerbi`, `datastudio`, `tableau`, `streamlit` 레퍼런스 히어로에서 로고 우측 기준과 타이틀 색상 확인. Power BI 로고는 실제 렌더 폭 약 358px로 줄고, 로고 우측과 wrapper 우측 차이는 0px이다.
+
+### 완료: PBIX 업로드와 Power BI 게시 foundation (2026-08-11)
+
+- `supabase/schema.sql`에 `projects.project_type`, `status`, `embed_status`, `published_at`, `deleted_at`과 `powerbi_reports` 테이블을 추가했다. 공개 프로젝트 RLS는 `is_public=true`와 `status='published'`를 함께 만족해야 한다.
+- 프로젝트 삭제는 물리 삭제에서 soft delete로 바꿨다. 앱은 `status='deleted'`, `deleted_at`, `is_public=false`로 숨기며, 작성자 목록과 상세에서도 deleted 프로젝트를 제외한다.
+- Power BI 설정은 `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`를 사용한다. PBIX 기본 상한은 `PBIX_MAX_UPLOAD_MB=100`, Import polling 기본값은 `POWERBI_IMPORT_POLL_SECONDS=100`이다.
+- `services/powerbi.py`가 Entra client credentials token, PBIX Import API, Import polling, Report metadata 조회, Embed Token 발급, `powerbi_reports` upsert를 담당한다. Client Secret과 Embed Token은 DB에 저장하지 않는다.
+- 등록 폼에서 플랫폼을 Power BI로 선택하면 PBIX 파일 업로드 필드가 보인다. PBIX 확장자와 크기 검증, Power BI 설정 누락은 프로젝트 생성 전에 중단한다.
+- 신규 PBIX 등록은 프로젝트를 `processing`으로 먼저 생성한 뒤 Import를 실행한다. Import 성공 시 `published`와 `embed_status='supported'`로 전환하고, 실패/timeout은 `failed`로 표시한다.
+- 상세 페이지는 PBIX 게시본이면 `powerbi_reports` 메타데이터로 Embed Token을 동적 발급해 Power BI JS SDK Viewer를 렌더한다. 기존 공개 iframe 레퍼런스는 기존 iframe fallback을 유지한다.
+- PBIX 게시 성공 후 썸네일 모드가 자동 캡처이면 Power BI report HTML을 직접 렌더링해 캡처한다. Streamlit 내부 페이지 iframe을 캡처하지 않아 Power BI JS SDK 로딩 경합과 중첩 iframe 문제를 피한다.
+- 등록/수정 폼의 우측 카드 미리보기는 상세 히어로 우측 썸네일 영역과 같은 Home 카드 구조를 쓴다. 별도 미리보기 섹션은 두지 않고, 기본정보 아래에 PBIX 게시 섹션, 산출물 링크, 프로젝트 내용 순으로 배치한다.
+- 홈/레퍼런스 카드 hover iframe preview는 제거했다. hover 시 카드는 작게 떠오르고, `cards.py`의 `::after` 오버레이가 5px 파란 테두리를 표시한다. stretched link 레이어보다 높은 z-index를 써서 썸네일/그라데이션에 묻히지 않게 한다.
+- 상세 페이지 작성자 화면에는 프로젝트 삭제 버튼을 둔다. 삭제는 soft delete이며 `status='deleted'`, `deleted_at`, `is_public=false`로 즉시 목록과 상세 접근에서 숨긴다.
+- 수정 화면에서 PBIX 교체, failed 프로젝트 재시도 버튼, Power BI Report/Semantic Model 30일 cleanup job은 아직 후속이다.
+- 테스트용 `test1` 프로젝트(`fbe01cc3-75e3-4b6b-a5d3-f2ba564d6976`)는 마감 시점에 `is_public=false`, `status='deleted'` 상태로 확인했다.
+
+검증:
+
+- `python -m unittest tests.test_project_editor tests.test_powerbi tests.test_project_form tests.test_detail_components tests.test_config tests.test_project_queries tests.test_ui_cards -v`
+- `python -m pyflakes folio_app app.py tests\test_project_editor.py tests\test_powerbi.py`
+- `python -m compileall -q app.py folio_app tests`

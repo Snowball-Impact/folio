@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+import json
 from urllib.parse import urlparse
 
 import streamlit.components.v1 as components
@@ -10,6 +11,13 @@ import streamlit.components.v1 as components
 
 def render_embedded_dashboard(url: str) -> None:
     components.html(embedded_dashboard_html(url), height=embedded_dashboard_height(url))
+
+
+def render_powerbi_report(report_id: str, embed_url: str, embed_token: str) -> None:
+    components.html(
+        powerbi_report_html(report_id, embed_url, embed_token),
+        height=640,
+    )
 
 
 def embedded_dashboard_html(url: str) -> str:
@@ -71,6 +79,75 @@ def embedded_dashboard_html(url: str) -> str:
             onload="var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
         </iframe>
     </div>
+    """
+
+
+def powerbi_report_html(report_id: str, embed_url: str, embed_token: str) -> str:
+    report_id_json = json.dumps(report_id)
+    embed_url_json = json.dumps(embed_url)
+    embed_token_json = json.dumps(embed_token)
+    return f"""
+    <style>
+        html,
+        body {{
+            margin: 0;
+            padding: 0;
+        }}
+        #folio-powerbi-report {{
+            background: #ffffff;
+            height: 632px;
+            width: 100%;
+        }}
+        .folio-powerbi-error {{
+            align-items: center;
+            background: #f4f7fc;
+            color: #60708f;
+            display: none;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            font-size: 14px;
+            height: 632px;
+            justify-content: center;
+            text-align: center;
+        }}
+    </style>
+    <div id="folio-powerbi-report"></div>
+    <div class="folio-powerbi-error" id="folio-powerbi-error">
+        Power BI 보고서를 불러오지 못했습니다.
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/powerbi-client@2.23.1/dist/powerbi.min.js"></script>
+    <script>
+        (function () {{
+            function showError() {{
+                var reportElement = document.getElementById("folio-powerbi-report");
+                var errorElement = document.getElementById("folio-powerbi-error");
+                if (reportElement) reportElement.style.display = "none";
+                if (errorElement) errorElement.style.display = "flex";
+            }}
+            try {{
+                var models = window["powerbi-client"].models;
+                var reportContainer = document.getElementById("folio-powerbi-report");
+                var config = {{
+                    type: "report",
+                    id: {report_id_json},
+                    embedUrl: {embed_url_json},
+                    accessToken: {embed_token_json},
+                    tokenType: models.TokenType.Embed,
+                    permissions: models.Permissions.Read,
+                    settings: {{
+                        panes: {{
+                            filters: {{ visible: false }},
+                            pageNavigation: {{ visible: true }}
+                        }},
+                        background: models.BackgroundType.Transparent
+                    }}
+                }};
+                var report = window.powerbi.embed(reportContainer, config);
+                report.on("error", showError);
+            }} catch (error) {{
+                showError();
+            }}
+        }})();
+    </script>
     """
 
 

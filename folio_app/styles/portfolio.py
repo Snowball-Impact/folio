@@ -97,6 +97,34 @@ CSS = """
     padding: 0 7px;
 }
 
+.folio-portfolio-card-status-badge {
+    align-items: center;
+    background: #eef3fb;
+    border: 1px solid var(--folio-border);
+    border-radius: 999px;
+    color: var(--folio-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    font-size: 10px;
+    font-weight: 700;
+    height: 18px;
+    letter-spacing: 0;
+    line-height: 1;
+    padding: 0 7px;
+}
+
+.folio-portfolio-card-status-badge.is-processing {
+    background: #fff7e6;
+    border-color: #f2d48a;
+    color: #8a5a00;
+}
+
+.folio-portfolio-card-status-badge.is-failed {
+    background: #fff1f1;
+    border-color: #f0b8b8;
+    color: #a83232;
+}
+
 .folio-portfolio-card-liner {
     color: var(--folio-muted);
     font-size: 13px;

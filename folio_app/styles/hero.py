@@ -411,10 +411,6 @@ CSS = """
     width: 100%;
 }
 
-.folio-project-detail-hero .folio-page-hero-visual .folio-home-card-preview {
-    display: none;
-}
-
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .folio-page-hero {

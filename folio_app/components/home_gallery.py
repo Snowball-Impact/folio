@@ -9,7 +9,6 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from folio_app.components.ui import plain_text, render_project_card_html
-from folio_app.services.projects import normalize_power_bi_embed_url
 
 
 _RAIL_SCROLL_SCRIPT = """
@@ -37,71 +36,6 @@ _RAIL_SCROLL_SCRIPT = """
         var gap = parseFloat(railStyle.columnGap || railStyle.gap || "0") || 0;
         var distance = firstCard ? firstCard.getBoundingClientRect().width + gap : Math.max(rail.clientWidth * 0.72, 320);
         rail.scrollBy({ left: direction * distance, behavior: "smooth" });
-    });
-})();
-</script>
-"""
-_CARD_PREVIEW_SCRIPT = """
-<script>
-(function() {
-    var parentDocument = window.parent.document;
-    if (parentDocument.__folioCardPreviewBound) {
-        return;
-    }
-    parentDocument.__folioCardPreviewBound = true;
-
-    function mountPreview(preview) {
-        if (!preview || preview.dataset.folioPreviewMounted === "1") {
-            return;
-        }
-        var src = preview.getAttribute("data-folio-preview-src");
-        if (!src) {
-            return;
-        }
-        preview.dataset.folioPreviewMounted = "1";
-        preview.classList.add("is-loaded");
-        var iframe = parentDocument.createElement("iframe");
-        iframe.className = "folio-home-card-preview-frame";
-        iframe.title = "프로젝트 대시보드 미리보기";
-        iframe.src = src;
-        iframe.loading = "lazy";
-        iframe.referrerPolicy = "no-referrer-when-downgrade";
-        iframe.setAttribute("allowfullscreen", "true");
-        preview.appendChild(iframe);
-    }
-
-    function alignPreviewCard(card) {
-        var rail = card && card.closest(".folio-gallery-rail");
-        if (!rail) {
-            return;
-        }
-        card.classList.remove("folio-home-card-preview-align-left", "folio-home-card-preview-align-right");
-        var cardRect = card.getBoundingClientRect();
-        var railRect = rail.getBoundingClientRect();
-        var sideExpansion = cardRect.width * 0.25;
-        if (cardRect.right + sideExpansion > railRect.right) {
-            card.classList.add("folio-home-card-preview-align-right");
-        } else if (cardRect.left - sideExpansion < railRect.left) {
-            card.classList.add("folio-home-card-preview-align-left");
-        }
-    }
-
-    parentDocument.addEventListener("mouseenter", function(event) {
-        var card = event.target.closest(".folio-home-card-has-preview");
-        if (!card) {
-            return;
-        }
-        alignPreviewCard(card);
-        mountPreview(card.querySelector(".folio-home-card-preview"));
-    }, true);
-
-    parentDocument.addEventListener("focusin", function(event) {
-        var card = event.target.closest(".folio-home-card-has-preview");
-        if (!card) {
-            return;
-        }
-        alignPreviewCard(card);
-        mountPreview(card.querySelector(".folio-home-card-preview"));
     });
 })();
 </script>
@@ -173,7 +107,6 @@ def render_project_rails(
     for rail_key, description, projects in rails:
         render_project_rail(rail_key, description, projects, home_page=home_page, extra_query_params=extra_query_params)
     render_rail_scroll_script()
-    render_card_preview_script()
 
 
 def render_project_rail(
@@ -242,23 +175,17 @@ def _rail_title_html(rail_key: str, description: str) -> str:
 
 
 def project_card_html(project: dict, *, home_page: str, extra_query_params: dict[str, str] | None = None) -> str:
-    preview_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
     params = {"page": home_page, **(extra_query_params or {}), "project_id": project["id"]}
     return render_project_card_html(
         project,
         compact=False,
         fallback_text=plain_text(project.get("insights")) or "",
         href=f"?{urlencode(params)}",
-        preview_url=preview_url,
     )
 
 
 def render_rail_scroll_script() -> None:
     _render_script(_RAIL_SCROLL_SCRIPT)
-
-
-def render_card_preview_script() -> None:
-    _render_script(_CARD_PREVIEW_SCRIPT)
 
 
 def _render_script(script: str) -> None:

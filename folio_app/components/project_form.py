@@ -1,7 +1,9 @@
 import html
+from typing import Any
 
 import streamlit as st
 
+from folio_app.config import get_settings
 from folio_app.components.project_body import (
     parse_project_body,
     plain_project_body_text,
@@ -27,7 +29,7 @@ PROJECT_THUMBNAIL_MODE_OPTIONS = (
 )
 
 
-def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], list[str], str | None]:
+def validate_project_form(form_data: dict[str, Any]) -> tuple[dict[str, str], list[str], str | None]:
     parsed_body = parse_project_body(form_data["project_body"])
     missing = []
     if not form_data["title"].strip():
@@ -42,13 +44,17 @@ def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], li
         form_data["github_url"],
         form_data["thumbnail_url"],
         form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER),
+        has_pbix_upload=form_data.get("pbix_file") is not None,
     )
+    pbix_error = _validate_pbix_file(form_data)
     if text_errors:
         url_error = "\n".join([*text_errors, *([url_error] if url_error else [])])
+    if pbix_error:
+        url_error = "\n".join([*([url_error] if url_error else []), pbix_error])
     return parsed_body, missing, url_error
 
 
-def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]) -> dict:
+def build_project_payload(form_data: dict[str, Any], parsed_body: dict[str, str]) -> dict:
     return {
         "title": form_data["title"],
         "one_liner": form_data["one_liner"],
@@ -61,8 +67,34 @@ def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]
         "github_url": form_data["github_url"],
         "thumbnail_url": form_data["thumbnail_url"],
         "thumbnail_mode": form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER),
+        "project_type": project_type_for_platform(form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
+        "embed_status": "supported" if form_data["power_bi_url"] else "external_only",
         "tags": tags_with_platform(form_data["tags"], form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
         "is_public": form_data["is_public"],
+    }
+
+
+def hero_preview_project(form_data: dict[str, Any], key_prefix: str) -> dict:
+    title = str(st.session_state.get(f"{key_prefix}_title", form_data.get("title") or "") or "")
+    one_liner = str(st.session_state.get(f"{key_prefix}_one_liner", form_data.get("one_liner") or "") or "")
+    tags = str(st.session_state.get(f"{key_prefix}_tags", form_data.get("tags") or "") or "")
+    platform = str(st.session_state.get(f"{key_prefix}_platform", form_data.get("platform") or PROJECT_PLATFORM_OTHER_KEY) or "")
+    thumbnail_mode = str(
+        st.session_state.get(f"{key_prefix}_thumbnail_mode", form_data.get("thumbnail_mode") or THUMBNAIL_MODE_AUTO_COVER)
+        or THUMBNAIL_MODE_AUTO_COVER
+    )
+    thumbnail_url = ""
+    if thumbnail_mode == THUMBNAIL_MODE_MANUAL_URL:
+        thumbnail_url = str(st.session_state.get(f"{key_prefix}_thumbnail_url", form_data.get("thumbnail_url") or "") or "")
+    return {
+        "id": "submit-preview",
+        "title": title.strip() or "프로젝트명이 여기에 표시됩니다.",
+        "one_liner": one_liner.strip() or "프로젝트 한 줄 소개가 표시됩니다.",
+        "tags": tags_with_platform(tags, platform),
+        "thumbnail_url": thumbnail_url,
+        "view_count": 0,
+        "like_count": 0,
+        "comment_count": 0,
     }
 
 
@@ -103,12 +135,13 @@ def render_project_form(
     thumbnail_mode: str = THUMBNAIL_MODE_AUTO_COVER,
     is_public: bool = True,
     show_visibility_setting: bool = False,
+    allow_pbix_upload: bool = False,
     secondary_label: str | None = None,
-) -> tuple[dict[str, str], bool, bool]:
+) -> tuple[dict[str, Any], bool, bool]:
     _render_project_form_intro()
 
     with st.container(border=True, key=f"{key_prefix}_form_section_overview"):
-        overview_col, preview_col = st.columns([1, 1], gap="large")
+        overview_col, resource_col = st.columns([1, 1], gap="large")
         with overview_col:
             _render_form_section_heading("기본 정보", "프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.")
             title_input = st.text_input(
@@ -145,51 +178,17 @@ def render_project_form(
             thumbnail_mode_input = _current_thumbnail_mode(key_prefix, thumbnail_mode)
             thumbnail_url_input = _current_thumbnail_url(key_prefix, thumbnail_url, thumbnail_mode_input)
 
-        with preview_col:
-            st.markdown(
-                '<div class="folio-form-preview-heading"><strong>카드 미리보기</strong></div>',
-                unsafe_allow_html=True,
+        with resource_col:
+            _render_form_section_heading("산출물 링크", "공개 프로젝트에서 연결할 외부 산출물을 입력하세요.")
+            power_bi_url_input = st.text_input(
+                "Embed Code",
+                value=power_bi_url,
+                placeholder="https://... 또는 iframe 코드",
+                help="BI Platform 에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
+                key=f"{key_prefix}_power_bi_url",
             )
-            _render_project_preview(
-                title_input,
-                one_liner_input,
-                tags_input,
-                "",
-                platform_input,
-                thumbnail_url=thumbnail_url_input if thumbnail_mode_input != THUMBNAIL_MODE_AUTO_COVER else "",
-            )
-            with st.container(border=False, key=f"{key_prefix}_thumbnail_settings"):
-                thumbnail_mode_input = _render_thumbnail_mode_selector(key_prefix, thumbnail_mode)
-                thumbnail_url_input = ""
-                if thumbnail_mode_input == THUMBNAIL_MODE_MANUAL_URL:
-                    thumbnail_url_input = st.text_input(
-                        "썸네일 URL",
-                        value=thumbnail_url,
-                        placeholder="https://...",
-                        key=f"{key_prefix}_thumbnail_url",
-                    )
-                    _render_url_feedback(thumbnail_url_input, "썸네일 URL")
-                elif thumbnail_mode_input == THUMBNAIL_MODE_CAPTURE:
-                    thumbnail_url_input = thumbnail_url
-                    st.caption("등록 후 Embed Code 또는 Web Application URL 기준으로 대표 이미지를 생성합니다.")
+            _render_url_feedback(power_bi_url_input, "Embed Code", power_bi=True)
 
-    with st.container(border=True, key=f"{key_prefix}_form_section_content"):
-        _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
-        project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
-
-    with st.container(border=True, key=f"{key_prefix}_form_section_links"):
-        _render_form_section_heading("프로젝트 산출물 링크", "")
-        power_bi_url_input = st.text_input(
-            "Embed Code",
-            value=power_bi_url,
-            placeholder="https://... 또는 iframe 코드",
-            help="BI Platform 에서 복사한 iframe 코드 전체를 붙여넣어도 됩니다. 저장 시 src URL만 추출합니다.",
-            key=f"{key_prefix}_power_bi_url",
-        )
-        _render_url_feedback(power_bi_url_input, "Embed Code", power_bi=True)
-
-        github_col, etc_col = st.columns(2, gap="medium")
-        with github_col:
             github_url_input = st.text_input(
                 "GitHub URL",
                 value=github_url,
@@ -197,7 +196,7 @@ def render_project_form(
                 key=f"{key_prefix}_github_url",
             )
             _render_url_feedback(github_url_input, "GitHub URL")
-        with etc_col:
+
             etc_url_input = st.text_input(
                 "Web Application URL",
                 value=etc_url,
@@ -205,6 +204,28 @@ def render_project_form(
                 key=f"{key_prefix}_etc_url",
             )
             _render_url_feedback(etc_url_input, "Web Application URL")
+
+            thumbnail_mode_input = _render_thumbnail_mode_selector(key_prefix, thumbnail_mode)
+            thumbnail_url_input = ""
+            if thumbnail_mode_input == THUMBNAIL_MODE_MANUAL_URL:
+                thumbnail_url_input = st.text_input(
+                    "썸네일 URL",
+                    value=thumbnail_url,
+                    placeholder="https://...",
+                    key=f"{key_prefix}_thumbnail_url",
+                )
+                _render_url_feedback(thumbnail_url_input, "썸네일 URL")
+            elif thumbnail_mode_input == THUMBNAIL_MODE_CAPTURE:
+                thumbnail_url_input = thumbnail_url
+                st.caption("등록 후 Embed Code 또는 Web Application URL 기준으로 대표 이미지를 생성합니다.")
+
+    pbix_file = None
+    if allow_pbix_upload and platform_input == "powerbi":
+        pbix_file = _render_pbix_upload_panel(key_prefix)
+
+    with st.container(border=True, key=f"{key_prefix}_form_section_content"):
+        _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
+        project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
     cancelled = False
     if show_visibility_setting:
@@ -275,6 +296,7 @@ def render_project_form(
             "github_url": github_url_input,
             "thumbnail_url": thumbnail_url_input,
             "thumbnail_mode": thumbnail_mode_input,
+            "pbix_file": pbix_file,
             "is_public": is_public_input,
         },
         submitted,
@@ -315,11 +337,41 @@ def _form_section_body_html(body: str) -> str:
     return f"<small>{html.escape(body)}</small>"
 
 
+def _render_pbix_upload_panel(key_prefix: str):
+    max_upload_mb = get_settings().pbix_max_upload_mb
+    with st.container(border=True, key=f"{key_prefix}_form_section_pbix"):
+        _render_form_section_heading(
+            "Power BI PBIX 게시",
+            "PBIX 파일을 업로드하면 FOLIO Workspace에 자동 게시합니다.",
+        )
+        st.warning("개인정보, 사내 데이터, 비공개 고객 정보가 포함된 PBIX는 업로드하지 마세요.")
+        uploaded_file = st.file_uploader(
+            "PBIX 파일 업로드",
+            type=["pbix"],
+            accept_multiple_files=False,
+            help=f"최대 {max_upload_mb}MB까지 업로드할 수 있습니다.",
+            key=f"{key_prefix}_pbix_file",
+        )
+        if uploaded_file is not None:
+            st.success(f"{uploaded_file.name} 파일이 선택되었습니다.")
+        return uploaded_file
+
+
 def _project_platform_options() -> list[tuple[str, str]]:
     return [
         (PROJECT_PLATFORM_OTHER_KEY, "기타"),
         *((platform.key, platform.label) for platform in REFERENCE_PLATFORMS),
     ]
+
+
+def project_type_for_platform(platform_key: str) -> str:
+    project_types = {
+        "powerbi": "powerbi",
+        "tableau": "tableau",
+        "datastudio": "looker",
+        "streamlit": "streamlit",
+    }
+    return project_types.get(platform_key, "other")
 
 
 def _render_platform_selector(key_prefix: str, platform_key: str) -> str:
@@ -372,6 +424,8 @@ def _validate_optional_urls(
     github_url: str,
     thumbnail_url: str,
     thumbnail_mode: str,
+    *,
+    has_pbix_upload: bool = False,
 ) -> str | None:
     if power_bi_url.strip() and normalize_power_bi_embed_url(power_bi_url) is None:
         return "Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다."
@@ -385,7 +439,7 @@ def _validate_optional_urls(
         invalid_fields.append("썸네일 URL")
     elif thumbnail_url.strip() and normalize_optional_url(thumbnail_url) is None:
         invalid_fields.append("썸네일 URL")
-    if thumbnail_mode == THUMBNAIL_MODE_CAPTURE and not (
+    if thumbnail_mode == THUMBNAIL_MODE_CAPTURE and not has_pbix_upload and not (
         normalize_power_bi_embed_url(power_bi_url) or normalize_optional_url(report_url)
     ):
         return "자동 캡처를 사용하려면 Embed Code 또는 Web Application URL이 필요합니다."
@@ -402,6 +456,30 @@ def _validate_text_lengths(form_data: dict[str, str]) -> list[str]:
     if len(form_data.get("one_liner", "")) > PROJECT_ONE_LINER_MAX_CHARS:
         errors.append(f"프로젝트 한 줄 소개는 최대 {PROJECT_ONE_LINER_MAX_CHARS}자까지 입력할 수 있습니다.")
     return errors
+
+
+def _validate_pbix_file(form_data: dict[str, Any]) -> str | None:
+    pbix_file = form_data.get("pbix_file")
+    if pbix_file is None:
+        return None
+    filename = str(getattr(pbix_file, "name", "") or "")
+    if not filename.lower().endswith(".pbix"):
+        return "PBIX 파일만 업로드할 수 있습니다."
+    size = _uploaded_file_size(pbix_file)
+    max_bytes = get_settings().pbix_max_upload_mb * 1024 * 1024
+    if size > max_bytes:
+        return f"PBIX 파일은 최대 {get_settings().pbix_max_upload_mb}MB까지 업로드할 수 있습니다."
+    return None
+
+
+def _uploaded_file_size(uploaded_file: Any) -> int:
+    size = getattr(uploaded_file, "size", None)
+    if isinstance(size, int):
+        return size
+    try:
+        return len(uploaded_file.getbuffer())
+    except Exception:
+        return 0
 
 
 def _normalize_tag_preview(value: str) -> list[str]:

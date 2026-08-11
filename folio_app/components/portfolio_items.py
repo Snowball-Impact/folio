@@ -22,6 +22,7 @@ def portfolio_item_html(project: dict) -> str:
         if project.get("has_unread_comments")
         else ""
     )
+    status_badge = _project_status_badge_html(project)
     is_public = bool(project.get("is_public"))
     visibility_label = "공개" if is_public else "비공개"
     visibility_icon = (
@@ -39,7 +40,7 @@ def portfolio_item_html(project: dict) -> str:
     return clean_html(f"""
     <div class="folio-portfolio-card">
         <div class="folio-portfolio-card-main">
-            <p class="folio-portfolio-card-title"><span>{title}</span>{unread_badge}</p>
+            <p class="folio-portfolio-card-title"><span>{title}</span>{unread_badge}{status_badge}</p>
             {liner_html}
         </div>
         <div class="folio-portfolio-card-footer">
@@ -48,3 +49,20 @@ def portfolio_item_html(project: dict) -> str:
         </div>
     </div>
     """)
+
+
+def _project_status_badge_html(project: dict) -> str:
+    status = str(project.get("status") or "published")
+    labels = {
+        "processing": "처리 중",
+        "failed": "게시 실패",
+    }
+    label = labels.get(status)
+    if not label:
+        return ""
+    safe_label = html.escape(label)
+    safe_status = html.escape(status)
+    return (
+        f'<span class="folio-portfolio-card-status-badge is-{safe_status}" '
+        f'aria-label="프로젝트 상태 {safe_label}">{safe_label}</span>'
+    )

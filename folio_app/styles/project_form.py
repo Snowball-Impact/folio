@@ -164,12 +164,20 @@ div[data-testid="stForm"] button {
     width: 100%;
 }
 
-[class*="_thumbnail_settings"] {
-    margin-top: 18px !important;
+[class*="_form_section_pbix"] {
+    border-color: #b9d4ff !important;
+    box-shadow: 0 18px 42px rgba(22, 83, 168, 0.08) !important;
 }
 
-[class*="_form_section_links"] [data-testid="stHorizontalBlock"] {
-    align-items: flex-start;
+[class*="_form_section_pbix"] [data-testid="stFileUploader"] {
+    background: #f7fbff;
+    border: 1px dashed #9ec5fe;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+[class*="_form_section_pbix"] [data-testid="stAlert"] {
+    margin-bottom: 10px;
 }
 
 .folio-form-section-heading strong {
@@ -305,13 +313,11 @@ div[data-testid="stForm"] button {
         padding-top: 20px;
     }
 
-    [class*="_form_section_overview"] [data-testid="stHorizontalBlock"],
-    [class*="_form_section_links"] [data-testid="stHorizontalBlock"] {
+    [class*="_form_section_overview"] [data-testid="stHorizontalBlock"] {
         flex-direction: column;
     }
 
-    [class*="_form_section_overview"] [data-testid="stColumn"],
-    [class*="_form_section_links"] [data-testid="stColumn"] {
+    [class*="_form_section_overview"] [data-testid="stColumn"] {
         width: 100% !important;
     }
 }

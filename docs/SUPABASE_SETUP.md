@@ -16,6 +16,7 @@
 4. Table Editor에서 다음 테이블이 생성되었는지 확인합니다.
    - `profiles`
    - `projects`
+   - `powerbi_reports`
    - `likes`
 5. Database Triggers에서 `on_auth_user_created` 트리거가 생성되었는지 확인합니다.
 
@@ -61,11 +62,20 @@ SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 APP_URL=http://localhost:8501
 COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
+POWERBI_TENANT_ID=your-tenant-id
+POWERBI_CLIENT_ID=your-client-id
+POWERBI_CLIENT_SECRET=your-client-secret
+POWERBI_WORKSPACE_ID=your-workspace-id
+PBIX_MAX_UPLOAD_MB=100
+POWERBI_IMPORT_POLL_SECONDS=100
 ```
 
 주의:
 
-- `secret` 또는 `service_role` key를 넣지 않습니다.
+- 일반 앱 실행용 `.env`에는 `service_role` key를 넣지 않습니다. 서버측 Storage/운영 작업에 필요할 때만 배포 Secrets 또는 로컬 운영 환경에 별도로 둡니다.
+- `POWERBI_CLIENT_SECRET`은 Power BI 게시와 Embedded Viewer에만 쓰며 저장소에 커밋하지 않습니다.
+- `PBIX_MAX_UPLOAD_MB` 기본값은 100입니다. Streamlit 업로드 설정도 `.streamlit/config.toml`의 `maxUploadSize=100`과 맞춰 둡니다.
+- `POWERBI_IMPORT_POLL_SECONDS` 기본값은 100입니다. 큰 PBIX import가 10초 안에 끝나지 않는 상황을 피하기 위한 MVP 상한입니다.
 - 기존 프로젝트의 legacy `anon` key는 `SUPABASE_ANON_KEY` 이름으로도 계속 사용할 수 있습니다.
 - `.env`는 `.gitignore`에 포함되어 있으므로 저장소에 커밋되지 않습니다.
 - `COOKIE_PASSWORD`는 로그인 유지용 암호화 쿠키에 사용하므로 운영 환경에서는 긴 임의 문자열로 설정합니다.

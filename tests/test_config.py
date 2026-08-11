@@ -134,3 +134,27 @@ class SettingsLoadingTests(unittest.TestCase):
 
         self.assertEqual(settings.chrome_binary_path, "/usr/bin/chromium")
         self.assertEqual(settings.chromedriver_path, "/usr/bin/chromedriver")
+
+    def test_powerbi_settings_are_loaded_from_environment(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "POWERBI_TENANT_ID": "tenant-id",
+                "POWERBI_CLIENT_ID": "client-id",
+                "POWERBI_CLIENT_SECRET": "client-secret",
+                "POWERBI_WORKSPACE_ID": "workspace-id",
+                "PBIX_MAX_UPLOAD_MB": "7",
+                "POWERBI_IMPORT_POLL_SECONDS": "100",
+            },
+            clear=True,
+        ):
+            with patch("folio_app.config.st.secrets", {}):
+                settings = get_settings()
+
+        self.assertTrue(settings.is_powerbi_configured)
+        self.assertEqual(settings.powerbi_tenant_id, "tenant-id")
+        self.assertEqual(settings.powerbi_client_id, "client-id")
+        self.assertEqual(settings.powerbi_client_secret, "client-secret")
+        self.assertEqual(settings.powerbi_workspace_id, "workspace-id")
+        self.assertEqual(settings.pbix_max_upload_mb, 7)
+        self.assertEqual(settings.powerbi_import_poll_seconds, 100)

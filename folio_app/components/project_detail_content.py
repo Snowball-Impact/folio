@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import streamlit as st
 
-from folio_app.components.dashboard import render_embedded_dashboard
+from folio_app.components.dashboard import render_embedded_dashboard, render_powerbi_report
 from folio_app.components.ui import clean_html, is_http_url
 from folio_app.services.project_content import sanitize_project_html
+from folio_app.services.powerbi import PowerBIServiceError, get_powerbi_embed_config
 from folio_app.services.projects import normalize_power_bi_embed_url
 
 
@@ -21,9 +22,16 @@ def render_project_visual_panel(
             '<div class="folio-visual-heading"><h2>대표 결과물</h2></div>',
             unsafe_allow_html=True,
         )
-        if power_bi_url:
-            render_embedded_dashboard(power_bi_url)
-            st.caption("화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.")
+        status = str(project.get("status") or "published")
+        if status == "processing":
+            st.info("Power BI 보고서를 게시하는 중입니다. 잠시 후 다시 확인하세요.")
+        elif status == "failed":
+            st.error("Power BI 보고서 게시에 실패했습니다. 프로젝트 작성자는 마이페이지에서 상태를 확인하세요.")
+        elif project.get("project_type") == "powerbi" and project.get("id"):
+            if not _render_powerbi_embedded_viewer(project):
+                _render_fallback_dashboard(project, power_bi_url)
+        elif power_bi_url:
+            _render_fallback_dashboard(project, power_bi_url)
         elif project.get("power_bi_url"):
             st.warning("Power BI 임베드 주소를 확인하세요. iframe 코드 또는 https URL의 src 값이 필요합니다.")
 
@@ -43,7 +51,13 @@ def project_visual_context(project: dict) -> dict[str, object]:
         "power_bi_url": power_bi_url,
         "has_report": has_report,
         "has_github": has_github,
-        "has_visual_panel": bool(power_bi_url or project.get("power_bi_url") or has_report or has_github),
+        "has_visual_panel": bool(
+            project.get("status") in {"processing", "failed"}
+            or power_bi_url
+            or project.get("power_bi_url")
+            or has_report
+            or has_github
+        ),
     }
 
 
@@ -61,6 +75,26 @@ def project_resource_actions(
     if has_github:
         actions.append(("GitHub 보기 ↗", project["github_url"]))
     return actions
+
+
+def _render_powerbi_embedded_viewer(project: dict) -> bool:
+    try:
+        embed_config = get_powerbi_embed_config(project["id"])
+    except PowerBIServiceError as exc:
+        st.error(str(exc))
+        return False
+    if embed_config is None:
+        return False
+    render_powerbi_report(embed_config.report_id, embed_config.embed_url, embed_config.embed_token)
+    st.caption("Power BI Embed Token은 요청 시 발급되며 저장하지 않습니다.")
+    return True
+
+
+def _render_fallback_dashboard(project: dict, power_bi_url: str | None) -> None:
+    if not power_bi_url:
+        return
+    render_embedded_dashboard(power_bi_url)
+    st.caption("화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.")
 
 
 def project_report_sections(project: dict) -> list[str]:

@@ -7,6 +7,7 @@ from typing import Any
 import streamlit as st
 
 from folio_app.services.comments import clear_comment_caches, count_comments_by_project, latest_comment_at_by_project
+from folio_app.services.project_normalizers import PROJECT_STATUS_DELETED, PROJECT_STATUS_PUBLISHED
 from folio_app.services.project_types import ProjectServiceError
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
 
@@ -68,7 +69,11 @@ def _filter_public_projects(
     search: str = "",
     tag: str = "전체",
 ) -> list[dict[str, Any]]:
-    filtered = [dict(project) for project in projects]
+    filtered = [
+        dict(project)
+        for project in projects
+        if _project_status(project) == PROJECT_STATUS_PUBLISHED
+    ]
     if search:
         filtered = [project for project in filtered if _project_matches_search(project, search)]
     if tag and tag != "전체":
@@ -132,7 +137,12 @@ def list_projects_by_author(author_id: str) -> list[dict[str, Any]]:
         logger.exception("Failed to load projects for the current author")
         raise ProjectServiceError("내 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     try:
-        return _attach_related_data(response.data or [])
+        visible_projects = [
+            project
+            for project in response.data or []
+            if _project_status(project) != PROJECT_STATUS_DELETED
+        ]
+        return _attach_related_data(visible_projects)
     except Exception as exc:
         logger.exception("Failed to attach project metadata for the current author")
         raise ProjectServiceError("내 프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
@@ -158,7 +168,12 @@ def get_project(project_id: str) -> dict[str, Any] | None:
     except Exception as exc:
         logger.exception("Failed to attach project detail metadata")
         raise ProjectServiceError("프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
+    projects = [project for project in projects if _project_status(project) != PROJECT_STATUS_DELETED]
     return projects[0] if projects else None
+
+
+def _project_status(project: dict[str, Any]) -> str:
+    return str(project.get("status") or PROJECT_STATUS_PUBLISHED)
 
 
 def is_project_liked(project_id: str, user_id: str | None) -> bool:
@@ -308,4 +323,3 @@ def clear_project_caches() -> None:
     _fetch_public_profiles.clear()
     _fetch_like_counts.clear()
     clear_comment_caches()
-

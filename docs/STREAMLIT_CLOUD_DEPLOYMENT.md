@@ -39,9 +39,16 @@ SMTP_USE_TLS = "true"
 THUMBNAIL_STORAGE_BUCKET = "project-thumbnails"
 CHROME_BINARY_PATH = "/usr/bin/chromium"
 CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
+POWERBI_TENANT_ID = "your-tenant-id"
+POWERBI_CLIENT_ID = "your-client-id"
+POWERBI_CLIENT_SECRET = "your-client-secret"
+POWERBI_WORKSPACE_ID = "your-workspace-id"
+PBIX_MAX_UPLOAD_MB = "100"
+POWERBI_IMPORT_POLL_SECONDS = "100"
 ```
 
 `GA_MEASUREMENT_ID`, `SUPABASE_SERVICE_ROLE_KEY`, SMTP 값은 선택 항목이다. 이메일 알림과 서버측 Storage 작업을 안정적으로 쓰려면 `SUPABASE_SERVICE_ROLE_KEY`를 설정한다.
+PBIX 업로드와 Power BI Embedded Viewer를 쓰려면 `POWERBI_*` 값 4개가 필요하다. Client Secret은 Streamlit Secrets에만 둔다.
 
 ## 3. Supabase Auth URL
 
@@ -75,6 +82,16 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 - iframe 대상 사이트의 embed 차단 또는 timeout
 - Supabase Storage bucket 생성/업로드 권한 실패
 - 썸네일 mode 전환 후 기존 Storage 파일 삭제 실패
+
+### PBIX 게시 후 캡처 확인
+
+Power BI 플랫폼에서 PBIX를 업로드하고 썸네일 모드를 `자동 캡처`로 둔 경우, Import 성공 뒤 Streamlit 페이지가 아니라 Power BI report HTML을 직접 렌더링해 캡처한다.
+
+1. 100MB 이하 PBIX를 업로드한다.
+2. 등록 완료 메시지와 Power BI 게시 성공 상태를 확인한다.
+3. Supabase `powerbi_reports`에 report/dataset/embed URL 메타데이터가 저장됐는지 확인한다.
+4. Supabase Storage `project-thumbnails/projects/<project-id>/thumbnail.jpg`가 생성됐는지 확인한다.
+5. 홈 카드와 상세 히어로 우측 썸네일에 캡처 이미지가 보이는지 확인한다.
 
 ## 5. 커스텀 도메인 우회
 

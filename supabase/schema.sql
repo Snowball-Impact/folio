@@ -54,12 +54,34 @@ create table if not exists public.projects (
     github_url text,
     thumbnail_url text,
     thumbnail_mode text not null default 'auto_cover' check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture')),
+    project_type text not null default 'other' check (project_type in ('powerbi', 'tableau', 'looker', 'streamlit', 'notebook', 'html_report', 'markdown_report', 'web', 'other')),
+    status text not null default 'published' check (status in ('processing', 'published', 'failed', 'deleted')),
+    embed_status text not null default 'external_only' check (embed_status in ('supported', 'external_only', 'failed')),
     ai_summary text,
     tags text[] not null default '{}',
     view_count integer not null default 0,
     is_public boolean not null default true,
+    published_at timestamptz,
+    deleted_at timestamptz,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
+);
+
+create table if not exists public.powerbi_reports (
+    id uuid primary key default gen_random_uuid(),
+    project_id uuid not null references public.projects(id) on delete cascade,
+    workspace_id text not null,
+    report_id text,
+    dataset_id text,
+    embed_url text,
+    web_url text,
+    import_id text,
+    import_status text,
+    error_code text,
+    error_message text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now(),
+    unique (project_id)
 );
 
 create table if not exists public.likes (
@@ -116,6 +138,8 @@ create table if not exists public.project_views (
 
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
+create index if not exists powerbi_reports_project_id_idx on public.powerbi_reports(project_id);
+create index if not exists powerbi_reports_import_id_idx on public.powerbi_reports(import_id);
 create index if not exists likes_user_id_idx on public.likes(user_id);
 create index if not exists comments_project_id_idx on public.comments(project_id, created_at);
 create index if not exists comments_parent_id_idx on public.comments(parent_id);
@@ -134,6 +158,24 @@ create index if not exists user_policy_consents_policy_version_id_idx on public.
 alter table public.projects
 add column if not exists thumbnail_mode text not null default 'auto_cover';
 
+alter table public.projects
+add column if not exists project_type text not null default 'other';
+
+alter table public.projects
+add column if not exists status text not null default 'published';
+
+alter table public.projects
+add column if not exists embed_status text not null default 'external_only';
+
+alter table public.projects
+add column if not exists published_at timestamptz;
+
+alter table public.projects
+add column if not exists deleted_at timestamptz;
+
+create index if not exists projects_status_created_at_idx on public.projects(status, created_at desc);
+create index if not exists projects_project_type_idx on public.projects(project_type);
+
 do $$
 begin
     if not exists (
@@ -144,6 +186,45 @@ begin
         alter table public.projects
         add constraint projects_thumbnail_mode_check
         check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture'));
+    end if;
+end $$;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'projects_project_type_check'
+          and conrelid = 'public.projects'::regclass
+    ) then
+        alter table public.projects
+        add constraint projects_project_type_check
+        check (project_type in ('powerbi', 'tableau', 'looker', 'streamlit', 'notebook', 'html_report', 'markdown_report', 'web', 'other'));
+    end if;
+end $$;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'projects_status_check'
+          and conrelid = 'public.projects'::regclass
+    ) then
+        alter table public.projects
+        add constraint projects_status_check
+        check (status in ('processing', 'published', 'failed', 'deleted'));
+    end if;
+end $$;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'projects_embed_status_check'
+          and conrelid = 'public.projects'::regclass
+    ) then
+        alter table public.projects
+        add constraint projects_embed_status_check
+        check (embed_status in ('supported', 'external_only', 'failed'));
     end if;
 end $$;
 
@@ -173,6 +254,8 @@ grant select on public.policy_versions to anon, authenticated;
 grant select, insert on public.user_policy_consents to authenticated;
 grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
+grant select on public.powerbi_reports to anon;
+grant select, insert, update, delete on public.powerbi_reports to authenticated;
 grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
 grant select, insert, update on public.project_comment_reads to authenticated;
@@ -319,6 +402,7 @@ for each row execute function public.validate_comment_thread();
 
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
+alter table public.powerbi_reports enable row level security;
 alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.project_comment_reads enable row level security;
@@ -349,7 +433,7 @@ with check (auth.uid() = id);
 drop policy if exists "Public projects are readable by everyone" on public.projects;
 create policy "Public projects are readable by everyone"
 on public.projects for select
-using (is_public = true);
+using (is_public = true and status = 'published');
 
 drop policy if exists "Users can read own projects" on public.projects;
 create policy "Users can read own projects"
@@ -371,6 +455,65 @@ drop policy if exists "Users can delete own projects" on public.projects;
 create policy "Users can delete own projects"
 on public.projects for delete
 using (auth.uid() = author_id);
+
+drop policy if exists "Visible Power BI reports are readable" on public.powerbi_reports;
+create policy "Visible Power BI reports are readable"
+on public.powerbi_reports for select
+using (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = powerbi_reports.project_id
+          and (
+              (projects.is_public = true and projects.status = 'published')
+              or auth.uid() = projects.author_id
+          )
+    )
+);
+
+drop policy if exists "Project authors can create own Power BI reports" on public.powerbi_reports;
+create policy "Project authors can create own Power BI reports"
+on public.powerbi_reports for insert
+with check (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = powerbi_reports.project_id
+          and projects.author_id = auth.uid()
+    )
+);
+
+drop policy if exists "Project authors can update own Power BI reports" on public.powerbi_reports;
+create policy "Project authors can update own Power BI reports"
+on public.powerbi_reports for update
+using (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = powerbi_reports.project_id
+          and projects.author_id = auth.uid()
+    )
+)
+with check (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = powerbi_reports.project_id
+          and projects.author_id = auth.uid()
+    )
+);
+
+drop policy if exists "Project authors can delete own Power BI reports" on public.powerbi_reports;
+create policy "Project authors can delete own Power BI reports"
+on public.powerbi_reports for delete
+using (
+    exists (
+        select 1
+        from public.projects
+        where projects.id = powerbi_reports.project_id
+          and projects.author_id = auth.uid()
+    )
+);
 
 drop policy if exists "Likes are readable by everyone" on public.likes;
 create policy "Likes are readable by everyone"
@@ -396,7 +539,10 @@ using (
         select 1
         from public.projects
         where projects.id = comments.project_id
-          and (projects.is_public = true or auth.uid() = projects.author_id)
+          and (
+              (projects.is_public = true and projects.status = 'published')
+              or auth.uid() = projects.author_id
+          )
     )
 );
 
@@ -409,7 +555,11 @@ with check (
         select 1
         from public.projects
         where projects.id = comments.project_id
-          and (projects.is_public = true or auth.uid() = projects.author_id)
+          and (
+              (projects.is_public = true and projects.status = 'published')
+              or auth.uid() = projects.author_id
+          )
+          and projects.status <> 'deleted'
     )
 );
 

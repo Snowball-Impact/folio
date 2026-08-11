@@ -61,25 +61,9 @@ CSS = """
 }
 
 .folio-gallery-rail .folio-home-card:hover {
-    box-shadow: 0 26px 58px rgba(11, 31, 63, 0.26);
-    transform: translateY(-8px) scale(1.5);
-    z-index: 30;
-}
-
-.folio-gallery-rail .folio-home-card:first-child {
-    transform-origin: left center;
-}
-
-.folio-gallery-rail .folio-home-card:last-child {
-    transform-origin: right center;
-}
-
-.folio-gallery-rail .folio-home-card.folio-home-card-preview-align-left {
-    transform-origin: left center;
-}
-
-.folio-gallery-rail .folio-home-card.folio-home-card-preview-align-right {
-    transform-origin: right center;
+    box-shadow: 0 14px 30px rgba(11, 31, 63, 0.18);
+    transform: translateY(-3px);
+    z-index: 2;
 }
 
 .folio-gallery-rail .folio-home-card:hover .folio-auto-cover {

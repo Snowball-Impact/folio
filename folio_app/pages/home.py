@@ -44,6 +44,10 @@ _HOME_GUIDE_STEPS = (
 
 
 def render() -> None:
+    notice = st.session_state.pop("home_notice", None)
+    if notice:
+        st.success(notice)
+
     project_id = st.query_params.get("project_id")
     if project_id:
         project_detail.render(project_id)

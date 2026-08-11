@@ -66,6 +66,13 @@ class Settings:
     thumbnail_storage_bucket: str = "project-thumbnails"
     chrome_binary_path: str = ""
     chromedriver_path: str = ""
+    powerbi_tenant_id: str = ""
+    powerbi_client_id: str = ""
+    powerbi_client_secret: str = ""
+    powerbi_workspace_id: str = ""
+    powerbi_api_base_url: str = "https://api.powerbi.com/v1.0/myorg"
+    pbix_max_upload_mb: int = 100
+    powerbi_import_poll_seconds: int = 100
 
     @property
     def is_supabase_configured(self) -> bool:
@@ -78,6 +85,15 @@ class Settings:
             and self.supabase_service_role_key
             and self.smtp_host
             and self.smtp_from_email
+        )
+
+    @property
+    def is_powerbi_configured(self) -> bool:
+        return bool(
+            self.powerbi_tenant_id
+            and self.powerbi_client_id
+            and self.powerbi_client_secret
+            and self.powerbi_workspace_id
         )
 
     @property
@@ -146,6 +162,18 @@ def get_settings() -> Settings:
         or _read_secret_section("supabase", "thumbnail_storage_bucket"),
         chrome_binary_path=_read_setting("CHROME_BINARY_PATH"),
         chromedriver_path=_read_setting("CHROMEDRIVER_PATH"),
+        powerbi_tenant_id=_read_setting("POWERBI_TENANT_ID")
+        or _read_secret_section("powerbi", "POWERBI_TENANT_ID", "tenant_id"),
+        powerbi_client_id=_read_setting("POWERBI_CLIENT_ID")
+        or _read_secret_section("powerbi", "POWERBI_CLIENT_ID", "client_id"),
+        powerbi_client_secret=_read_setting("POWERBI_CLIENT_SECRET")
+        or _read_secret_section("powerbi", "POWERBI_CLIENT_SECRET", "client_secret"),
+        powerbi_workspace_id=_read_setting("POWERBI_WORKSPACE_ID")
+        or _read_secret_section("powerbi", "POWERBI_WORKSPACE_ID", "workspace_id"),
+        powerbi_api_base_url=_read_setting("POWERBI_API_BASE_URL", "https://api.powerbi.com/v1.0/myorg")
+        or _read_secret_section("powerbi", "api_base_url"),
+        pbix_max_upload_mb=_read_int_setting("PBIX_MAX_UPLOAD_MB", 100),
+        powerbi_import_poll_seconds=_read_int_setting("POWERBI_IMPORT_POLL_SECONDS", 100),
     )
 
 

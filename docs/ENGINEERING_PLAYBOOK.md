@@ -63,7 +63,7 @@
 
 ## 4. 데이터와 RLS 정책
 
-- `service_role` 키를 앱과 배포 환경에 넣지 않는다.
+- `service_role` 키는 서버 전용으로만 사용한다. 클라이언트, DB, 로그, 화면, 사용자 다운로드 경로에 노출하지 않는다.
 - 작성자는 자신의 프로젝트만 생성·수정·삭제할 수 있어야 한다.
 - anon 사용자는 공개 프로젝트만 읽는다.
 - 공개 프로필은 `public_profiles` view의 최소 정보만 사용한다.
@@ -115,9 +115,10 @@
 - 전역 CSS는 `st.html()`의 style-only 콘텐츠로 한 번 주입한다. 인증 rerun 중 스타일이 사라지는 플래시를 줄이기 위함이다.
 - `folio_app/styles/__init__.py`만 CSS 모듈을 조합한다. 페이지·컴포넌트에서 개별 style module을 직접 import하지 않는다.
 - 새 CSS는 가장 가까운 UI 영역 모듈의 `CSS` 상수에 넣는다. 새 모듈을 만들면 반드시 `_SECTIONS`에 추가하고, 순서가 cascade 결과에 영향을 주는지 확인한다.
-- 홈 카드 본체는 `cards.py`, 자동 커버는 `project_card_cover.py`, 카드 레일은 `gallery_rail.py`, hover iframe preview는 `card_preview.py`에 둔다. 상세 대표 결과물은 `detail_visual.py`, 댓글은 `detail_comments.py`, 상세 footer 액션 정렬은 `hero_footer.py`에 둔다.
+- 홈 카드 본체는 `cards.py`, 자동 커버는 `project_card_cover.py`, 카드 레일은 `gallery_rail.py`에 둔다. 상세 대표 결과물은 `project_detail_content.py`, 댓글은 `project_comments.py`, 상세 footer 액션 정렬은 `hero_footer.py`에 둔다.
 - **`styles/*.py`의 CSS 문자열(주석 포함)에 `<a>`, `<div>` 같은 리터럴 태그 형태 텍스트를 쓰지 않는다.** `apply_global_styles()`가 모든 모듈을 이어붙여 `st.html()`로 한 번에 주입하는데, 이 문자열 안에 실제 태그 형태 텍스트가 있으면(주석이라도) 그 지점부터 스타일시트 전체가 깨질 수 있다. 태그를 설명해야 하면 "anchor", "div" 같은 단어로 풀어 쓴다. CSS 변경 후 `folio_app.styles._SECTIONS`를 이어붙인 최종 문자열에 리터럴 태그가 남아있지 않은지 확인한다(문법 오류가 아니라서 `py_compile`/유닛테스트로는 못 잡는다).
 - **Streamlit의 마크다운 렌더러는 `<a>`가 블록 요소(`<div>` 등)를 감싸는 걸 허용하지 않는다.** 하나의 `<a>`로 `<div>`를 감싸면, 렌더러가 이를 텍스트 조각(각 인라인 런)별로 여러 개의 작은 `<a>`로 쪼개버려서, `<div>`로 감싸진 배경·이미지 영역은 어떤 링크에도 속하지 못해 클릭이 안 된다. 카드 전체를 클릭 가능하게 만들어야 하면, 카드를 감싸지 말고 `position: absolute; inset: 0;`로 카드 위에 빈 오버레이 `<a>`를 얹는 "stretched link" 패턴을 쓴다(`folio_app/components/ui.py`의 `render_project_card_html()` 참고). 오버레이의 `z-index`는 카드 내부에서 가장 높은 `z-index`보다 확실히 높게 잡는다(동점이면 나중에 그려지는 요소가 클릭을 가로챌 수 있다).
+- 카드 hover 테두리는 카드 자체 border보다 `::after` 오버레이로 처리한다. 썸네일, 그라데이션, stretched link가 카드 표면을 덮기 때문에 base border만 바꾸면 화면에서 안 보일 수 있다.
 
 ## 8. UI/UX 정책
 
@@ -170,7 +171,7 @@ flowchart TD
 4. 같은 UI 문제를 두 번 이상 수정했는데 재발하면 다음 패치 전에 반드시 DOM을 계측한다. 최소한 문제 요소, 부모 wrapper, 형제 요소의 `getBoundingClientRect()`, `display`, `flex`, `width`, `min-width`, `margin-left`, `justify-content`, selector 매치 여부를 출력한다.
 5. Streamlit UI는 Python의 `st.columns()` 비율, `st.container(key=...)`, custom component iframe, 실제 DOM wrapper가 함께 만든 결과다. 정렬이 어긋날 때 CSS 값만 바꾸면 다른 wrapper가 그대로 남아 효과가 없어 보일 수 있으므로, 렌더 구조와 wrapper를 먼저 확인한다.
 6. 같은 줄처럼 보이는 요소는 실제로도 같은 flex/grid 컨테이너 안에 있어야 한다. 조회수, 공개 상태, 링크 복사, 좋아요처럼 한 묶음으로 읽히는 요소를 여러 column/context에 흩어놓으면 gap과 vertical alignment가 계속 따로 논다.
-7. hover 확대, iframe preview, transform 같은 강한 인터랙션은 필요한 화면에만 scope를 둔다. 홈 갤러리 카드 hover는 유효하지만, 등록 페이지의 카드 미리보기까지 같은 클래스를 공유하면 원치 않는 동작이 번진다.
+7. hover 확대, iframe preview, transform 같은 강한 인터랙션은 기본값으로 두지 않는다. 홈/레퍼런스 카드는 약한 transition과 테두리 강조만 쓰고, 등록 페이지 카드 미리보기와 상세 썸네일은 같은 클래스를 공유하더라도 추가 동작이 번지지 않게 scope를 확인한다.
 8. 보이는 UI를 custom component iframe에 넣고 Streamlit button과 한 줄에 섞는 구조는 마지막 수단이다. iframe viewport는 바깥 overflow를 보여줄 수 없어 폭 계산이 조금만 틀려도 clipping이 생긴다. 보이는 칩/버튼은 가능하면 페이지 DOM에 렌더링하고, iframe은 script bridge처럼 보이지 않는 기능에만 쓴다.
 9. Streamlit `horizontal=True` 컨테이너를 쓸 때는 실제 DOM에서 key class가 `stHorizontalBlock` 자체에 붙는지 확인한다. key class가 같은 노드에 붙었다면 selector는 `.st-key-name[data-testid="stHorizontalBlock"]` 형태여야 한다.
 10. 이미지 정렬 문제는 DOM 박스 좌표와 실제 이미지 비율을 분리해 본다. `object-fit: contain`과 고정 `width`를 함께 쓰면 PNG 내부 여백이 없어도 이미지 박스 안에 시각적 여백이 생긴다. 오른쪽 기준선에 맞춰야 하는 로고는 `width: auto`, `max-width`, `max-height` 조합을 우선한다.

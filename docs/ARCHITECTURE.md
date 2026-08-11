@@ -188,8 +188,10 @@ flowchart LR
 - 공개 프로필은 전체 `profiles` 테이블이 아니라 제한된 `public_profiles` view로 제공한다.
 - 프로젝트 본문 HTML은 저장 전과 출력 전 `sanitize_project_html()`로 정제한다.
 - 외부 URL은 `http/https`만 허용하고 Power BI iframe에서는 안전한 `src`만 추출한다.
-- `service_role` 키를 클라이언트·저장소·배포 Secrets에 사용하지 않는다.
+- `service_role` 키는 클라이언트와 DB에 저장하지 않는다. 배포 Secrets에 둘 때도 서버측 Storage/운영 작업에만 쓰고 브라우저로 전달하지 않는다.
 - 자동 캡처 썸네일은 Selenium/Chromium으로 서버에서 생성하고 Supabase Storage public bucket에 저장한다. 썸네일 모드를 기본 커버나 직접 URL로 바꾸면 기존 자동 캡처 파일을 삭제해 stale 이미지가 남지 않게 한다.
+- PBIX 게시본은 `powerbi_reports`에 report/dataset/embed URL 메타데이터만 저장한다. Client Secret과 Embed Token은 서버에서만 사용하고 DB나 클라이언트 상태에 영구 저장하지 않는다.
+- PBIX 게시 성공 후 자동 캡처는 Streamlit 상세 페이지가 아니라 Power BI report HTML을 직접 렌더링해 생성한다.
 
 ## 7. 배포 단위
 

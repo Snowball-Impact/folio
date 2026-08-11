@@ -30,15 +30,15 @@ def _render_login_required(page_key: str, message: str) -> None:
 
 def render_submit() -> None:
     user = get_current_user()
-    render_hero(
-        "Submit",
-        "새 프로젝트 등록",
-        "당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.",
-        image_name="hero-submit.png",
-        image_alt="데이터 분석 프로젝트 등록 화면 일러스트",
-    )
 
     if not user:
+        render_hero(
+            "Submit",
+            "새 프로젝트 등록",
+            "당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.",
+            image_name="hero-submit.png",
+            image_alt="데이터 분석 프로젝트 등록 화면 일러스트",
+        )
         _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
         return
 

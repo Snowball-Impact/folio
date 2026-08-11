@@ -364,7 +364,8 @@ class CommentSchemaContractTests(unittest.TestCase):
         self.assertIn("create or replace function public.validate_comment_thread()", schema_sql)
         self.assertIn("create policy \"Visible project comments are readable\"", schema_sql)
         self.assertIn("create policy \"Project authors can read own comment read state\"", schema_sql)
-        self.assertIn("projects.is_public = true or auth.uid() = projects.author_id", schema_sql)
+        self.assertIn("(projects.is_public = true and projects.status = 'published')", schema_sql)
+        self.assertIn("or auth.uid() = projects.author_id", schema_sql)
         self.assertIn("with check (\n    auth.uid() = author_id", schema_sql)
         self.assertIn("using (auth.uid() = author_id)", schema_sql)
 
