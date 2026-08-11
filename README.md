@@ -193,11 +193,13 @@ folio_app/app.py
 
 ## 배포
 
-이 앱은 지속 실행되는 Streamlit 서버가 필요하므로 Vercel Functions에 직접 배포하지 않습니다. MVP 배포는 Streamlit Community Cloud를 권장합니다.
+이 앱은 지속 실행되는 Streamlit 서버가 필요하므로 Vercel Functions에 직접 배포하지 않습니다. 현재 기본 무료 배포 채널은 **Streamlit Community Cloud**입니다.
+
+자세한 절차와 자동 캡처 실험 기준은 [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)를 따릅니다.
 
 1. 저장소를 GitHub에 push합니다.
-2. Streamlit Community Cloud에서 저장소와 `app.py`를 선택합니다.
-3. 배포 환경의 Secrets에 다음 값을 등록합니다.
+2. Streamlit Community Cloud에서 저장소와 루트 `app.py`를 선택합니다.
+3. App settings > Secrets에 다음 값을 등록합니다.
 
 ```toml
 SUPABASE_URL = "https://your-project-ref.supabase.co"
@@ -213,17 +215,20 @@ SMTP_PASSWORD = "your-smtp-password"
 SMTP_FROM_EMAIL = "noreply@example.com"
 SMTP_FROM_NAME = "FOLIO"
 SMTP_USE_TLS = "true"
+THUMBNAIL_STORAGE_BUCKET = "project-thumbnails"
+CHROME_BINARY_PATH = "/usr/bin/chromium"
+CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 ```
 
-`GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목이다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않는다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 한다.
+`GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목입니다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않습니다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 합니다.
 `THUMBNAIL_STORAGE_BUCKET`은 자동 캡처 썸네일을 저장하는 Supabase Storage public bucket 이름이며, 비워두면 `project-thumbnails`를 사용한다.
-Streamlit Community Cloud처럼 Linux 시스템 패키지가 필요한 배포 환경에서는 루트의 `packages.txt`가 `chromium`, `chromium-driver`를 설치한다.
+Streamlit Community Cloud에서는 루트의 `packages.txt`가 `chromium`, `chromium-driver`를 설치합니다.
 Selenium이 Chrome 또는 Chrome driver를 자동으로 찾지 못하는 환경에서는 `CHROME_BINARY_PATH`, `CHROMEDRIVER_PATH`에 실행 파일 경로를 지정한다.
 
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 
 `service_role` 키와 로컬 `.env`는 저장소 또는 배포 설정에 노출하지 않습니다.
-Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용만 붙여넣고, 저장 후 앱을 재부팅합니다. 앱은 루트 키를 우선 사용하며 `[supabase]` 섹션의 `url`과 `key` 형식도 호환합니다.
+Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용만 붙여넣고, 저장 후 앱을 재부팅합니다. 앱은 환경변수(`.env` 포함)와 Streamlit secrets를 읽으며 `[supabase]` 섹션의 `url`과 `key` 형식도 호환합니다.
 
 ## 주요 문서
 
@@ -237,6 +242,7 @@ Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용�
 - 디자인 시스템: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
 - 제품/기획 개요: [`docs/PRD.md`](docs/PRD.md)
 - Supabase 설정: [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
+- Streamlit Cloud 배포와 캡처 실험: [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)
 - 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)
 
 현재 우선순위와 작업 기준은 `docs/PROJECT_CONTEXT.md`를 따릅니다.
