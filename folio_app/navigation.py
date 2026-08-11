@@ -9,6 +9,7 @@ ROUTABLE_PAGES = {
     "Home",
     "About",
     "Gallery",
+    "Reference",
     "Login",
     "Sign Up",
     "Submit",

@@ -8,7 +8,7 @@ from folio_app.components.analytics import render_google_analytics, track_page_v
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
 from folio_app.navigation import ROUTABLE_PAGES
-from folio_app.pages import about, gallery, home, notifications, onboarding, policy, protected
+from folio_app.pages import about, gallery, home, notifications, onboarding, policy, protected, reference
 from folio_app.pages.auth import render_login, render_signup
 from folio_app.services.profiles import get_onboarding_status
 from folio_app.services.auth import (
@@ -241,6 +241,7 @@ def main() -> None:
         "Home": home.render,
         "About": about.render,
         "Gallery": gallery.render,
+        "Reference": reference.render,
         "Login": render_login,
         "Sign Up": render_signup,
         "Submit": protected.render_submit,

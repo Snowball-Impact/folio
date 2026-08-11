@@ -74,6 +74,7 @@ div[data-testid="stForm"] button {
 
 [class*="form_section_"] .stTextInput,
 [class*="form_section_"] .stTextArea,
+[class*="form_section_"] .stRadio,
 [class*="form_section_"] .stSelectbox,
 [class*="form_section_"] .stMultiSelect,
 [class*="form_section_"] [data-testid="stFileUploader"],
@@ -194,6 +195,27 @@ div[data-testid="stForm"] button {
 
 [class*="_form_section_overview"] .stTextInput {
     margin-bottom: 2px !important;
+}
+
+[class*="_form_section_overview"] .stRadio > div {
+    align-items: center;
+    column-gap: 18px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+
+[class*="_form_section_overview"] .stRadio label {
+    color: var(--folio-navy);
+    font-size: 0.84rem;
+    font-weight: 700;
+    min-height: 24px;
+}
+
+[class*="_form_section_overview"] .stRadio p {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: 1 !important;
+    white-space: nowrap;
 }
 
 [class*="_form_section_overview"] .stTextInput div[data-baseweb="input"] {

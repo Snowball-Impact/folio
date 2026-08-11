@@ -9,10 +9,12 @@ from folio_app.components.project_body import (
 )
 from folio_app.components.ui import clean_html, plain_text, render_project_card_html
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
+from folio_app.services.project_references import REFERENCE_PLATFORM_BY_KEY, REFERENCE_PLATFORMS
 
 
 PROJECT_TITLE_MAX_CHARS = 48
 PROJECT_ONE_LINER_MAX_CHARS = 56
+PROJECT_PLATFORM_OTHER_KEY = "other"
 
 
 def validate_project_form(form_data: dict[str, str]) -> tuple[dict[str, str], list[str], str | None]:
@@ -47,9 +49,25 @@ def build_project_payload(form_data: dict[str, str], parsed_body: dict[str, str]
         "report_url": form_data["report_url"],
         "github_url": form_data["github_url"],
         "thumbnail_url": form_data["thumbnail_url"],
-        "tags": form_data["tags"],
+        "tags": tags_with_platform(form_data["tags"], form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
         "is_public": form_data["is_public"],
     }
+
+
+def tags_with_platform(tags: str, platform_key: str) -> list[str]:
+    normalized_tags = _normalize_tag_preview(tags)
+    platform_labels = {_normalized_tag(label) for _, label in _project_platform_options()}
+    platform_labels.update(_normalized_tag(platform.label) for platform in REFERENCE_PLATFORMS)
+    platform_labels.update(_normalized_tag(alias) for platform in REFERENCE_PLATFORMS for alias in platform.aliases)
+
+    cleaned_tags = [tag for tag in normalized_tags if _normalized_tag(tag) not in platform_labels]
+    if platform_key == PROJECT_PLATFORM_OTHER_KEY:
+        return cleaned_tags[:10]
+
+    platform = REFERENCE_PLATFORM_BY_KEY.get(platform_key)
+    if not platform:
+        return cleaned_tags[:10]
+    return [platform.label, *cleaned_tags][:10]
 
 
 def _project_body_has_content(body: str, parsed_body: dict[str, str]) -> bool:
@@ -68,6 +86,7 @@ def render_project_form(
     github_url: str,
     etc_url: str,
     submit_label: str,
+    platform_key: str = PROJECT_PLATFORM_OTHER_KEY,
     thumbnail_url: str = "",
     is_public: bool = True,
     show_visibility_setting: bool = False,
@@ -98,11 +117,12 @@ def render_project_form(
             tags_input = st.text_input(
                 "태그",
                 value=tags,
-                placeholder="공공데이터, PowerBI, 취업",
+                placeholder="공공데이터, 시각화, 취업",
                 help="#은 자동으로 제거되고 쉼표 기준으로 최대 10개까지 저장됩니다.",
                 key=f"{key_prefix}_tags",
             )
-            preview_tags = _normalize_tag_preview(tags_input)
+            platform_input = _render_platform_selector(key_prefix, platform_key)
+            preview_tags = tags_with_platform(tags_input, platform_input)
             if preview_tags:
                 tag_preview = " ".join(f"`#{tag}`" for tag in preview_tags)
                 st.caption(f"저장될 태그: {tag_preview}")
@@ -114,7 +134,7 @@ def render_project_form(
                 '<div class="folio-form-preview-heading"><strong>카드 미리보기</strong></div>',
                 unsafe_allow_html=True,
             )
-            _render_project_preview(title_input, one_liner_input, tags_input, "")
+            _render_project_preview(title_input, one_liner_input, tags_input, "", platform_input)
 
     with st.container(border=True, key=f"{key_prefix}_form_section_content"):
         _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
@@ -208,6 +228,7 @@ def render_project_form(
             "title": title_input,
             "one_liner": one_liner_input,
             "tags": tags_input,
+            "platform": platform_input,
             "project_body": project_body,
             "power_bi_url": power_bi_url_input,
             # Web application URL is stored in the legacy report_url column. Thumbnail is
@@ -255,6 +276,27 @@ def _form_section_body_html(body: str) -> str:
     return f"<small>{html.escape(body)}</small>"
 
 
+def _project_platform_options() -> list[tuple[str, str]]:
+    return [
+        (PROJECT_PLATFORM_OTHER_KEY, "기타"),
+        *((platform.key, platform.label) for platform in REFERENCE_PLATFORMS),
+    ]
+
+
+def _render_platform_selector(key_prefix: str, platform_key: str) -> str:
+    option_keys = [key for key, _ in _project_platform_options()]
+    option_labels = {key: label for key, label in _project_platform_options()}
+    selected_platform_key = platform_key if platform_key in option_keys else PROJECT_PLATFORM_OTHER_KEY
+    return st.radio(
+        "플랫폼",
+        option_keys,
+        index=option_keys.index(selected_platform_key),
+        format_func=lambda key: option_labels[key],
+        horizontal=True,
+        key=f"{key_prefix}_platform",
+    )
+
+
 def _validate_optional_urls(
     power_bi_url: str,
     report_url: str,
@@ -295,6 +337,10 @@ def _normalize_tag_preview(value: str) -> list[str]:
     return tags[:10]
 
 
+def _normalized_tag(value: object) -> str:
+    return str(value).strip().lower().replace(" ", "")
+
+
 def _raw_tag_count(value: str) -> int:
     return len({tag.strip() for tag in value.replace("#", "").split(",") if tag.strip()})
 
@@ -313,12 +359,13 @@ def _render_project_preview(
     one_liner: str,
     tags: str,
     project_body: str,
+    platform_key: str = PROJECT_PLATFORM_OTHER_KEY,
 ) -> None:
     preview = {
         "title": title.strip() or "프로젝트명이 여기에 표시됩니다.",
         "one_liner": one_liner.strip(),
         "insights": plain_text(project_body),
-        "tags": _normalize_tag_preview(tags),
+        "tags": tags_with_platform(tags, platform_key),
         "view_count": 0,
         "like_count": 0,
     }

@@ -19,6 +19,7 @@ from folio_app.services.project_drafts import (
     save_project_draft,
 )
 from folio_app.services.projects import create_project, update_project
+from folio_app.services.project_references import reference_platform_for_project
 
 
 def render_submit_project_form(user_id: str) -> None:
@@ -37,6 +38,7 @@ def render_submit_project_form(user_id: str) -> None:
         github_url=draft["github_url"],
         etc_url=draft["report_url"],
         submit_label="프로젝트 등록하기",
+        platform_key=draft["platform"],
         secondary_label="초안 지우기",
     )
     save_project_draft(st.session_state, user_id, draft_id, form_data)
@@ -83,6 +85,7 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
         power_bi_url=draft["power_bi_url"],
         github_url=draft["github_url"],
         etc_url=draft["report_url"],
+        platform_key=draft["platform"],
         thumbnail_url=draft["thumbnail_url"],
         is_public=bool(draft["is_public"]),
         show_visibility_setting=True,
@@ -127,6 +130,7 @@ def _submit_project_defaults() -> dict:
         "power_bi_url": "",
         "github_url": "",
         "report_url": "",
+        "platform": "other",
         "thumbnail_url": "",
         "is_public": True,
     }
@@ -141,6 +145,7 @@ def _edit_project_defaults(project: dict) -> dict:
         "power_bi_url": project.get("power_bi_url") or "",
         "github_url": project.get("github_url") or "",
         "report_url": project.get("report_url") or "",
+        "platform": reference_platform_for_project(project) or "other",
         "thumbnail_url": project.get("thumbnail_url") or "",
         "is_public": bool(project.get("is_public")),
     }

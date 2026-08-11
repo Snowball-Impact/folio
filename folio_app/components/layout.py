@@ -12,6 +12,7 @@ from folio_app.services.notifications import (
     mark_all_notifications_read,
     mark_notification_read,
 )
+from folio_app.services.project_references import REFERENCE_PLATFORMS
 
 
 def render_header(initial_page: str | None = None) -> str:
@@ -69,6 +70,9 @@ def render_header(initial_page: str | None = None) -> str:
         with st.container(border=False, key="folio_header_nav"):
             nav_items = _header_nav_items(user is not None)
             for option, label in nav_items:
+                if option == "Reference":
+                    _render_reference_menu(current_page)
+                    continue
                 if option == "Notifications" and user:
                     _render_notifications_popover(user["id"], unread_notification_count)
                     continue
@@ -89,16 +93,32 @@ def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
         return [
             ("Home", "홈 갤러리"),
             ("About", "서비스 소개"),
+            ("Reference", "레퍼런스"),
             ("Login", "로그인"),
         ]
     return [
         ("Home", "홈 갤러리"),
         ("About", "서비스 소개"),
+        ("Reference", "레퍼런스"),
         ("Submit", "프로젝트 등록"),
         ("My Page", "마이 페이지"),
         ("__logout__", "로그아웃"),
         ("Notifications", "알림"),
     ]
+
+
+def _render_reference_menu(current_page: str) -> None:
+    active_platform = st.query_params.get("platform") or "tableau"
+    with st.popover(
+        "레퍼런스",
+        key="nav_Reference",
+        help="레퍼런스",
+        width="content",
+    ):
+        for platform in REFERENCE_PLATFORMS:
+            is_active = current_page == "Reference" and active_platform == platform.key
+            if st.button(platform.label, key=f"nav_reference_{platform.key}", disabled=is_active, use_container_width=True):
+                navigate("Reference", platform=platform.key)
 
 
 def _render_notifications_popover(user_id: str, unread_count: int) -> None:

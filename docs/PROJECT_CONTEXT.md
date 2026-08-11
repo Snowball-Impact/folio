@@ -730,3 +730,68 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - `python -m pyflakes folio_app app.py`
 - `python -m compileall -q app.py folio_app tests`
 - `python -m unittest tests.test_comments tests.test_ui_cards -v`
+
+### 완료: Tableau Viz Gallery 1차 수집과 등록 (2026-08-11)
+
+PRD v2.0 전환을 위해 Tableau Viz Gallery의 공개 시각화 프로젝트를 실제 Share 패널 기준으로 수집했다. 최종 등록 결과는 27개 후보 중 23개다. 수집 CSV는 `docs/curation/tableau_gallery/all.csv`, 재사용 수집기는 `tools/collect_tableau_gallery.py`에 둔다.
+
+- 첫 시도에서 URL 규칙으로 embed URL을 추정해 CSV를 만들었으나, 실제 Share 버튼에서 얻은 값이 아니므로 폐기했다. 앞으로 Tableau embed code는 실제 UI의 Share 패널에서 읽은 값만 사용한다.
+- Tableau Public 상세 페이지는 바깥 페이지와 내부 viz iframe으로 나뉜다. Share 버튼은 바깥 페이지에 있지만, Embed Code input과 Link input은 `public.tableau.com/views/...` iframe 내부에 열린다. 최상위 DOM만 보면 공유 패널이 열린 사실을 놓친다.
+- Embed Code 전체는 CSV에 보존하고, FOLIO 현재 DB 모델에는 iframe으로 열 수 있는 Link input 값을 `power_bi_url`에 저장한다. 썸네일은 Embed Code의 `static_image` param에서 추출한다.
+- 수집 기본 텍스트는 Tableau Details의 제목, 작성자, First Published Date, Last Published Date, Language를 사용한다. 본문 첫 줄은 로케일에 따라 `등록`, `만들기` 같은 메뉴 텍스트로 잘못 잡힐 수 있으므로 제목은 브라우저 title에서 `| Tableau Public`을 제거해 얻는다.
+- Tableau UI는 영어 또는 한국어로 노출될 수 있으므로 Share 버튼 탐색은 `Share`와 `공유`를 모두 허용한다.
+- 긴 수집은 전체 종료 후 판단하지 않고 항목별로 `collected`, `skipped_*`, `error_*`를 기록하고 CSV를 즉시 저장한다.
+
+최종 스킵 항목:
+
+- `#1` Finding Oases In Food Deserts: 10초 대기 후에도 embed code와 link를 읽지 못함
+- `#7` Total Annual Loss of Bee Colonies in the US: link는 읽혔지만 embed code가 비어 있음
+- `#8` Boeing Market Outlook: Tableau Public 상세 페이지가 404
+- `#22` VFSG Feb: link는 읽혔지만 embed code가 비어 있음
+
+Tableau 상세 embed는 기존 16:9/520px 가정으로 세로가 잘렸으므로 `components/dashboard.py`에서 Tableau Public URL일 때 높이를 1240px로 잡고, `styles/detail_visual.py`에서 custom component wrapper의 900px 제한과 모바일 16:9 강제를 제거했다.
+
+검증:
+
+- `python -m compileall -q folio_app\components\dashboard.py folio_app\styles\detail_visual.py`
+- `python -m unittest tests.test_detail_components -v`
+
+### 완료: Looker Studio Gallery 1차 수집과 등록 (2026-08-11)
+
+Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, Community Visualizations 항목을 수집한 뒤 iframe 접근성을 재검증했다. 정상 렌더링되는 80개만 공개 유지하고, 접근 불가 또는 시스템 오류 항목은 skip했다. Featured 1차 등록에서 접근 불가로 확인된 6개는 Supabase에서 `is_public=false`로 전환했다. 수집 CSV는 `docs/curation/looker_studio_gallery/all.csv`, skip 로그는 `docs/curation/looker_studio_gallery/skipped.csv`, 재사용 수집기는 `tools/collect_looker_studio_gallery.py`에 둔다.
+
+- Gallery URL은 `https://datastudio.google.com/gallery`다.
+- 카테고리 URL은 `?category=marketing`, `?category=community`, `?category=visualization`으로 접근한다. Featured는 기본 Gallery URL이다.
+- 카드 DOM의 `a.reportImageUrl`에서 제목, 작성자, 설명, `open/...` URL, 썸네일 URL을 읽을 수 있다.
+- `open/...` URL을 브라우저로 열면 실제 보고서 URL인 `reporting/{report_id}/page/{page_id}`로 이동한다. 이 URL을 source URL로 저장한다.
+- iframe embed URL은 `reporting/`을 `embed/reporting/`으로 바꾼 뒤 실제로 열어 렌더링되는지 확인한다.
+- 본문이 비어 있지 않아도 `보고서에 액세스할 수 없음`, 외부 사이트 보기 사용 중지, Looker Studio 시스템 오류 문구가 있으면 skip한다.
+- 썸네일은 카드 이미지의 `thumbnail?sz=w320-h240-p-k-nu` URL을 사용한다.
+- Tableau와 달리 Share 패널을 열 필요가 없었다.
+
+검증:
+
+- `docs/curation/looker_studio_gallery/all.csv` rows 80
+- `docs/curation/looker_studio_gallery/skipped.csv` rows 81
+- missing embed 0
+- missing thumbnail 0
+- Supabase public Looker Studio projects 80, CSV와 URL 기준 일치
+
+### 완료: 레퍼런스 네비게이션과 홈 플랫폼 필터 (2026-08-11)
+
+수집/등록한 공개 콘텐츠를 플랫폼별로 탐색할 수 있도록 `Reference` 라우트와 헤더의 `레퍼런스` 메뉴를 추가했다. 서브메뉴는 `Tableau`, `Power BI`, `Data Studio`, `Streamlit`이며 URL 파라미터 `platform`으로 현재 플랫폼을 유지한다.
+
+- `folio_app/services/project_references.py`가 플랫폼 분류 기준을 담당한다.
+- 분류는 태그와 URL marker를 함께 본다. 예: Tableau/Public Tableau URL, PowerBI/PBI/app.powerbi.com, Looker Studio/Data Studio/datastudio.google.com, Streamlit/streamlit.app.
+- 홈 갤러리는 레퍼런스와 일반 프로젝트를 함께 노출한다. 검색 패널의 라디오 필터로 `전체`, `기타`, `Tableau`, `Power BI`, `Data Studio`, `Streamlit` 중 하나를 선택한다.
+- 홈 인기 태그 TOP10은 선택된 플랫폼 범위의 레퍼런스 콘텐츠까지 포함해 집계하되, 플랫폼 선택 메뉴와 중복되는 태그(`Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other` 등)는 제외한다.
+- 레퍼런스 페이지는 카드 그리드와 상세 페이지를 재사용한다. 상세에서 돌아갈 때 `platform` 파라미터를 유지한다.
+- 레퍼런스 페이지는 최초 12개 카드를 보여주고, 하단 스크롤 시 브라우저에서 다음 12개씩 표시한다. Streamlit hidden button + rerun 방식은 중간에 loading 상태가 잠길 수 있어 쓰지 않는다.
+- 프로젝트 등록/수정 폼에는 `플랫폼` 라디오를 태그 입력 아래에 둔다. 별도 DB 컬럼이 아직 없으므로 선택한 플랫폼은 공식 플랫폼 태그로 정규화해 저장한다. 예: `Data Studio` 선택 + `고객 분석` 태그 입력 → `["Data Studio", "고객 분석"]`.
+
+검증:
+
+- 앱 서비스 기준 공개 프로젝트 368개 중 파워BI 99개, 스트림릿 163개, 태블로 23개, 데이터스튜디오 80개, 기타 1개로 분배
+- `python -m compileall -q folio_app tests`
+- `python -m unittest tests.test_project_form tests.test_project_references tests.test_detail_components tests.test_project_queries -v`
+- `http://localhost:8501/?page=Reference&platform=datastudio`에서 무한스크롤 `12 -> 24 -> 36 -> 48 -> 60` 로드 확인

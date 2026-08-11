@@ -3,26 +3,32 @@
 from __future__ import annotations
 
 import html
+from urllib.parse import urlparse
 
 import streamlit.components.v1 as components
 
 
 def render_embedded_dashboard(url: str) -> None:
-    components.html(embedded_dashboard_html(url), height=520)
+    components.html(embedded_dashboard_html(url), height=embedded_dashboard_height(url))
 
 
 def embedded_dashboard_html(url: str) -> str:
     safe_url = html.escape(url, quote=True)
+    min_height = embedded_dashboard_height(url) - 8
     return f"""
     <style>
         html,
         body {{
             margin: 0;
-            overflow: hidden;
+            overflow: auto;
             padding: 0;
         }}
         .folio-dashboard-frame {{
-            aspect-ratio: 16 / 9;
+            align-items: flex-start;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            min-height: {min_height}px;
             position: relative;
             width: 100%;
         }}
@@ -33,7 +39,7 @@ def embedded_dashboard_html(url: str) -> str:
             display: flex;
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             font-size: 14px;
-            height: 100%;
+            min-height: {min_height}px;
             inset: 0;
             justify-content: center;
             position: absolute;
@@ -43,9 +49,11 @@ def embedded_dashboard_html(url: str) -> str:
         .folio-dashboard-iframe {{
             background: #ffffff;
             border: 0;
-            height: 100%;
-            inset: 0;
-            position: absolute;
+            display: block;
+            flex: 0 1 100%;
+            height: {min_height}px;
+            max-width: 100%;
+            position: relative;
             width: 100%;
             z-index: 2;
         }}
@@ -64,3 +72,10 @@ def embedded_dashboard_html(url: str) -> str:
         </iframe>
     </div>
     """
+
+
+def embedded_dashboard_height(url: str) -> int:
+    parsed = urlparse(url)
+    if parsed.netloc.endswith("public.tableau.com"):
+        return 1240
+    return 520

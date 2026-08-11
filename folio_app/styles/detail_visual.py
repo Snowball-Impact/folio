@@ -48,11 +48,19 @@ CSS = """
 .st-key-project_detail_visual [data-testid="stCustomComponentV1"],
 .st-key-project_detail_visual .stLinkButton {
     box-sizing: border-box !important;
-    max-width: 900px !important;
     min-width: 0 !important;
     width: 100% !important;
     margin-left: auto !important;
     margin-right: auto !important;
+}
+
+.st-key-project_detail_visual [data-testid="stElementContainer"]:has(> iframe[data-testid="stIFrame"]),
+.st-key-project_detail_visual [data-testid="stCustomComponentV1"] {
+    max-width: 100% !important;
+}
+
+.st-key-project_detail_visual .stLinkButton {
+    max-width: 900px !important;
 }
 
 .st-key-project_detail_visual iframe {
@@ -95,25 +103,7 @@ CSS = """
         padding: 18px 16px !important;
     }
 
-    /* Streamlit reserves component height with both height and flex-basis.
-       Mobile embeds need both reset so the 16:9 iframe does not leave a
-       520px blank reservation below the dashboard. */
-    .st-key-project_detail_visual [data-testid="stElementContainer"]:has(> iframe[data-testid="stIFrame"]),
-    .st-key-project_detail_visual [data-testid="stCustomComponentV1"] {
-        flex: 0 0 auto !important;
-        flex-basis: auto !important;
-        height: auto !important;
-        min-height: 0 !important;
-    }
-
-    .st-key-project_detail_visual [data-testid="stElementContainer"]:has(> iframe[data-testid="stIFrame"]) {
-        aspect-ratio: 16 / 9;
-        overflow: hidden !important;
-    }
-
     .st-key-project_detail_visual iframe {
-        aspect-ratio: 16 / 9;
-        height: auto !important;
         min-height: 0 !important;
     }
 }

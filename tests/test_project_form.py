@@ -4,8 +4,10 @@ from folio_app.components.project_form import (
     _normalize_tag_preview,
     _raw_tag_count,
     build_project_payload,
+    tags_with_platform,
     validate_project_form,
 )
+from folio_app.services.project_references import reference_platform_for_project
 
 
 class ProjectFormTests(unittest.TestCase):
@@ -66,6 +68,35 @@ class ProjectFormTests(unittest.TestCase):
         payload = build_project_payload(form_data, parsed_body)
 
         self.assertIs(payload["is_public"], False)
+
+    def test_platform_selection_is_saved_as_reference_tag(self) -> None:
+        self.assertEqual(
+            tags_with_platform("매출 분석, PowerBI, 대시보드", "tableau"),
+            ["Tableau", "매출 분석", "대시보드"],
+        )
+
+        payload = build_project_payload(
+            {
+                "title": "레퍼런스",
+                "one_liner": "",
+                "power_bi_url": "",
+                "report_url": "",
+                "github_url": "",
+                "thumbnail_url": "",
+                "tags": "고객 분석",
+                "platform": "datastudio",
+                "is_public": True,
+            },
+            {
+                "problem": "문제",
+                "dataset": "데이터",
+                "process": "과정",
+                "insights": "인사이트",
+            },
+        )
+
+        self.assertEqual(payload["tags"], ["Data Studio", "고객 분석"])
+        self.assertEqual(reference_platform_for_project(payload), "datastudio")
 
 
 if __name__ == "__main__":

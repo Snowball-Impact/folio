@@ -100,6 +100,37 @@ CSS = """
     gap: 10px !important;
 }
 
+.st-key-home_platform_filters {
+    margin: 0 0 2px;
+    padding: 0 2px;
+}
+
+.st-key-home_platform_filters .stRadio > div {
+    align-items: center;
+    column-gap: 18px;
+    flex-wrap: wrap;
+    row-gap: 4px;
+}
+
+.st-key-home_platform_filters .stRadio label {
+    color: var(--folio-navy);
+    font-size: 0.84rem;
+    font-weight: 700;
+    min-height: 24px;
+    padding: 0;
+}
+
+.st-key-home_platform_filters .stRadio label:has(input:checked) {
+    color: var(--folio-blue);
+}
+
+.st-key-home_platform_filters .stRadio p {
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    line-height: 1 !important;
+    white-space: nowrap;
+}
+
 .st-key-folio_browse_panel .folio-popular-tag-label {
     align-items: center;
     background: rgba(20, 89, 200, 0.08);

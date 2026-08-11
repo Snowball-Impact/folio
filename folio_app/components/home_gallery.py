@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import html
+from urllib.parse import urlencode
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -162,6 +163,7 @@ def render_project_rails(
     rails: list[tuple[str, str, list[dict]]],
     *,
     home_page: str,
+    extra_query_params: dict[str, str] | None = None,
 ) -> None:
     if not any(projects for _, _, projects in rails):
         render_rail_scroll_script()
@@ -169,7 +171,7 @@ def render_project_rails(
         return
 
     for rail_key, description, projects in rails:
-        render_project_rail(rail_key, description, projects, home_page=home_page)
+        render_project_rail(rail_key, description, projects, home_page=home_page, extra_query_params=extra_query_params)
     render_rail_scroll_script()
     render_card_preview_script()
 
@@ -180,8 +182,12 @@ def render_project_rail(
     projects: list[dict],
     *,
     home_page: str,
+    extra_query_params: dict[str, str] | None = None,
 ) -> None:
-    cards_html = "".join(project_card_html(project, home_page=home_page) for project in projects)
+    cards_html = "".join(
+        project_card_html(project, home_page=home_page, extra_query_params=extra_query_params)
+        for project in projects
+    )
     safe_rail_key = html.escape(rail_key, quote=True)
     safe_description = html.escape(description)
 
@@ -216,13 +222,14 @@ def render_project_rail(
     )
 
 
-def project_card_html(project: dict, *, home_page: str) -> str:
+def project_card_html(project: dict, *, home_page: str, extra_query_params: dict[str, str] | None = None) -> str:
     preview_url = normalize_power_bi_embed_url(project.get("power_bi_url"))
+    params = {"page": home_page, **(extra_query_params or {}), "project_id": project["id"]}
     return render_project_card_html(
         project,
         compact=False,
         fallback_text=plain_text(project.get("insights")) or "",
-        href=f"?page={home_page}&project_id={project['id']}",
+        href=f"?{urlencode(params)}",
         preview_url=preview_url,
     )
 

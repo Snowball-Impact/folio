@@ -29,7 +29,14 @@ from folio_app.services.projects import (
 _HOME_PAGE = "Home"
 
 
-def render(project_id: str) -> None:
+def render(
+    project_id: str,
+    *,
+    back_page: str = _HOME_PAGE,
+    back_label: str = "홈 갤러리로 돌아가기",
+    back_params: dict | None = None,
+) -> None:
+    back_params = back_params or {}
     notice = st.session_state.pop("project_notice", None)
     if notice:
         st.success(notice)
@@ -47,12 +54,12 @@ def render(project_id: str) -> None:
                 st.rerun()
         with back_col:
             if st.button("목록으로 돌아가기", key="failed_detail_back", use_container_width=True):
-                navigate(_HOME_PAGE)
+                navigate(back_page, **back_params)
         return
     if project is None:
         st.error("프로젝트를 찾을 수 없습니다.")
         if st.button("목록으로 돌아가기"):
-            _clear_detail_query()
+            _clear_detail_query(back_page, back_params)
             st.rerun()
         return
 
@@ -91,7 +98,7 @@ def render(project_id: str) -> None:
 
     render_comments_section(project_id, user, project.get("author_id"))
 
-    _render_back_to_gallery_action()
+    _render_back_to_gallery_action(back_page, back_label, back_params)
 
 
 def _detail_hero_card_html(project: dict) -> str:
@@ -130,7 +137,7 @@ def _render_hero_footer_actions(
         render_project_share_handler(project_id)
 
 
-def _render_back_to_gallery_action() -> None:
+def _render_back_to_gallery_action(back_page: str, back_label: str, back_params: dict) -> None:
     with st.container(
         border=False,
         key="detail_back_action_row",
@@ -138,8 +145,8 @@ def _render_back_to_gallery_action() -> None:
         horizontal_alignment="right",
         vertical_alignment="center",
     ):
-        if st.button("← 홈 갤러리로 돌아가기", key="detail_content_back_button"):
-            navigate(_HOME_PAGE)
+        if st.button(f"← {back_label}", key="detail_content_back_button"):
+            navigate(back_page, **back_params)
 
 
 def _hero_meta_html(project: dict) -> str:
@@ -239,5 +246,5 @@ def _track_share_open(project_id: str) -> None:
     track_event("project_share_open", {"item_id": project_id, "source": "copied_link"})
 
 
-def _clear_detail_query() -> None:
-    navigate(_HOME_PAGE)
+def _clear_detail_query(back_page: str = _HOME_PAGE, back_params: dict | None = None) -> None:
+    navigate(back_page, **(back_params or {}))
