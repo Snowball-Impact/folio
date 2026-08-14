@@ -2,8 +2,8 @@ name: Keep Streamlit App Awake
 
 on:
   schedule:
-    # Every 6 hours
-    - cron: "0 */6 * * *"
+    # KST 00:00, 06:00, 12:00, 18:00
+    - cron: "0 3,9,15,21 * * *"
   workflow_dispatch:
 
 jobs:
@@ -12,5 +12,6 @@ jobs:
     steps:
       - name: Ping Streamlit app
         run: |
-          curl -L --max-time 60 --retry 3 --retry-delay 10 \
-            "https://folio.streamlit.app/?page=Home"
+          curl --silent --show-error --max-time 60 --retry 3 --retry-delay 10 \
+            --output /dev/null \
+            "https://folio-gapyear.streamlit.app"
