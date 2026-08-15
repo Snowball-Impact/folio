@@ -1,3 +1,4 @@
+from dataclasses import replace
 import unittest
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -10,6 +11,7 @@ from folio_app.services.powerbi import (
     generate_embed_token,
     get_powerbi_embed_config,
     post_pbix_import,
+    poll_import_completion,
     publish_pbix_for_project,
 )
 
@@ -80,6 +82,29 @@ class PowerBIImportTests(unittest.TestCase):
         self.assertEqual(kwargs["params"]["datasetDisplayName"], "project_report.pbix")
         self.assertIn("file", kwargs["files"])
 
+    @patch("folio_app.services.powerbi.time.sleep")
+    @patch("folio_app.services.powerbi.get_import")
+    def test_poll_import_completion_reports_remaining_wait_time(self, get_import, sleep) -> None:
+        get_import.side_effect = [
+            {"importState": "Publishing"},
+            {"importState": "Publishing"},
+            {"importState": "Succeeded"},
+        ]
+        events = []
+        settings = replace(_settings(), powerbi_import_poll_seconds=3)
+
+        result = poll_import_completion(
+            settings,
+            "token",
+            "import-id",
+            progress_callback=lambda value, text: events.append((value, text)),
+        )
+
+        self.assertEqual(result["importState"], "Succeeded")
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(events[0], (36, "Power BI 게시 및 배포를 기다리는 중입니다. 3/3초"))
+        self.assertEqual(events[-1], (38, "Power BI 게시 및 배포를 기다리는 중입니다. 2/3초"))
+
     @patch("folio_app.services.powerbi.get_supabase_client")
     @patch("folio_app.services.powerbi.get_report_metadata")
     @patch("folio_app.services.powerbi.poll_import_completion")
@@ -119,9 +144,17 @@ class PowerBIImportTests(unittest.TestCase):
         client.table.side_effect = table
         get_client.return_value = client
 
-        result = publish_pbix_for_project("project-id", b"pbix", "report.pbix", settings=_settings())
+        progress_callback = MagicMock()
+        result = publish_pbix_for_project(
+            "project-id",
+            b"pbix",
+            "report.pbix",
+            settings=_settings(),
+            progress_callback=progress_callback,
+        )
 
         self.assertTrue(result.ok)
+        self.assertIs(poll_import.call_args.kwargs["progress_callback"], progress_callback)
         self.assertEqual(result.report_id, "report-id")
         powerbi_payload = table_builders["powerbi_reports"].upsert.call_args.args[0]
         self.assertEqual(powerbi_payload["project_id"], "project-id")

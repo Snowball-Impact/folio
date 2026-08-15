@@ -43,10 +43,11 @@ POWERBI_CLIENT_SECRET = "your-client-secret"
 POWERBI_WORKSPACE_ID = "your-workspace-id"
 PBIX_MAX_UPLOAD_MB = "100"
 POWERBI_IMPORT_POLL_SECONDS = "100"
+POWERBI_CAPTURE_READY_WAIT_SECONDS = "10"
 ```
 
 `GA_MEASUREMENT_ID`, `SUPABASE_SERVICE_ROLE_KEY`, SMTP 값은 선택 항목이다. 이메일 알림과 서버측 Storage 작업을 안정적으로 쓰려면 `SUPABASE_SERVICE_ROLE_KEY`를 설정한다.
-PBIX 업로드와 Power BI Embedded Viewer를 쓰려면 `POWERBI_*` 값 4개가 필요하다. Client Secret은 Streamlit Secrets에만 둔다.
+PBIX 업로드와 Power BI Embedded Viewer를 쓰려면 `POWERBI_*` 값 4개가 필요하다. Client Secret은 Streamlit Secrets에만 둔다. PBIX 게시 직후 자동 캡처가 너무 빨리 실행되면 `POWERBI_CAPTURE_READY_WAIT_SECONDS`를 늘려 Power BI 보고서 렌더링 준비 시간을 확보한다.
 
 ## 3. Supabase Auth URL
 
@@ -83,7 +84,7 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 
 ### PBIX 게시 후 캡처 확인
 
-Power BI 플랫폼에서 PBIX를 업로드하고 썸네일 모드를 `자동 캡처`로 둔 경우, Import 성공 뒤 Streamlit 페이지가 아니라 Power BI report HTML을 직접 렌더링해 캡처한다.
+Power BI 플랫폼에서 PBIX를 업로드하고 썸네일 모드를 `자동 캡처`로 둔 경우, Import 성공 뒤 `POWERBI_CAPTURE_READY_WAIT_SECONDS`만큼 기다린 다음 Streamlit 페이지가 아니라 Power BI report HTML을 직접 렌더링해 캡처한다.
 
 1. 100MB 이하 PBIX를 업로드한다.
 2. 등록 완료 메시지와 Power BI 게시 성공 상태를 확인한다.

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 import time
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import quote
 
 import requests
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 POWERBI_SCOPE = "https://analysis.windows.net/powerbi/api/.default"
 IMPORT_SUCCEEDED_STATES = {"succeeded", "completed"}
 IMPORT_FAILED_STATES = {"failed"}
+PowerBIProgressCallback = Callable[[int, str], None]
 
 
 class PowerBIServiceError(RuntimeError):
@@ -55,6 +56,7 @@ def publish_pbix_for_project(
     *,
     settings: Settings | None = None,
     session: requests.Session | None = None,
+    progress_callback: PowerBIProgressCallback | None = None,
 ) -> PowerBIImportResult:
     settings = settings or get_settings()
     if not settings.is_powerbi_configured:
@@ -83,6 +85,7 @@ def publish_pbix_for_project(
             access_token,
             import_id,
             session=session,
+            progress_callback=progress_callback,
         )
         import_status = str(import_state.get("importState") or import_state.get("state") or "").lower()
         if import_status not in IMPORT_SUCCEEDED_STATES:
@@ -194,16 +197,31 @@ def poll_import_completion(
     import_id: str,
     *,
     session: requests.Session | None = None,
+    progress_callback: PowerBIProgressCallback | None = None,
 ) -> dict[str, Any]:
-    deadline = time.monotonic() + max(settings.powerbi_import_poll_seconds, 1)
+    poll_seconds = max(settings.powerbi_import_poll_seconds, 1)
+    deadline = time.monotonic() + poll_seconds
     latest_payload: dict[str, Any] = {}
+    elapsed_seconds = 0
     while time.monotonic() <= deadline:
         latest_payload = get_import(settings, access_token, import_id, session=session)
         import_status = str(latest_payload.get("importState") or latest_payload.get("state") or "").lower()
         if import_status in IMPORT_SUCCEEDED_STATES | IMPORT_FAILED_STATES:
             return latest_payload
+        remaining_seconds = max(poll_seconds - elapsed_seconds, 0)
+        _notify_powerbi_progress(
+            progress_callback,
+            36 + int((elapsed_seconds / poll_seconds) * 8),
+            f"Power BI 게시 및 배포를 기다리는 중입니다. {remaining_seconds}/{poll_seconds}초",
+        )
         time.sleep(1)
+        elapsed_seconds += 1
     return latest_payload
+
+
+def _notify_powerbi_progress(progress_callback: PowerBIProgressCallback | None, value: int, text: str) -> None:
+    if progress_callback is not None:
+        progress_callback(value, text)
 
 
 def get_import(

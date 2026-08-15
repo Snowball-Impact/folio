@@ -72,6 +72,7 @@ class Settings:
     powerbi_api_base_url: str = "https://api.powerbi.com/v1.0/myorg"
     pbix_max_upload_mb: int = 100
     powerbi_import_poll_seconds: int = 100
+    powerbi_capture_ready_wait_seconds: int = 10
 
     @property
     def is_supabase_configured(self) -> bool:
@@ -172,6 +173,7 @@ def get_settings() -> Settings:
         or _read_secret_section("powerbi", "api_base_url"),
         pbix_max_upload_mb=_read_int_setting("PBIX_MAX_UPLOAD_MB", 100),
         powerbi_import_poll_seconds=_read_int_setting("POWERBI_IMPORT_POLL_SECONDS", 100),
+        powerbi_capture_ready_wait_seconds=_read_int_setting("POWERBI_CAPTURE_READY_WAIT_SECONDS", 10),
     )
 
 

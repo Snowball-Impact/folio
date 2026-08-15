@@ -141,6 +141,7 @@ class SettingsLoadingTests(unittest.TestCase):
                 "POWERBI_WORKSPACE_ID": "workspace-id",
                 "PBIX_MAX_UPLOAD_MB": "7",
                 "POWERBI_IMPORT_POLL_SECONDS": "100",
+                "POWERBI_CAPTURE_READY_WAIT_SECONDS": "25",
             },
             clear=True,
         ):
@@ -154,3 +155,4 @@ class SettingsLoadingTests(unittest.TestCase):
         self.assertEqual(settings.powerbi_workspace_id, "workspace-id")
         self.assertEqual(settings.pbix_max_upload_mb, 7)
         self.assertEqual(settings.powerbi_import_poll_seconds, 100)
+        self.assertEqual(settings.powerbi_capture_ready_wait_seconds, 25)

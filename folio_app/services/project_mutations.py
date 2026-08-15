@@ -11,7 +11,11 @@ from folio_app.services.project_normalizers import (
     THUMBNAIL_MODE_CAPTURE,
     clean_project_payload,
 )
-from folio_app.services.project_thumbnails import maybe_capture_project_thumbnail, try_delete_project_thumbnail_file
+from folio_app.services.project_thumbnails import (
+    ThumbnailCaptureResult,
+    maybe_capture_project_thumbnail,
+    try_delete_project_thumbnail_file,
+)
 from folio_app.services.project_queries import _fetch_like_counts, _fetch_public_projects, clear_project_caches
 from folio_app.services.project_types import ProjectResult, ViewCountResult
 from folio_app.services.supabase_client import get_supabase_client
@@ -32,6 +36,7 @@ def create_project(
     if client is None:
         return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
 
+    skip_thumbnail_capture = bool(payload.get("skip_thumbnail_capture"))
     data = clean_project_payload(payload)
     data["author_id"] = author_id
 
@@ -40,7 +45,11 @@ def create_project(
         if not response.data:
             return ProjectResult(False, "프로젝트 등록 응답을 확인할 수 없습니다.")
         project_id = response.data[0]["id"]
-        capture_result = maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
+        capture_result = (
+            ThumbnailCaptureResult(ok=True, skipped=True)
+            if skip_thumbnail_capture
+            else maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
+        )
         clear_project_caches()
         return ProjectResult(True, _message_with_thumbnail_result("프로젝트가 등록되었습니다.", capture_result), project_id)
     except Exception as exc:
@@ -68,6 +77,7 @@ def update_project(
         return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
 
     delete_thumbnail_file = bool(payload.get("delete_thumbnail"))
+    skip_thumbnail_capture = bool(payload.get("skip_thumbnail_capture"))
     data = clean_project_payload(payload)
 
     try:
@@ -82,7 +92,11 @@ def update_project(
             return ProjectResult(False, "수정할 프로젝트를 찾을 수 없습니다.")
         if delete_thumbnail_file:
             try_delete_project_thumbnail_file(project_id)
-        capture_result = maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
+        capture_result = (
+            ThumbnailCaptureResult(ok=True, skipped=True)
+            if skip_thumbnail_capture
+            else maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
+        )
         if not delete_thumbnail_file and "thumbnail_mode" in data and data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
             try_delete_project_thumbnail_file(project_id)
         clear_project_caches()

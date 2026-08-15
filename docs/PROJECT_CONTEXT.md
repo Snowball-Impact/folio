@@ -830,12 +830,12 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 
 - `supabase/schema.sql`에 `projects.project_type`, `status`, `embed_status`, `published_at`, `deleted_at`과 `powerbi_reports` 테이블을 추가했다. 공개 프로젝트 RLS는 `is_public=true`와 `status='published'`를 함께 만족해야 한다.
 - 프로젝트 삭제는 물리 삭제에서 soft delete로 바꿨다. 앱은 `status='deleted'`, `deleted_at`, `is_public=false`로 숨기며, 작성자 목록과 상세에서도 deleted 프로젝트를 제외한다.
-- Power BI 설정은 `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`를 사용한다. PBIX 기본 상한은 `PBIX_MAX_UPLOAD_MB=100`, Import polling 기본값은 `POWERBI_IMPORT_POLL_SECONDS=100`이다.
+- Power BI 설정은 `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`를 사용한다. PBIX 기본 상한은 `PBIX_MAX_UPLOAD_MB=100`, Import polling 기본값은 `POWERBI_IMPORT_POLL_SECONDS=100`, PBIX 게시 후 캡처 대기 기본값은 `POWERBI_CAPTURE_READY_WAIT_SECONDS=10`이다.
 - `services/powerbi.py`가 Entra client credentials token, PBIX Import API, Import polling, Report metadata 조회, Embed Token 발급, `powerbi_reports` upsert를 담당한다. Client Secret과 Embed Token은 DB에 저장하지 않는다.
 - 등록 폼에서 플랫폼을 Power BI로 선택하면 PBIX 파일 업로드 필드가 보인다. PBIX 확장자와 크기 검증, Power BI 설정 누락은 프로젝트 생성 전에 중단한다.
 - 신규 PBIX 등록은 프로젝트를 `processing`으로 먼저 생성한 뒤 Import를 실행한다. Import 성공 시 `published`와 `embed_status='supported'`로 전환하고, 실패/timeout은 `failed`로 표시한다.
 - 상세 페이지는 PBIX 게시본이면 `powerbi_reports` 메타데이터로 Embed Token을 동적 발급해 Power BI JS SDK Viewer를 렌더한다. 기존 공개 iframe 레퍼런스는 기존 iframe fallback을 유지한다.
-- PBIX 게시 성공 후 썸네일 모드가 자동 캡처이면 Power BI report HTML을 직접 렌더링해 캡처한다. Streamlit 내부 페이지 iframe을 캡처하지 않아 Power BI JS SDK 로딩 경합과 중첩 iframe 문제를 피한다.
+- PBIX 게시 성공 후 썸네일 모드가 자동 캡처이면 보고서 렌더링 준비 대기 후 Power BI report HTML을 직접 렌더링해 캡처한다. Streamlit 내부 페이지 iframe을 캡처하지 않아 Power BI JS SDK 로딩 경합과 중첩 iframe 문제를 피한다.
 - 등록/수정 폼의 우측 카드 미리보기는 상세 히어로 우측 썸네일 영역과 같은 Home 카드 구조를 쓴다. 별도 미리보기 섹션은 두지 않고, 기본 정보 좌측 열의 플랫폼 선택 아래에는 PBIX 업로드를, 우측 열의 산출물 링크 아래에는 썸네일 설정을 배치한다.
 - 홈/레퍼런스 카드 hover iframe preview는 제거했다. hover 시 카드는 작게 떠오르고, `cards.py`의 `::after` 오버레이가 5px 파란 테두리를 표시한다. stretched link 레이어보다 높은 z-index를 써서 썸네일/그라데이션에 묻히지 않게 한다.
 - 상세 페이지 작성자 화면에는 프로젝트 삭제 버튼을 둔다. 삭제는 soft delete이며 `status='deleted'`, `deleted_at`, `is_public=false`로 즉시 목록과 상세 접근에서 숨긴다.

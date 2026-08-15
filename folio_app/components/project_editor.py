@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+import time
 import streamlit as st
 
 from folio_app.config import get_settings
@@ -82,6 +83,8 @@ def render_submit_project_form(user_id: str) -> None:
     payload = build_project_payload(form_data, parsed_body)
     pbix_file = form_data.get("pbix_file")
     if pbix_file is not None:
+        if payload.get("thumbnail_mode") == THUMBNAIL_MODE_CAPTURE:
+            payload["skip_thumbnail_capture"] = True
         powerbi_result = _create_and_publish_powerbi_project(user_id, payload, pbix_file)
         if powerbi_result is None:
             return
@@ -166,6 +169,8 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
         payload["project_type"] = "powerbi"
         payload["status"] = "processing"
         payload["embed_status"] = "external_only"
+        if payload.get("thumbnail_mode") == THUMBNAIL_MODE_CAPTURE:
+            payload["skip_thumbnail_capture"] = True
     result = _run_with_thumbnail_progress(
         form_data,
         lambda progress_callback: update_project(
@@ -179,7 +184,7 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
 
     if result.ok:
         if pbix_file is not None:
-            powerbi_result = _publish_replacement_pbix(project["id"], pbix_file)
+            powerbi_result = _publish_replacement_pbix(project["id"], pbix_file, payload)
             if powerbi_result is None:
                 return
             if not powerbi_result.ok:
@@ -300,7 +305,7 @@ def _has_powerbi_report(project: dict) -> bool:
         return False
 
 
-def _publish_replacement_pbix(project_id: str, pbix_file):
+def _publish_replacement_pbix(project_id: str, pbix_file, payload: dict | None = None):
     settings = get_settings()
     if not settings.is_powerbi_configured:
         _show_operation_error("Power BI 게시 환경 변수가 설정되지 않았습니다.")
@@ -312,8 +317,25 @@ def _publish_replacement_pbix(project_id: str, pbix_file):
         "새 PBIX 파일을 Power BI Workspace에 게시하는 중입니다.",
     )
     try:
+        def update_progress(value: int, text: str) -> None:
+            progress.progress(value, text=text)
+
         pbix_bytes = bytes(pbix_file.getbuffer())
-        result = publish_pbix_for_project(project_id, pbix_bytes, pbix_file.name, settings=settings)
+        result = publish_pbix_for_project(
+            project_id,
+            pbix_bytes,
+            pbix_file.name,
+            settings=settings,
+            progress_callback=update_progress,
+        )
+        if result.ok:
+            capture_result = _capture_powerbi_thumbnail_if_requested(
+                project_id,
+                payload or {},
+                result,
+                update_progress,
+            )
+            result = _powerbi_result_with_thumbnail_message(result, capture_result)
         progress.progress(100, text="PBIX 교체 요청이 완료되었습니다.")
         if result.ok:
             track_event("pbix_import_success", {"item_id": result.project_id})
@@ -335,6 +357,8 @@ def _create_and_publish_powerbi_project(user_id: str, payload: dict, pbix_file):
     payload["project_type"] = "powerbi"
     payload["status"] = "processing"
     payload["embed_status"] = "external_only"
+    if payload.get("thumbnail_mode") == THUMBNAIL_MODE_CAPTURE:
+        payload["skip_thumbnail_capture"] = True
 
     panel, progress = _create_operation_progress("pbix_create", 10, "Power BI 프로젝트를 등록하는 중입니다.")
     try:
@@ -348,7 +372,13 @@ def _create_and_publish_powerbi_project(user_id: str, payload: dict, pbix_file):
             return None
         progress.progress(35, text="PBIX 파일을 Power BI Workspace에 게시하는 중입니다.")
         pbix_bytes = bytes(pbix_file.getbuffer())
-        result = publish_pbix_for_project(create_result.project_id, pbix_bytes, pbix_file.name, settings=settings)
+        result = publish_pbix_for_project(
+            create_result.project_id,
+            pbix_bytes,
+            pbix_file.name,
+            settings=settings,
+            progress_callback=update_progress,
+        )
         if result.ok:
             capture_result = _capture_powerbi_thumbnail_if_requested(
                 result.project_id,
@@ -369,12 +399,23 @@ def _capture_powerbi_thumbnail_if_requested(project_id: str, payload: dict, publ
         return None
     if not (publish_result.report_id and publish_result.dataset_id and publish_result.embed_url):
         return None
+    _wait_for_powerbi_report_ready(get_settings().powerbi_capture_ready_wait_seconds, progress_callback)
     token_payload = generate_embed_token(publish_result.report_id, publish_result.dataset_id)
     embed_token = token_payload.get("token")
     if not embed_token:
         return None
     capture_html = powerbi_report_html(publish_result.report_id, publish_result.embed_url, str(embed_token))
     return capture_project_thumbnail_from_html(project_id, capture_html, progress_callback=progress_callback)
+
+
+def _wait_for_powerbi_report_ready(seconds: int, progress_callback) -> None:
+    wait_seconds = max(int(seconds or 0), 0)
+    for second in range(wait_seconds):
+        if progress_callback is not None:
+            progress = 40 + int(((second + 1) / wait_seconds) * 4)
+            remaining_seconds = wait_seconds - second
+            progress_callback(progress, f"Power BI 보고서 렌더링 준비를 기다리는 중입니다. {remaining_seconds}/{wait_seconds}초")
+        time.sleep(1)
 
 
 def _powerbi_result_with_thumbnail_message(result, capture_result):
