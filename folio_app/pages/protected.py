@@ -4,7 +4,7 @@ from folio_app.components.layout import render_hero
 from folio_app.components.portfolio_items import render_portfolio_item
 from folio_app.components.project_editor import render_edit_project_form, render_submit_project_form
 from folio_app.components.profile_summary import profile_overview_html
-from folio_app.navigation import navigate
+from folio_app.navigation import EDIT_PROJECT_QUERY_PARAM, navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.comments import annotate_unread_comment_status
 from folio_app.services.profiles import ProfileServiceError, get_profile, update_profile
@@ -15,9 +15,6 @@ from folio_app.services.projects import (
     delete_project,
     list_projects_by_author,
 )
-
-
-_EDIT_PROJECT_QUERY_PARAM = "edit_project_id"
 
 
 def _render_login_required(page_key: str, message: str) -> None:
@@ -176,7 +173,7 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
                     if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
                         navigate("Home", project_id=project["id"])
                     if st.button("수정", key=f"portfolio_edit_{project['id']}", use_container_width=True):
-                        navigate("My Page", **{_EDIT_PROJECT_QUERY_PARAM: project["id"]})
+                        navigate("My Page", **{EDIT_PROJECT_QUERY_PARAM: project["id"]})
                     if st.button("삭제", key=f"portfolio_delete_{project['id']}", use_container_width=True):
                         _confirm_project_deletion(project, user["id"])
     else:
@@ -193,7 +190,7 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
 
 
 def _editing_project_id_from_query() -> str | None:
-    value = st.query_params.get(_EDIT_PROJECT_QUERY_PARAM)
+    value = st.query_params.get(EDIT_PROJECT_QUERY_PARAM)
     if isinstance(value, list):
         value = value[0] if value else ""
     value = str(value or "").strip()

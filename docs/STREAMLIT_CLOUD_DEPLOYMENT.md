@@ -1,6 +1,6 @@
 # Streamlit Community Cloud 배포와 캡처 실험
 
-FOLIO의 기본 무료 배포 채널은 Streamlit Community Cloud다. 현재 목표는 기존 Streamlit 앱을 유지하면서, Community Cloud 런타임에서 Chromium/Selenium 기반 썸네일 자동 캡처가 실제로 동작하는지 검증하는 것이다.
+FOLIO의 기본 무료 배포 채널은 Streamlit Community Cloud다. 현재 목표는 기존 Streamlit 앱을 유지하면서, Community Cloud 런타임에서 Playwright 기반 썸네일 자동 캡처가 실제로 동작하는지 검증하는 것이다.
 
 ## 1. 배포 채널
 
@@ -15,7 +15,6 @@ FOLIO의 기본 무료 배포 채널은 Streamlit Community Cloud다. 현재 목
 
 ```text
 chromium
-chromium-driver
 ```
 
 ## 2. Secrets
@@ -38,7 +37,6 @@ SMTP_FROM_NAME = "FOLIO"
 SMTP_USE_TLS = "true"
 THUMBNAIL_STORAGE_BUCKET = "project-thumbnails"
 CHROME_BINARY_PATH = "/usr/bin/chromium"
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 POWERBI_TENANT_ID = "your-tenant-id"
 POWERBI_CLIENT_ID = "your-client-id"
 POWERBI_CLIENT_SECRET = "your-client-secret"
@@ -64,21 +62,21 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 
 ## 4. 자동 캡처 실험
 
-자동 캡처 기능은 `folio_app/services/project_thumbnails.py`에서 Selenium Chrome driver를 사용한다. 실험은 배포 앱에서 실제 프로젝트 등록 또는 수정으로 진행한다.
+자동 캡처 기능은 `folio_app/services/project_thumbnails.py`에서 Playwright를 사용한다. Playwright managed Chromium을 먼저 실행하고, 해당 브라우저 바이너리가 준비되지 않은 환경에서는 `CHROME_BINARY_PATH`의 시스템 Chromium으로 fallback한다. 실험은 배포 앱에서 실제 프로젝트 등록 또는 수정으로 진행한다.
 
 1. Streamlit Cloud 앱을 재부팅한다.
 2. 프로젝트 등록 화면에서 썸네일 모드를 `자동 캡처`로 선택한다.
 3. 캡처 가능한 `power_bi_url` 또는 `report_url`을 입력한다.
 4. 등록 완료 후 메시지가 `썸네일을 자동 캡처했습니다.`를 포함하는지 확인한다.
-5. Supabase Storage의 `project-thumbnails` bucket에 `projects/<project-id>/thumbnail.jpg`가 생성됐는지 확인한다.
+5. Supabase Storage의 `project-thumbnails` bucket에 `projects/<project-id>/thumbnail-<timestamp>.jpg`가 생성됐는지 확인한다.
 6. 홈 카드와 상세 페이지에 썸네일이 표시되는지 확인한다.
-7. 같은 프로젝트를 기본 커버나 직접 URL 썸네일로 바꿨을 때 기존 `projects/<project-id>/thumbnail.jpg`가 삭제되는지 확인한다.
+7. 같은 프로젝트를 기본 커버나 직접 URL 썸네일로 바꿨을 때 기존 `projects/<project-id>/thumbnail*` 파일이 삭제되는지 확인한다.
 8. 다시 자동 캡처로 바꿨을 때 public URL에 cache-busting query가 붙고, 홈 카드에서 새 이미지가 보이는지 확인한다.
 
 실패하면 Streamlit Cloud logs에서 아래 항목을 먼저 본다.
 
-- `chromium` 또는 `chromedriver` 실행 파일 탐색 실패
-- Selenium session 생성 실패
+- Playwright 브라우저 실행 실패
+- 시스템 `chromium` 실행 파일 탐색 실패
 - iframe 대상 사이트의 embed 차단 또는 timeout
 - Supabase Storage bucket 생성/업로드 권한 실패
 - 썸네일 mode 전환 후 기존 Storage 파일 삭제 실패
@@ -90,7 +88,7 @@ Power BI 플랫폼에서 PBIX를 업로드하고 썸네일 모드를 `자동 캡
 1. 100MB 이하 PBIX를 업로드한다.
 2. 등록 완료 메시지와 Power BI 게시 성공 상태를 확인한다.
 3. Supabase `powerbi_reports`에 report/dataset/embed URL 메타데이터가 저장됐는지 확인한다.
-4. Supabase Storage `project-thumbnails/projects/<project-id>/thumbnail.jpg`가 생성됐는지 확인한다.
+4. Supabase Storage `project-thumbnails/projects/<project-id>/thumbnail-<timestamp>.jpg`가 생성됐는지 확인한다.
 5. 홈 카드와 상세 히어로 우측 썸네일에 캡처 이미지가 보이는지 확인한다.
 
 ## 5. 커스텀 도메인 우회

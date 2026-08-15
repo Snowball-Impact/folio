@@ -1,6 +1,6 @@
 import unittest
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 from postgrest.types import CountMethod, ReturnMethod
 
@@ -52,6 +52,48 @@ class ProjectMutationTests(unittest.TestCase):
 
         self.assertTrue(result.ok)
         delete_thumbnail.assert_called_once_with("project-id")
+
+    @patch("folio_app.services.project_mutations.maybe_capture_project_thumbnail")
+    @patch("folio_app.services.project_mutations.try_delete_project_thumbnail_file")
+    @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))
+    @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_update_deletes_existing_capture_before_recapturing_thumbnail(
+        self,
+        get_client,
+        _auth,
+        delete_thumbnail,
+        capture_thumbnail,
+    ) -> None:
+        builder = MagicMock()
+        builder.update.return_value = builder
+        builder.eq.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=None, count=1)
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+        calls = MagicMock()
+        calls.attach_mock(delete_thumbnail, "delete_thumbnail")
+        calls.attach_mock(capture_thumbnail, "capture_thumbnail")
+
+        result = update_project(
+            "project-id",
+            "author-id",
+            {
+                "thumbnail_mode": "capture",
+                "thumbnail_url": "",
+                "power_bi_url": "https://example.com/embed",
+                "delete_thumbnail": True,
+            },
+        )
+
+        self.assertTrue(result.ok)
+        self.assertEqual(
+            calls.mock_calls[:2],
+            [
+                call.delete_thumbnail("project-id"),
+                call.capture_thumbnail("project-id", ANY, progress_callback=None),
+            ],
+        )
 
     @patch("folio_app.services.project_mutations.try_delete_project_thumbnail_file")
     @patch("folio_app.services.auth.ensure_authenticated_session", return_value=AuthResult(True, "ok"))

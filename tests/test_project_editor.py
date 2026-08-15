@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from folio_app.config import Settings
-from folio_app.components.project_editor import _create_and_publish_powerbi_project
+from folio_app.components.project_editor import _create_and_publish_powerbi_project, render_edit_project_form
 from folio_app.services.powerbi import PowerBIImportResult
 from folio_app.services.project_thumbnails import ThumbnailCaptureResult
 from folio_app.services.project_types import ProjectResult
@@ -27,6 +27,54 @@ class _UploadedFile:
 
     def getbuffer(self) -> memoryview:
         return memoryview(b"pbix")
+
+
+def _valid_edit_form_data() -> dict:
+    return {
+        "title": "Edited Project",
+        "one_liner": "",
+        "tags": "",
+        "platform": "other",
+        "project_body": "## 문제 정의\n내용",
+        "power_bi_url": "",
+        "report_url": "",
+        "github_url": "",
+        "thumbnail_url": "",
+        "thumbnail_mode": "auto_cover",
+        "thumbnail_file": None,
+        "delete_thumbnail": False,
+        "pbix_file": None,
+        "delete_pbix": False,
+        "is_public": True,
+    }
+
+
+class ProjectEditorFlowTests(unittest.TestCase):
+    @patch("folio_app.components.project_editor.navigate")
+    @patch("folio_app.components.project_editor.clear_project_draft")
+    @patch("folio_app.components.project_editor.update_project", return_value=ProjectResult(True, "프로젝트가 수정되었습니다.", "project-1"))
+    @patch("folio_app.components.project_editor.save_project_draft")
+    @patch("folio_app.components.project_editor.load_project_draft", return_value=_valid_edit_form_data())
+    @patch("folio_app.components.project_editor.apply_pending_draft_clear")
+    @patch("folio_app.components.project_editor.get_powerbi_report_for_project", return_value=None)
+    @patch("folio_app.components.project_editor.render_project_form", return_value=(_valid_edit_form_data(), True, False))
+    @patch("folio_app.components.project_editor.render_hero")
+    @patch("folio_app.components.project_editor.st.session_state", {})
+    def test_edit_success_navigates_to_home_project_detail(
+        self,
+        _render_hero,
+        _render_form,
+        _powerbi_report,
+        _apply_draft_clear,
+        _load_draft,
+        _save_draft,
+        _update_project,
+        _clear_draft,
+        navigate,
+    ) -> None:
+        render_edit_project_form("author-id", {"id": "project-1", "title": "Project"})
+
+        navigate.assert_called_once_with("Home", project_id="project-1")
 
 
 class ProjectEditorPowerBITests(unittest.TestCase):

@@ -65,7 +65,9 @@ def validate_project_form(form_data: dict[str, Any]) -> tuple[dict[str, str], li
 def build_project_payload(form_data: dict[str, Any], parsed_body: dict[str, str]) -> dict:
     thumbnail_mode = form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER)
     thumbnail_url = form_data["thumbnail_url"]
-    if form_data.get("delete_thumbnail") and form_data.get("thumbnail_file") is None:
+    if form_data.get("delete_thumbnail") and thumbnail_mode == THUMBNAIL_MODE_CAPTURE:
+        thumbnail_url = ""
+    elif form_data.get("delete_thumbnail") and form_data.get("thumbnail_file") is None:
         thumbnail_mode = THUMBNAIL_MODE_AUTO_COVER
         thumbnail_url = ""
     elif form_data.get("delete_thumbnail"):
@@ -86,6 +88,7 @@ def build_project_payload(form_data: dict[str, Any], parsed_body: dict[str, str]
         "embed_status": "supported" if form_data["power_bi_url"] else "external_only",
         "tags": tags_with_platform(form_data["tags"], form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
         "is_public": form_data["is_public"],
+        "delete_thumbnail": bool(form_data.get("delete_thumbnail")),
     }
 
 
@@ -100,7 +103,7 @@ def hero_preview_project(form_data: dict[str, Any], key_prefix: str) -> dict:
     )
     thumbnail_url = ""
     delete_thumbnail = bool(st.session_state.get(f"{key_prefix}_delete_thumbnail", False))
-    if thumbnail_mode in {THUMBNAIL_MODE_MANUAL_URL, THUMBNAIL_MODE_UPLOAD} and not delete_thumbnail:
+    if thumbnail_mode in {THUMBNAIL_MODE_MANUAL_URL, THUMBNAIL_MODE_UPLOAD, THUMBNAIL_MODE_CAPTURE} and not delete_thumbnail:
         thumbnail_url = str(st.session_state.get(f"{key_prefix}_thumbnail_url", form_data.get("thumbnail_url") or "") or "")
     if thumbnail_mode == THUMBNAIL_MODE_UPLOAD:
         thumbnail_url = _uploaded_thumbnail_preview_url(st.session_state.get(f"{key_prefix}_thumbnail_file")) or thumbnail_url
@@ -402,7 +405,13 @@ def _render_thumbnail_panel(
             _render_url_feedback(thumbnail_url_input, "썸네일 URL")
         elif thumbnail_mode_input == THUMBNAIL_MODE_CAPTURE:
             thumbnail_url_input = thumbnail_url
-            st.caption("등록 후 Embed Code 또는 Web App URL 기준으로 대표 이미지를 생성합니다.")
+            st.caption("Embed Code 또는 Web App URL 기준으로 대표 이미지를 생성합니다.")
+            if show_delete:
+                delete_thumbnail_input = _render_delete_checkbox(
+                    f"{key_prefix}_delete_thumbnail",
+                    "기존 캡처본 삭제 후 재캡처",
+                    help="저장하면 기존 썸네일 파일을 삭제하고 화면을 다시 캡처합니다.",
+                )
         elif thumbnail_mode_input == THUMBNAIL_MODE_UPLOAD:
             thumbnail_url_input = thumbnail_url
             if show_delete:

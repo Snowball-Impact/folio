@@ -25,7 +25,7 @@
 | 문서 | 설명 |
 |---|---|
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
-| [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | Streamlit Community Cloud 배포, Chromium/Selenium 캡처 실험, 커스텀 도메인 iframe 우회 기준 |
+| [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | Streamlit Community Cloud 배포, Playwright 캡처 실험, 커스텀 도메인 iframe 우회 기준 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
 

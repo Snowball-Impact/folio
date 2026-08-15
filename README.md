@@ -64,7 +64,6 @@ SMTP_FROM_NAME=FOLIO
 SMTP_USE_TLS=true
 THUMBNAIL_STORAGE_BUCKET=project-thumbnails
 CHROME_BINARY_PATH=
-CHROMEDRIVER_PATH=
 ```
 
 4. 앱을 실행합니다.
@@ -183,7 +182,7 @@ folio_app/app.py
 | `folio_app/services/projects.py` | 프로젝트 public facade. 기존 import 경로를 유지하며 query/mutation/normalizer/type 모듈을 re-export |
 | `folio_app/services/project_queries.py`, `project_mutations.py`, `project_normalizers.py`, `project_types.py` | 공개 목록·검색·정렬·캐시, CRUD·조회수·좋아요, payload/URL 정규화, 결과 타입 |
 | `folio_app/services/project_references.py` | Tableau, Power BI, Data Studio, Streamlit 레퍼런스 분류 기준 |
-| `folio_app/services/project_thumbnails.py` | 직접 URL·기본 커버·Selenium 자동 캡처 썸네일 처리 |
+| `folio_app/services/project_thumbnails.py` | 직접 URL·기본 커버·Playwright 자동 캡처 썸네일 처리 |
 | `folio_app/services/comments.py` | 댓글 public facade. 기존 import 경로를 유지하며 조회/작성/읽음/통계 모듈을 re-export |
 | `folio_app/services/comment_queries.py`, `comment_mutations.py`, `comment_reads.py`, `comment_stats.py`, `comment_utils.py`, `comment_types.py` | 댓글 조회·작성·삭제, 댓글 읽음 상태, 댓글 수·최신 댓글 캐시, 트리 구성, 결과 타입 |
 | `folio_app/services/notifications.py` | 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 읽음 처리 |
@@ -226,13 +225,12 @@ SMTP_FROM_NAME = "FOLIO"
 SMTP_USE_TLS = "true"
 THUMBNAIL_STORAGE_BUCKET = "project-thumbnails"
 CHROME_BINARY_PATH = "/usr/bin/chromium"
-CHROMEDRIVER_PATH = "/usr/bin/chromedriver"
 ```
 
 `GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목입니다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않습니다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 합니다.
 `THUMBNAIL_STORAGE_BUCKET`은 자동 캡처 썸네일을 저장하는 Supabase Storage public bucket 이름이며, 비워두면 `project-thumbnails`를 사용한다.
-Streamlit Community Cloud에서는 루트의 `packages.txt`가 `chromium`, `chromium-driver`를 설치합니다.
-Selenium이 Chrome 또는 Chrome driver를 자동으로 찾지 못하는 환경에서는 `CHROME_BINARY_PATH`, `CHROMEDRIVER_PATH`에 실행 파일 경로를 지정한다.
+자동 캡처는 Playwright managed Chromium을 먼저 사용하고, 브라우저 바이너리가 준비되지 않은 환경에서는 `CHROME_BINARY_PATH`의 시스템 Chromium으로 fallback합니다.
+Streamlit Community Cloud에서는 루트의 `packages.txt`가 fallback용 `chromium`을 설치합니다.
 
 4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
 

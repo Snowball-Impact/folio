@@ -198,8 +198,8 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
             _apply_uploaded_thumbnail_if_requested(project["id"], form_data)
         clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
         st.session_state.pop("editing_project_id", None)
-        st.session_state["portfolio_notice"] = result.message
-        navigate("My Page")
+        st.session_state["project_notice"] = result.message
+        navigate("Home", project_id=project["id"])
     else:
         _show_operation_error(result.message)
 

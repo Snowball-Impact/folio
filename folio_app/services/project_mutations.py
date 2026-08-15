@@ -67,6 +67,7 @@ def update_project(
     if client is None:
         return ProjectResult(False, "Supabase 환경 변수가 설정되지 않았습니다.")
 
+    delete_thumbnail_file = bool(payload.get("delete_thumbnail"))
     data = clean_project_payload(payload)
 
     try:
@@ -79,8 +80,10 @@ def update_project(
         )
         if response.count == 0:
             return ProjectResult(False, "수정할 프로젝트를 찾을 수 없습니다.")
+        if delete_thumbnail_file:
+            try_delete_project_thumbnail_file(project_id)
         capture_result = maybe_capture_project_thumbnail(project_id, data, progress_callback=progress_callback)
-        if "thumbnail_mode" in data and data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
+        if not delete_thumbnail_file and "thumbnail_mode" in data and data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
             try_delete_project_thumbnail_file(project_id)
         clear_project_caches()
         return ProjectResult(True, _message_with_thumbnail_result("프로젝트가 수정되었습니다.", capture_result), project_id)

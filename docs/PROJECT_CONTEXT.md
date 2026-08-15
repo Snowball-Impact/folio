@@ -16,7 +16,7 @@
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
-- **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 `packages.txt` 기반 Chromium/Selenium 썸네일 자동 캡처를 실험하는 것이다.
+- **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 Playwright 기반 썸네일 자동 캡처를 실험하는 것이다.
 
 ### PRD v1.5 전환 기준
 
@@ -410,8 +410,8 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 
 - 현재 기본 배포 문서는 `docs/STREAMLIT_CLOUD_DEPLOYMENT.md`다.
 - 배포 Main file path는 루트 `app.py`다.
-- Linux 패키지는 `packages.txt`로 설치한다. 현재 자동 캡처 실험을 위해 `chromium`, `chromium-driver`가 들어 있다.
-- Streamlit Cloud Secrets에는 `CHROME_BINARY_PATH=/usr/bin/chromium`, `CHROMEDRIVER_PATH=/usr/bin/chromedriver`를 둔다.
+- Linux 패키지는 `packages.txt`로 설치한다. 현재 자동 캡처 fallback을 위해 `chromium`이 들어 있다.
+- Streamlit Cloud Secrets에는 시스템 Chromium fallback을 위해 `CHROME_BINARY_PATH=/usr/bin/chromium`을 둘 수 있다.
 - `APP_URL`은 최종 `https://*.streamlit.app` 주소와 반드시 맞춰야 하며, Supabase Auth Site URL/Redirect URLs도 같은 값으로 갱신한다.
 - 완전한 커스텀 도메인은 직접 연결 대신 별도 정적 호스팅의 전체 iframe shell로 우회할 수 있다. 이 경우 인증 redirect, 쿠키, iframe 정책을 실제 배포에서 확인한다.
 - Community Cloud의 무료 런타임에서는 cold start, resource limit, hibernation 영향이 있을 수 있다. Chromium 자동 캡처가 불안정하면 관리자 배치 캡처 또는 별도 캡처 worker로 분리한다.

@@ -20,6 +20,8 @@ ROUTABLE_PAGES = {
     "Profile",
 }
 
+EDIT_PROJECT_QUERY_PARAM = "edit_project_id"
+
 
 def navigate(page: str, **params: Any) -> None:
     """Navigate without a browser-level reload, preserving Streamlit session state."""

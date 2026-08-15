@@ -120,20 +120,16 @@ class SettingsLoadingTests(unittest.TestCase):
                 self.assertEqual(_read_int_setting("SMTP_PORT", 587), 2525)
                 self.assertFalse(_read_bool_setting("SMTP_USE_TLS", True))
 
-    def test_thumbnail_capture_paths_are_loaded_from_environment(self) -> None:
+    def test_thumbnail_capture_browser_path_is_loaded_from_environment(self) -> None:
         with patch.dict(
             os.environ,
-            {
-                "CHROME_BINARY_PATH": "/usr/bin/chromium",
-                "CHROMEDRIVER_PATH": "/usr/bin/chromedriver",
-            },
+            {"CHROME_BINARY_PATH": "/usr/bin/chromium"},
             clear=True,
         ):
             with patch("folio_app.config.st.secrets", {}):
                 settings = get_settings()
 
         self.assertEqual(settings.chrome_binary_path, "/usr/bin/chromium")
-        self.assertEqual(settings.chromedriver_path, "/usr/bin/chromedriver")
 
     def test_powerbi_settings_are_loaded_from_environment(self) -> None:
         with patch.dict(

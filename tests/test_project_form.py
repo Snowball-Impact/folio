@@ -168,6 +168,20 @@ class ProjectFormTests(unittest.TestCase):
 
         self.assertEqual(preview["thumbnail_url"], "data:image/png;base64,aW1hZ2U=")
 
+    def test_hero_preview_project_uses_existing_capture_thumbnail(self) -> None:
+        form_data = {
+            "title": "초기 제목",
+            "one_liner": "초기 소개",
+            "tags": "",
+            "platform": "other",
+            "thumbnail_mode": "capture",
+            "thumbnail_url": "https://cdn.example.com/capture.jpg",
+        }
+        with patch("folio_app.components.project_form.st.session_state", {"edit_project_thumbnail_mode": "capture"}):
+            preview = hero_preview_project(form_data, "edit_project")
+
+        self.assertEqual(preview["thumbnail_url"], "https://cdn.example.com/capture.jpg")
+
     def test_manual_thumbnail_requires_valid_url(self) -> None:
         form_data = {
             "title": "프로젝트",
@@ -269,6 +283,32 @@ class ProjectFormTests(unittest.TestCase):
 
         self.assertEqual(payload["thumbnail_mode"], "upload")
         self.assertEqual(payload["thumbnail_url"], "")
+
+    def test_delete_capture_thumbnail_keeps_capture_mode_for_recapture(self) -> None:
+        payload = build_project_payload(
+            {
+                "title": "프로젝트",
+                "one_liner": "",
+                "power_bi_url": "https://example.com/embed",
+                "report_url": "",
+                "github_url": "",
+                "thumbnail_url": "https://cdn.example.com/old-capture.jpg",
+                "thumbnail_mode": "capture",
+                "delete_thumbnail": True,
+                "tags": "",
+                "is_public": True,
+            },
+            {
+                "problem": "문제",
+                "dataset": "",
+                "process": "",
+                "insights": "",
+            },
+        )
+
+        self.assertEqual(payload["thumbnail_mode"], "capture")
+        self.assertEqual(payload["thumbnail_url"], "")
+        self.assertTrue(payload["delete_thumbnail"])
 
     def test_capture_thumbnail_requires_capture_source(self) -> None:
         form_data = {

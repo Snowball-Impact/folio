@@ -8,7 +8,12 @@ from folio_app.components.project_detail_content import (
     project_visual_context,
 )
 from folio_app.components.share import project_action_group_html, project_share_button_html
-from folio_app.pages.project_detail import _detail_hero_card_html, _is_project_owner, _render_detail_project_deletion_dialog
+from folio_app.pages.project_detail import (
+    _detail_hero_card_html,
+    _is_project_owner,
+    _render_detail_edit_button,
+    _render_detail_project_deletion_dialog,
+)
 from folio_app.services.project_types import ProjectResult
 
 
@@ -76,6 +81,17 @@ class DetailHelperTests(unittest.TestCase):
         self.assertIn("홈 갤러리와 같은 카드", rendered)
         self.assertIn("#PowerBI", rendered)
         self.assertNotIn("folio-home-card-preview", rendered)
+
+    @patch("folio_app.pages.project_detail.navigate")
+    @patch("folio_app.pages.project_detail.st.button", return_value=True)
+    def test_detail_edit_button_opens_my_page_edit_form(self, _button, navigate) -> None:
+        _render_detail_edit_button(
+            {"author_id": "user-1"},
+            "project-1",
+            {"id": "user-1"},
+        )
+
+        navigate.assert_called_once_with("My Page", edit_project_id="project-1")
 
     @patch("folio_app.pages.project_detail.navigate")
     @patch("folio_app.pages.project_detail.delete_project")

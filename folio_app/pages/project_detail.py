@@ -15,7 +15,7 @@ from folio_app.components.project_detail_content import (
 )
 from folio_app.components.share import project_action_group_html, render_project_share_handler
 from folio_app.components.ui import clean_html, render_project_card_html
-from folio_app.navigation import navigate
+from folio_app.navigation import EDIT_PROJECT_QUERY_PARAM, navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.projects import (
     ProjectServiceError,
@@ -226,8 +226,7 @@ def _render_detail_edit_button(project: dict, project_id: str, user: dict | None
         icon=":material/edit:",
         use_container_width=False,
     ):
-        st.session_state["editing_project_id"] = project_id
-        navigate("My Page")
+        navigate("My Page", **{EDIT_PROJECT_QUERY_PARAM: project_id})
 
 
 def _render_detail_delete_button(project: dict, project_id: str, user: dict | None) -> None:

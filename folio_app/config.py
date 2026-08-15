@@ -65,7 +65,6 @@ class Settings:
     smtp_use_tls: bool = True
     thumbnail_storage_bucket: str = "project-thumbnails"
     chrome_binary_path: str = ""
-    chromedriver_path: str = ""
     powerbi_tenant_id: str = ""
     powerbi_client_id: str = ""
     powerbi_client_secret: str = ""
@@ -161,7 +160,6 @@ def get_settings() -> Settings:
         thumbnail_storage_bucket=_read_setting("THUMBNAIL_STORAGE_BUCKET", "project-thumbnails")
         or _read_secret_section("supabase", "thumbnail_storage_bucket"),
         chrome_binary_path=_read_setting("CHROME_BINARY_PATH"),
-        chromedriver_path=_read_setting("CHROMEDRIVER_PATH"),
         powerbi_tenant_id=_read_setting("POWERBI_TENANT_ID")
         or _read_secret_section("powerbi", "POWERBI_TENANT_ID", "tenant_id"),
         powerbi_client_id=_read_setting("POWERBI_CLIENT_ID")

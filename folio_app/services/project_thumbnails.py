@@ -7,7 +7,7 @@ from pathlib import Path
 import shutil
 import time
 from typing import Any, Callable
-from urllib.parse import quote, urlparse
+from urllib.parse import parse_qsl, quote, urlencode, urlparse, urlsplit, urlunsplit
 
 from folio_app.config import get_settings
 from folio_app.services.project_normalizers import (
@@ -24,7 +24,7 @@ ThumbnailProgressCallback = Callable[[int, str], None]
 THUMBNAIL_WIDTH = 960
 THUMBNAIL_HEIGHT = 540
 THUMBNAIL_CAPTURE_TIMEOUT_SECONDS = 18
-THUMBNAIL_CAPTURE_WAIT_SECONDS = 10
+THUMBNAIL_CAPTURE_SETTLE_SECONDS = 10
 THUMBNAIL_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
 THUMBNAIL_UPLOAD_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 CHROME_BINARY_COMMANDS = ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable")
@@ -34,11 +34,6 @@ CHROME_BINARY_PATHS = (
     "/usr/bin/chromium-browser",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable",
-)
-CHROMEDRIVER_PATHS = (
-    "/usr/bin/chromedriver",
-    "/usr/lib/chromium/chromedriver",
-    "/usr/lib/chromium-browser/chromedriver",
 )
 
 
@@ -160,41 +155,41 @@ def capture_thumbnail_document_bytes(
 def _capture_thumbnail_target(target_url: str, progress_callback: ThumbnailProgressCallback | None = None) -> bytes:
     try:
         from PIL import Image
-        from selenium import webdriver
-        from selenium.webdriver.chrome.options import Options
-        from selenium.webdriver.chrome.service import Service
+        from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+        from playwright.sync_api import sync_playwright
     except ImportError as exc:
         raise RuntimeError("Thumbnail capture dependencies are not installed.") from exc
 
-    options = Options()
     settings = get_settings()
-    chrome_binary = _resolve_chrome_binary(settings.chrome_binary_path)
-    if chrome_binary:
-        options.binary_location = chrome_binary
-    options.add_argument("--headless=new")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--no-sandbox")
-    options.add_argument(f"--window-size={THUMBNAIL_WIDTH},{THUMBNAIL_HEIGHT}")
-    options.page_load_strategy = "eager"
-
-    chromedriver_path = _resolve_chromedriver_path(settings.chromedriver_path)
-    service = Service(executable_path=chromedriver_path) if chromedriver_path else Service()
-    driver = webdriver.Chrome(service=service, options=options)
-    try:
-        driver.set_page_load_timeout(THUMBNAIL_CAPTURE_TIMEOUT_SECONDS)
-        driver.get(target_url)
-        for second in range(THUMBNAIL_CAPTURE_WAIT_SECONDS):
-            progress = 48 + int(((second + 1) / THUMBNAIL_CAPTURE_WAIT_SECONDS) * 28)
-            _notify(
-                progress_callback,
-                progress,
-                f"화면을 불러오는 중입니다. {second + 1}/{THUMBNAIL_CAPTURE_WAIT_SECONDS}초",
+    with sync_playwright() as playwright:
+        browser = _launch_playwright_browser(playwright, settings.chrome_binary_path)
+        try:
+            page = browser.new_page(
+                viewport={"width": THUMBNAIL_WIDTH, "height": THUMBNAIL_HEIGHT},
+                device_scale_factor=1,
             )
-            time.sleep(1)
-        _notify(progress_callback, 78, "화면 이미지를 캡처하는 중입니다.")
-        png_bytes = driver.get_screenshot_as_png()
-    finally:
-        driver.quit()
+            page.set_default_timeout(THUMBNAIL_CAPTURE_TIMEOUT_SECONDS * 1000)
+            page.goto(
+                target_url,
+                wait_until="domcontentloaded",
+                timeout=THUMBNAIL_CAPTURE_TIMEOUT_SECONDS * 1000,
+            )
+            try:
+                page.wait_for_load_state("networkidle", timeout=7000)
+            except PlaywrightTimeoutError:
+                logger.info("Thumbnail capture continued before networkidle.")
+            for second in range(THUMBNAIL_CAPTURE_SETTLE_SECONDS):
+                progress = 50 + int(((second + 1) / THUMBNAIL_CAPTURE_SETTLE_SECONDS) * 24)
+                _notify(
+                    progress_callback,
+                    progress,
+                    f"화면을 불러오는 중입니다. {second + 1}/{THUMBNAIL_CAPTURE_SETTLE_SECONDS}초",
+                )
+                page.wait_for_timeout(1000)
+            _notify(progress_callback, 78, "화면 이미지를 캡처하는 중입니다.")
+            png_bytes = page.screenshot(type="png", full_page=False)
+        finally:
+            browser.close()
 
     image = Image.open(BytesIO(png_bytes)).convert("RGB")
     image.thumbnail((THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT))
@@ -218,7 +213,7 @@ def upload_project_thumbnail(project_id: str, image_bytes: bytes, client: Any | 
     storage = client.storage
     _ensure_public_bucket(storage, bucket_name)
 
-    path = _project_thumbnail_storage_path(project_id)
+    path = _project_thumbnail_storage_path(project_id, int(time.time() * 1000))
     storage.from_(bucket_name).upload(
         path,
         image_bytes,
@@ -238,8 +233,10 @@ def delete_project_thumbnail_file(project_id: str, client: Any | None = None) ->
 
     settings = get_settings()
     bucket_name = settings.thumbnail_storage_bucket or "project-thumbnails"
-    path = _project_thumbnail_storage_path(project_id)
-    client.storage.from_(bucket_name).remove([path])
+    bucket = client.storage.from_(bucket_name)
+    storage_dir = _project_thumbnail_storage_directory(project_id)
+    paths = _list_project_thumbnail_paths(bucket, storage_dir) or [_project_thumbnail_storage_path(project_id)]
+    bucket.remove(paths)
     return True
 
 
@@ -273,18 +270,35 @@ def _resolve_chrome_binary(explicit_path: str = "") -> str | None:
     return None
 
 
-def _resolve_chromedriver_path(explicit_path: str = "") -> str | None:
-    if explicit_path.strip():
-        return explicit_path.strip()
+def _launch_playwright_browser(playwright: Any, explicit_chrome_path: str = "") -> Any:
+    launch_args = ["--disable-dev-shm-usage", "--no-sandbox"]
+    managed_path = getattr(playwright.chromium, "executable_path", "")
+    if managed_path and not Path(str(managed_path)).exists():
+        return _launch_system_chromium(playwright, explicit_chrome_path, launch_args)
+    try:
+        return playwright.chromium.launch(headless=True, args=launch_args)
+    except Exception as managed_exc:
+        return _launch_system_chromium(playwright, explicit_chrome_path, launch_args, managed_exc=managed_exc)
 
-    resolved = shutil.which("chromedriver")
-    if resolved:
-        return resolved
 
-    for path in CHROMEDRIVER_PATHS:
-        if Path(path).exists():
-            return path
-    return None
+def _launch_system_chromium(
+    playwright: Any,
+    explicit_chrome_path: str,
+    launch_args: list[str],
+    *,
+    managed_exc: Exception | None = None,
+) -> Any:
+    chrome_binary = _resolve_chrome_binary(explicit_chrome_path)
+    if not chrome_binary:
+        if managed_exc is not None:
+            raise managed_exc
+        raise RuntimeError("Playwright Chromium is not installed and no system Chromium binary was found.")
+    logger.info("Using system Chromium for Playwright thumbnail capture: %s.", chrome_binary)
+    return playwright.chromium.launch(
+        headless=True,
+        executable_path=chrome_binary,
+        args=launch_args,
+    )
 
 
 def _ensure_public_bucket(storage: object, bucket_name: str) -> None:
@@ -301,13 +315,39 @@ def _ensure_public_bucket(storage: object, bucket_name: str) -> None:
         )
 
 
-def _project_thumbnail_storage_path(project_id: str) -> str:
-    return f"projects/{_safe_storage_name(project_id)}/thumbnail.jpg"
+def _project_thumbnail_storage_directory(project_id: str) -> str:
+    return f"projects/{_safe_storage_name(project_id)}"
+
+
+def _project_thumbnail_storage_path(project_id: str, version: int | None = None) -> str:
+    filename = "thumbnail.jpg" if version is None else f"thumbnail-{version}.jpg"
+    return f"{_project_thumbnail_storage_directory(project_id)}/{filename}"
+
+
+def _list_project_thumbnail_paths(bucket: Any, storage_dir: str) -> list[str]:
+    try:
+        entries = bucket.list(storage_dir)
+    except Exception:
+        logger.exception("Failed to list project thumbnail files")
+        return []
+    paths = []
+    for entry in entries or []:
+        name = entry.get("name") if isinstance(entry, dict) else getattr(entry, "name", "")
+        if str(name).startswith("thumbnail"):
+            paths.append(f"{storage_dir}/{name}")
+    return paths
 
 
 def _cache_busted_url(url: str) -> str:
     separator = "&" if "?" in url else "?"
     return f"{url}{separator}v={int(time.time())}"
+
+
+def _cache_busted_capture_source_url(url: str) -> str:
+    parsed = urlsplit(url)
+    query = parse_qsl(parsed.query, keep_blank_values=True)
+    query.append(("folio_capture_v", str(int(time.time() * 1000))))
+    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
 
 
 def _safe_storage_name(value: str) -> str:
@@ -316,7 +356,7 @@ def _safe_storage_name(value: str) -> str:
 
 
 def _fullscreen_iframe_capture_url(url: str) -> str:
-    escaped_url = url.replace('"', "%22")
+    escaped_url = _cache_busted_capture_source_url(url).replace('"', "%22")
     html = f"""<!doctype html>
 <html>
 <head>
