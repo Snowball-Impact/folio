@@ -6,7 +6,13 @@ from postgrest.types import CountMethod, ReturnMethod
 
 from folio_app.services.auth import AuthResult
 from folio_app.services.project_mutations import delete_project, update_project
-from folio_app.services.project_queries import _filter_public_projects, list_public_projects
+from folio_app.services.project_queries import (
+    PUBLIC_PROJECT_LIST_COLUMNS,
+    _fetch_public_projects,
+    _filter_public_projects,
+    list_home_project_snapshot,
+    list_public_projects,
+)
 from folio_app.services.project_types import ProjectServiceError
 
 
@@ -210,6 +216,59 @@ class FilterPublicProjectsTests(unittest.TestCase):
 
 
 class ProjectReadFailureTests(unittest.TestCase):
+    @patch("folio_app.services.project_queries._fetch_public_projects")
+    @patch("folio_app.services.project_queries.list_home_popular_tags", return_value=["Power BI", "분석"])
+    @patch("folio_app.services.project_queries._fetch_public_project_count", return_value=42)
+    @patch("folio_app.services.project_queries._attach_related_data")
+    @patch("folio_app.services.project_queries._fetch_public_projects_by_ids")
+    @patch("folio_app.services.project_queries._fetch_home_liked_project_ids", return_value=["liked-1"])
+    @patch("folio_app.services.project_queries._fetch_home_project_rows")
+    def test_home_snapshot_uses_limited_rail_queries(
+        self,
+        fetch_rows,
+        _liked_ids,
+        fetch_by_ids,
+        attach_related,
+        _count,
+        _tags,
+        fetch_all,
+    ) -> None:
+        recent = [{"id": "recent-1", "author_id": "author-1"}]
+        viewed = [{"id": "viewed-1", "author_id": "author-1"}]
+        liked = [{"id": "liked-1", "author_id": "author-1"}]
+        fetch_rows.side_effect = [recent, viewed]
+        fetch_by_ids.return_value = liked
+        attach_related.side_effect = lambda projects: projects
+
+        snapshot = list_home_project_snapshot(limit=6)
+
+        self.assertEqual(snapshot.total_project_count, 42)
+        self.assertEqual([project["id"] for project in snapshot.recent_projects], ["recent-1"])
+        self.assertEqual([project["id"] for project in snapshot.viewed_projects], ["viewed-1"])
+        self.assertEqual([project["id"] for project in snapshot.liked_projects], ["liked-1"])
+        fetch_rows.assert_has_calls([call("created_at", 6), call("view_count", 6)])
+        fetch_all.assert_not_called()
+
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_public_project_list_fetches_only_summary_columns(self, get_client) -> None:
+        _fetch_public_projects.clear()
+        builder = MagicMock()
+        builder.select.return_value = builder
+        builder.eq.return_value = builder
+        builder.order.return_value = builder
+        builder.range.return_value = builder
+        builder.execute.return_value = SimpleNamespace(data=[{"id": "project-1"}])
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = _fetch_public_projects()
+
+        self.assertEqual(result, [{"id": "project-1"}])
+        builder.select.assert_called_once_with(PUBLIC_PROJECT_LIST_COLUMNS)
+        self.assertNotIn("*", PUBLIC_PROJECT_LIST_COLUMNS)
+        self.assertNotIn("project_body", PUBLIC_PROJECT_LIST_COLUMNS)
+
     @patch("folio_app.services.project_queries._fetch_public_projects")
     def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:
         fetch_projects.side_effect = ProjectServiceError("Supabase 연결 설정을 확인하세요.")

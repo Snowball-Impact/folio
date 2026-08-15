@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from folio_app.components.home_gallery import _rail_title_html
 from folio_app.components.portfolio_items import portfolio_item_html
 from folio_app.components.ui import _cover_variant, render_project_card_html
+from folio_app.pages.home import _project_rail_specs
 
 
 class HomeGalleryRailTests(unittest.TestCase):
@@ -25,6 +26,13 @@ class HomeGalleryRailTests(unittest.TestCase):
         rendered = _rail_title_html("custom", "위험 <script>")
 
         self.assertEqual(rendered, "위험 &lt;script&gt;")
+
+    def test_home_rail_specs_limit_initial_card_rendering(self) -> None:
+        projects = [{"id": str(index)} for index in range(40)]
+
+        rails = _project_rail_specs(projects, projects, projects)
+
+        self.assertEqual([len(projects) for _, _, projects in rails], [6, 6, 6])
 
 
 class AutomaticProjectCoverTests(unittest.TestCase):

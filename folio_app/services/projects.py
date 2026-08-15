@@ -14,6 +14,7 @@ from folio_app.services.project_normalizers import (
     normalize_thumbnail_mode,
 )
 from folio_app.services.project_queries import (
+    HomeProjectSnapshot,
     _attach_related_data,
     _count_likes_by_project,
     _execute_public_read,
@@ -27,6 +28,7 @@ from folio_app.services.project_queries import (
     count_author_stats,
     get_project,
     is_project_liked,
+    list_home_project_snapshot,
     list_popular_tags,
     list_projects_by_author,
     list_public_projects,
@@ -37,6 +39,7 @@ from folio_app.services.project_types import ProjectResult, ProjectServiceError,
 __all__ = [
     "ProjectResult",
     "ProjectServiceError",
+    "HomeProjectSnapshot",
     "ViewCountResult",
     "_IframeSrcParser",
     "_attach_related_data",
@@ -57,6 +60,7 @@ __all__ = [
     "get_project",
     "increment_view_count",
     "is_project_liked",
+    "list_home_project_snapshot",
     "list_popular_tags",
     "list_projects_by_author",
     "list_public_projects",

@@ -17,6 +17,7 @@ from folio_app.services.comment_stats import (
     _fetch_comment_counts,
     _fetch_latest_comment_times,
     clear_comment_caches,
+    comment_stats_by_project,
     count_comments_by_project,
     latest_comment_at_by_project,
 )
@@ -35,6 +36,7 @@ __all__ = [
     "annotate_unread_comment_status",
     "build_comment_tree",
     "clear_comment_caches",
+    "comment_stats_by_project",
     "count_comments_by_project",
     "create_comment",
     "delete_comment",

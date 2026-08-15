@@ -12,6 +12,7 @@ from folio_app.pages import project_detail
 from folio_app.services.projects import (
     ProjectServiceError,
     clear_project_caches,
+    list_home_project_snapshot,
     list_public_projects,
 )
 from folio_app.services.project_references import (
@@ -22,6 +23,7 @@ from folio_app.services.project_references import (
 _HOME_PAGE = "Home"
 _ALL_PLATFORM_FILTER = "all"
 _OTHER_PLATFORM_FILTER = "other"
+_HOME_RAIL_PROJECT_LIMIT = 6
 _HOME_HERO_SLIDES = (
     {
         "eyebrow": "Project Portfolio Platform",
@@ -58,21 +60,29 @@ def render() -> None:
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
     try:
-        all_projects = list_public_projects(sort="최신순", limit=None)
-        platform_projects = _filter_projects_by_platforms(all_projects, selected_platforms)
-        recent_projects = _filter_projects_by_query(platform_projects, search=search, tag=selected_tag)
-        viewed_projects = sorted(
-            recent_projects,
-            key=lambda project: project.get("view_count", 0) or 0,
-            reverse=True,
-        )
-        liked_projects = sorted(
-            recent_projects,
-            key=lambda project: project.get("like_count", 0) or 0,
-            reverse=True,
-        )
-        total_project_count = len(platform_projects)
-        popular_tags = _popular_tags_from_projects(platform_projects)
+        if _uses_default_home_scope(search, selected_tag, selected_platforms):
+            snapshot = list_home_project_snapshot(limit=_HOME_RAIL_PROJECT_LIMIT, tag_limit=40)
+            recent_projects = snapshot.recent_projects
+            viewed_projects = snapshot.viewed_projects
+            liked_projects = snapshot.liked_projects
+            total_project_count = snapshot.total_project_count
+            popular_tags = _filter_platform_tags(snapshot.popular_tags)
+        else:
+            all_projects = list_public_projects(sort="최신순", limit=None)
+            platform_projects = _filter_projects_by_platforms(all_projects, selected_platforms)
+            recent_projects = _filter_projects_by_query(platform_projects, search=search, tag=selected_tag)
+            viewed_projects = sorted(
+                recent_projects,
+                key=lambda project: project.get("view_count", 0) or 0,
+                reverse=True,
+            )
+            liked_projects = sorted(
+                recent_projects,
+                key=lambda project: project.get("like_count", 0) or 0,
+                reverse=True,
+            )
+            total_project_count = len(platform_projects)
+            popular_tags = _popular_tags_from_projects(platform_projects)
     except ProjectServiceError as exc:
         st.error(str(exc))
         if st.button("다시 시도", key="retry_public_projects"):
@@ -87,15 +97,23 @@ def render() -> None:
     )
 
 
+def _uses_default_home_scope(search: str, selected_tag: str, selected_platforms: set[str]) -> bool:
+    return (
+        not search.strip()
+        and (not selected_tag or selected_tag == "전체")
+        and (not selected_platforms or _ALL_PLATFORM_FILTER in selected_platforms)
+    )
+
+
 def _project_rail_specs(
     recent_projects: list[dict],
     viewed_projects: list[dict],
     liked_projects: list[dict],
 ) -> list[tuple[str, str, list[dict]]]:
     return [
-        ("recent", "새로 공개된 프로젝트를 먼저 살펴보세요.", recent_projects),
-        ("views", "조회수가 높은 프로젝트를 빠르게 훑어보세요.", viewed_projects),
-        ("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects),
+        ("recent", "새로 공개된 프로젝트를 먼저 살펴보세요.", recent_projects[:_HOME_RAIL_PROJECT_LIMIT]),
+        ("views", "조회수가 높은 프로젝트를 빠르게 훑어보세요.", viewed_projects[:_HOME_RAIL_PROJECT_LIMIT]),
+        ("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects[:_HOME_RAIL_PROJECT_LIMIT]),
     ]
 
 
@@ -109,6 +127,11 @@ def _popular_tags_from_projects(projects: list[dict], limit: int = 10) -> list[s
             if _normalized_tag(tag) not in excluded_tags
         )
     return [tag for tag, _ in counter.most_common(limit)]
+
+
+def _filter_platform_tags(tags: list[str], limit: int = 10) -> list[str]:
+    excluded_tags = _platform_tag_exclusions()
+    return [tag for tag in tags if _normalized_tag(tag) not in excluded_tags][:limit]
 
 
 def _platform_tag_exclusions() -> set[str]:
