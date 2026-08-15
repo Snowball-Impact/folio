@@ -15,10 +15,55 @@ _RAIL_SCROLL_SCRIPT = """
 <script>
 (function() {
     var parentDocument = window.parent.document;
+    function updateRailScrollbar(rail) {
+        if (!rail) {
+            return;
+        }
+        var key = rail.getAttribute("data-folio-rail");
+        var track = parentDocument.querySelector('[data-folio-rail-scrollbar="' + key + '"]');
+        if (!track) {
+            return;
+        }
+        var thumb = track.querySelector("[data-folio-rail-thumb]");
+        if (!thumb) {
+            return;
+        }
+        var maxScroll = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+        if (!maxScroll) {
+            track.hidden = true;
+            return;
+        }
+        track.hidden = false;
+        var trackWidth = track.clientWidth || 1;
+        var thumbWidth = Math.max((rail.clientWidth / rail.scrollWidth) * trackWidth, 44);
+        var maxThumbLeft = Math.max(trackWidth - thumbWidth, 0);
+        var thumbLeft = maxScroll ? (rail.scrollLeft / maxScroll) * maxThumbLeft : 0;
+        thumb.style.width = thumbWidth + "px";
+        thumb.style.transform = "translateX(" + thumbLeft + "px)";
+    }
+
+    function bindRailScrollbar(rail) {
+        if (!rail || rail.__folioRailScrollbarBound) {
+            return;
+        }
+        rail.__folioRailScrollbarBound = true;
+        rail.addEventListener("scroll", function() {
+            updateRailScrollbar(rail);
+        }, { passive: true });
+        updateRailScrollbar(rail);
+    }
+
+    function bindAllRailScrollbars() {
+        parentDocument.querySelectorAll("[data-folio-rail]").forEach(bindRailScrollbar);
+    }
+
     if (parentDocument.__folioRailScrollBound) {
+        bindAllRailScrollbars();
         return;
     }
     parentDocument.__folioRailScrollBound = true;
+    bindAllRailScrollbars();
+    parentDocument.defaultView.addEventListener("resize", bindAllRailScrollbars);
     parentDocument.addEventListener("click", function(event) {
         var button = event.target.closest("[data-folio-rail-button]");
         if (!button) {
@@ -36,6 +81,50 @@ _RAIL_SCROLL_SCRIPT = """
         var gap = parseFloat(railStyle.columnGap || railStyle.gap || "0") || 0;
         var distance = firstCard ? firstCard.getBoundingClientRect().width + gap : Math.max(rail.clientWidth * 0.72, 320);
         rail.scrollBy({ left: direction * distance, behavior: "smooth" });
+    });
+    parentDocument.addEventListener("pointerdown", function(event) {
+        var thumb = event.target.closest("[data-folio-rail-thumb]");
+        if (!thumb) {
+            return;
+        }
+        var track = thumb.closest("[data-folio-rail-scrollbar]");
+        var key = track && track.getAttribute("data-folio-rail-scrollbar");
+        var rail = key && parentDocument.querySelector('[data-folio-rail="' + key + '"]');
+        if (!track || !rail) {
+            return;
+        }
+        event.preventDefault();
+        var startX = event.clientX;
+        var startLeft = rail.scrollLeft;
+        var maxScroll = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+        var maxThumbLeft = Math.max(track.clientWidth - thumb.getBoundingClientRect().width, 1);
+
+        function onMove(moveEvent) {
+            var delta = moveEvent.clientX - startX;
+            rail.scrollLeft = startLeft + (delta / maxThumbLeft) * maxScroll;
+        }
+
+        function onUp() {
+            parentDocument.removeEventListener("pointermove", onMove);
+            parentDocument.removeEventListener("pointerup", onUp);
+        }
+
+        parentDocument.addEventListener("pointermove", onMove);
+        parentDocument.addEventListener("pointerup", onUp, { once: true });
+    });
+    parentDocument.addEventListener("pointerdown", function(event) {
+        var track = event.target.closest("[data-folio-rail-scrollbar]");
+        if (!track || event.target.closest("[data-folio-rail-thumb]")) {
+            return;
+        }
+        var key = track.getAttribute("data-folio-rail-scrollbar");
+        var rail = parentDocument.querySelector('[data-folio-rail="' + key + '"]');
+        if (!rail) {
+            return;
+        }
+        var rect = track.getBoundingClientRect();
+        var ratio = (event.clientX - rect.left) / Math.max(rect.width, 1);
+        rail.scrollTo({ left: ratio * (rail.scrollWidth - rail.clientWidth), behavior: "smooth" });
     });
 })();
 </script>
@@ -148,8 +237,14 @@ def render_project_rail(
                 >›</button>
             </div>
         </section>
-        <div class="folio-gallery-rail" data-folio-rail="{safe_rail_key}">
-            {cards_html}
+        <div class="folio-gallery-rail-wrap">
+            <div class="folio-gallery-rail-scrollbar" data-folio-rail-scrollbar="{safe_rail_key}" aria-hidden="true">
+                <span data-folio-rail-thumb></span>
+            </div>
+            <div class="folio-gallery-rail-spacer" aria-hidden="true"></div>
+            <div class="folio-gallery-rail" data-folio-rail="{safe_rail_key}">
+                {cards_html}
+            </div>
         </div>
         """,
         unsafe_allow_html=True,

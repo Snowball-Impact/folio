@@ -10,6 +10,7 @@ ROUTABLE_PAGES = {
     "About",
     "Gallery",
     "Reference",
+    "Power BI",
     "Login",
     "Sign Up",
     "Submit",

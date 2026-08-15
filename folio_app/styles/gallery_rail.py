@@ -41,18 +41,65 @@ CSS = """
     color: var(--folio-blue);
 }
 
+.folio-gallery-rail-wrap {
+    margin: -34px 0 -20px;
+    padding: 42px 0 0;
+}
+
+.folio-gallery-rail-scrollbar {
+    background: rgba(11, 31, 63, 0);
+    border-radius: 999px;
+    cursor: pointer;
+    height: 6px;
+    margin: 0;
+    opacity: 0;
+    overflow: hidden;
+    position: relative;
+    transition: background 0.14s ease, opacity 0.14s ease;
+    width: 100%;
+}
+
+.folio-gallery-rail-spacer {
+    height: 14px;
+}
+
+.folio-gallery-rail-scrollbar span {
+    background: rgba(20, 89, 200, 0.88);
+    border: 1px solid rgba(244, 247, 253, 0.95);
+    border-radius: inherit;
+    display: block;
+    height: 100%;
+    left: 0;
+    min-width: 44px;
+    position: absolute;
+    top: 0;
+    transition: background 0.14s ease;
+    width: 44px;
+}
+
+.folio-gallery-rail-wrap:hover .folio-gallery-rail-scrollbar,
+.folio-gallery-rail-wrap:focus-within .folio-gallery-rail-scrollbar {
+    background: rgba(11, 31, 63, 0.08);
+    opacity: 1;
+}
+
 .folio-gallery-rail {
     display: flex;
     gap: 18px;
-    margin: -34px 0 -20px;
+    margin: -24px 0 0;
     overflow-x: auto;
-    overflow-y: visible;
+    overflow-y: hidden;
     overscroll-behavior-x: contain;
-    padding: 64px 0 56px;
+    padding: 24px 0 56px;
     scroll-padding-left: 4px;
     scroll-snap-type: x proximity;
-    scrollbar-color: transparent transparent;
-    scrollbar-width: thin;
+    scrollbar-width: none;
+}
+
+.folio-gallery-rail::-webkit-scrollbar {
+    display: none;
+    height: 0;
+    width: 0;
 }
 
 .folio-gallery-rail .folio-home-card {
@@ -98,43 +145,6 @@ CSS = """
     transform: translateY(-1px);
 }
 
-.folio-gallery-rail::-webkit-scrollbar {
-    height: 6px;
-}
-
-.folio-gallery-rail::-webkit-scrollbar-button {
-    display: none;
-    height: 0;
-    width: 0;
-}
-
-.folio-gallery-rail::-webkit-scrollbar-track {
-    background: rgba(11, 31, 63, 0);
-    border-radius: 999px;
-}
-
-.folio-gallery-rail::-webkit-scrollbar-thumb {
-    background: rgba(20, 89, 200, 0);
-    border: 1px solid rgba(244, 247, 253, 0);
-    border-radius: 999px;
-}
-
-.folio-gallery-rail:hover,
-.folio-gallery-rail:focus-within {
-    scrollbar-color: rgba(20, 89, 200, 0.88) rgba(11, 31, 63, 0.08);
-}
-
-.folio-gallery-rail:hover::-webkit-scrollbar-track,
-.folio-gallery-rail:focus-within::-webkit-scrollbar-track {
-    background: rgba(11, 31, 63, 0.08);
-}
-
-.folio-gallery-rail:hover::-webkit-scrollbar-thumb,
-.folio-gallery-rail:focus-within::-webkit-scrollbar-thumb {
-    background: rgba(20, 89, 200, 0.88);
-    border-color: rgba(244, 247, 253, 0.95);
-}
-
 @media (max-width: 860px) {
     .folio-gallery-rail-section {
         width: 100%;
@@ -148,6 +158,19 @@ CSS = """
 
     .folio-gallery-rail-head h3 {
         font-size: 14px;
+    }
+
+    .folio-gallery-rail-wrap {
+        margin: 0;
+        padding: 0;
+    }
+
+    .folio-gallery-rail-scrollbar {
+        display: none;
+    }
+
+    .folio-gallery-rail-spacer {
+        display: none;
     }
 
     .folio-gallery-rail {

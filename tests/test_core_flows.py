@@ -21,7 +21,14 @@ class NavigationTests(unittest.TestCase):
     def test_header_nav_items_for_logged_out_users(self) -> None:
         self.assertEqual(
             _header_nav_items(False),
-            [("Home", "홈 갤러리"), ("About", "서비스 소개"), ("Reference", "레퍼런스"), ("Login", "로그인")],
+            [
+                ("Home", "홈 갤러리"),
+                ("About", "서비스 소개"),
+                ("Reference", "레퍼런스"),
+                ("Power BI", "Power BI"),
+                ("Submit", "프로젝트 등록"),
+                ("Login", "로그인"),
+            ],
         )
 
     def test_header_nav_items_for_logged_in_users(self) -> None:
@@ -31,6 +38,7 @@ class NavigationTests(unittest.TestCase):
                 ("Home", "홈 갤러리"),
                 ("About", "서비스 소개"),
                 ("Reference", "레퍼런스"),
+                ("Power BI", "Power BI"),
                 ("Submit", "프로젝트 등록"),
                 ("My Page", "마이 페이지"),
                 ("__logout__", "로그아웃"),

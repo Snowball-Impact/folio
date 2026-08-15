@@ -13,24 +13,35 @@ CSS = """
 }
 
 .folio-home-hero-track {
-    animation: folio-home-hero-slide 10s ease-in-out infinite;
+    animation: folio-home-hero-slide 20s ease-in-out infinite;
     display: flex;
-    width: 200%;
+    width: 400%;
 }
 
-.folio-home-hero-shell:hover .folio-home-hero-track {
+.folio-home-hero-shell:hover .folio-home-hero-track,
+.folio-home-hero-shell:hover .folio-home-hero-dots span {
     animation-play-state: paused;
 }
 
 @keyframes folio-home-hero-slide {
     0%,
-    42% {
+    20% {
         transform: translateX(0);
     }
 
+    25%,
+    45% {
+        transform: translateX(-25%);
+    }
+
     50%,
-    92% {
+    70% {
         transform: translateX(-50%);
+    }
+
+    75%,
+    95% {
+        transform: translateX(-75%);
     }
 
     100% {
@@ -45,12 +56,12 @@ CSS = """
     border-radius: 16px;
     color: var(--folio-navy);
     display: grid;
-    flex: 0 0 50%;
+    flex: 0 0 25%;
     gap: 18px;
     grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
     min-height: 220px;
     padding: 28px 41px 34px;
-    width: 50%;
+    width: 25%;
 }
 
 .folio-home-guide-hero {
@@ -135,6 +146,33 @@ CSS = """
     word-break: keep-all;
 }
 
+.folio-home-powerbi-flow .folio-home-guide-node {
+    background: #f2c811;
+    color: #0b1f3f;
+}
+
+.folio-home-powerbi-flow .folio-home-guide-card {
+    border-color: rgba(242, 200, 17, 0.32);
+    box-shadow: 0 14px 30px rgba(11, 31, 63, 0.08);
+}
+
+.folio-home-powerbi-flow .folio-home-guide-card strong {
+    color: #0b1f3f;
+}
+
+.folio-home-study-flow .folio-home-guide-node {
+    background: var(--folio-blue);
+}
+
+.folio-home-study-flow .folio-home-guide-card {
+    border-color: rgba(10, 148, 133, 0.28);
+    box-shadow: 0 14px 30px rgba(10, 148, 133, 0.08);
+}
+
+.folio-home-study-flow .folio-home-guide-card strong {
+    color: #0f4a7a;
+}
+
 .folio-home-hero-dots {
     align-items: center;
     bottom: 14px;
@@ -149,7 +187,6 @@ CSS = """
 }
 
 .folio-home-hero-dots span {
-    animation: folio-home-hero-dot 10s ease-in-out infinite;
     background: #c9d7ea;
     border-radius: 999px;
     display: block;
@@ -159,21 +196,80 @@ CSS = """
     width: 30px;
 }
 
-.folio-home-hero-dots span:nth-child(2) {
-    animation-delay: -5s;
+.folio-home-hero-dots span:nth-child(1) {
+    animation: folio-home-hero-dot-one 20s ease-in-out infinite;
 }
 
-@keyframes folio-home-hero-dot {
+.folio-home-hero-dots span:nth-child(2) {
+    animation: folio-home-hero-dot-two 20s ease-in-out infinite;
+}
+
+.folio-home-hero-dots span:nth-child(3) {
+    animation: folio-home-hero-dot-three 20s ease-in-out infinite;
+}
+
+.folio-home-hero-dots span:nth-child(4) {
+    animation: folio-home-hero-dot-four 20s ease-in-out infinite;
+}
+
+@keyframes folio-home-hero-dot-one {
     0%,
-    42% {
+    20% {
         background: var(--folio-blue);
         transform: scaleX(1);
     }
 
+    25%,
+    100% {
+        background: #c9d7ea;
+        transform: scaleX(0.72);
+    }
+}
+
+@keyframes folio-home-hero-dot-two {
+    0%,
+    20%,
     50%,
     100% {
         background: #c9d7ea;
         transform: scaleX(0.72);
+    }
+
+    25%,
+    45% {
+        background: var(--folio-blue);
+        transform: scaleX(1);
+    }
+}
+
+@keyframes folio-home-hero-dot-three {
+    0%,
+    45%,
+    75%,
+    100% {
+        background: #c9d7ea;
+        transform: scaleX(0.72);
+    }
+
+    50%,
+    70% {
+        background: var(--folio-blue);
+        transform: scaleX(1);
+    }
+}
+
+@keyframes folio-home-hero-dot-four {
+    0%,
+    70%,
+    100% {
+        background: #c9d7ea;
+        transform: scaleX(0.72);
+    }
+
+    75%,
+    95% {
+        background: var(--folio-blue);
+        transform: scaleX(1);
     }
 }
 
@@ -196,7 +292,7 @@ CSS = """
 
 .folio-home-copy h1 {
     color: var(--folio-navy);
-    font-size: 2.45rem;
+    font-size: calc(2.45rem - 4px);
     font-weight: 800;
     line-height: 1.22;
     margin: 0;

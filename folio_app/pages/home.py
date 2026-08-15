@@ -30,12 +30,31 @@ _HOME_HERO_SLIDES = (
         "title_html": "AI 시대에는 <em>휴먼 인사이트</em>가 자산이다.",
         "body": "데이터, AI, 웹 앱 프로젝트를 기록하고 공유하세요.",
         "visual": "preview",
+        "cta": "내 프로젝트 등록하기",
     },
     {
         "eyebrow": "Collective Insight",
         "title_html": "인사이트는 <em>공유할수록 깊어집니다.</em>",
         "body": "프로젝트를 공유하고, 댓글과 반응으로 더 나은 결과물로 발전시키세요.",
         "visual": "guide",
+        "cta": "내 프로젝트 등록하기",
+    },
+    {
+        "eyebrow": "Power BI 무료 웹 게시",
+        "title_html": "Power BI 보고서를 <em>무료로 웹에 게시하세요.</em>",
+        "body": "PBIX 파일을 간편하게 웹에 배포하고, 공유 가능한 포트폴리오 페이지를 만들 수 있습니다.",
+        "break_body_at_comma": True,
+        "visual": "powerbi",
+        "cta": "PBIX 보고서 무료 게시하기",
+    },
+    {
+        "eyebrow": "Snowball Impact Study Club",
+        "title_html": "Power BI 데이터 시각화, <em>함께 공부해요.</em>",
+        "body": "스노우볼 임팩트 스터디 클럽에서 보고서 디자인, DAX, 경영정보시각화 실기를 함께 준비합니다.",
+        "visual": "study",
+        "cta": "스터디 클럽 참여하기",
+        "cta_url": "https://discord.gg/vKb9SKA3k",
+        "cta_target": "_blank",
     },
 )
 _HOME_GUIDE_STEPS = (
@@ -248,8 +267,7 @@ def _render_hero() -> None:
                 </div>
             </div>
             <div class="folio-home-hero-dots" aria-hidden="true">
-                <span></span>
-                <span></span>
+                {"".join("<span></span>" for _ in _HOME_HERO_SLIDES)}
             </div>
         </section>
         """),
@@ -335,19 +353,29 @@ def _hero_slide_html(slide: dict[str, str]) -> str:
     hero_class = "folio-home-hero"
     if slide["visual"] == "guide":
         hero_class += " folio-home-guide-hero"
+    cta_url = slide.get("cta_url") or "?page=Submit"
+    cta_target = slide.get("cta_target") or "_self"
+    cta_rel = ' rel="noopener"' if cta_target == "_blank" else ""
     return clean_html(f"""
     <section class="{hero_class}">
         <div class="folio-home-copy">
             <div class="folio-home-eyebrow">{html.escape(slide["eyebrow"])}</div>
             <h1>{slide["title_html"]}</h1>
-            <p>{html.escape(slide["body"])}</p>
+            <p>{_hero_body_html(slide)}</p>
             <div class="folio-home-actions">
-                <a class="folio-home-primary-cta" href="?page=Submit" target="_self">내 프로젝트 등록하기</a>
+                <a class="folio-home-primary-cta" href="{html.escape(cta_url, quote=True)}" target="{html.escape(cta_target, quote=True)}"{cta_rel}>{html.escape(slide.get("cta") or "내 프로젝트 등록하기")}</a>
             </div>
         </div>
         {_hero_visual_html(slide["visual"])}
     </section>
     """)
+
+
+def _hero_body_html(slide: dict[str, str]) -> str:
+    body = html.escape(slide["body"])
+    if slide.get("break_body_at_comma"):
+        return body.replace(", ", ",<br>", 1)
+    return body
 
 
 def _hero_visual_html(visual: str) -> str:
@@ -362,6 +390,22 @@ def _hero_visual_html(visual: str) -> str:
     if visual == "guide":
         steps_html = "".join(_hero_guide_step_html(*step) for step in _HOME_GUIDE_STEPS)
         return f'<div class="folio-home-guide-flow" aria-label="프로젝트 발전 단계">{steps_html}</div>'
+    if visual == "powerbi":
+        steps = (
+            ("PBIX", "업로드", "보고서 파일을 올립니다."),
+            ("WEB", "웹 배포", "브라우저에서 열 수 있게 게시합니다."),
+            ("LINK", "공유", "포트폴리오 링크로 전달합니다."),
+        )
+        steps_html = "".join(_hero_guide_step_html(*step) for step in steps)
+        return f'<div class="folio-home-guide-flow folio-home-powerbi-flow" aria-label="Power BI 웹 게시 단계">{steps_html}</div>'
+    if visual == "study":
+        steps = (
+            ("01", "실습", "Power BI 과제"),
+            ("02", "웹 배포 및 피드백", "동료 리뷰 반영"),
+            ("03", "완성", "포트폴리오 정리"),
+        )
+        steps_html = "".join(_hero_guide_step_html(*step) for step in steps)
+        return f'<div class="folio-home-guide-flow folio-home-study-flow" aria-label="Power BI 스터디 진행 단계">{steps_html}</div>'
     return ""
 
 
