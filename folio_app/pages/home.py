@@ -137,6 +137,15 @@ def _filter_platform_tags(tags: list[str], limit: int = 10) -> list[str]:
 def _platform_tag_exclusions() -> set[str]:
     excluded = {_normalized_tag(label) for _, label in _platform_filter_options()}
     excluded.update({_normalized_tag("All"), _normalized_tag("Other")})
+    excluded.update(
+        _normalized_tag(tag)
+        for tag in (
+            "reference",
+            "references",
+            "레퍼런스",
+            "참고",
+        )
+    )
     for platform in REFERENCE_PLATFORMS:
         excluded.add(_normalized_tag(platform.label))
         excluded.update(_normalized_tag(alias) for alias in platform.aliases)

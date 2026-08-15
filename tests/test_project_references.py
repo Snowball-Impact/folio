@@ -59,12 +59,12 @@ class ProjectReferenceTests(unittest.TestCase):
             ["datastudio"],
         )
 
-    def test_popular_tags_keep_reference_topic_tags_but_exclude_platform_menu_tags(self) -> None:
+    def test_popular_tags_exclude_reference_and_platform_menu_tags(self) -> None:
         projects = [
-            {"id": "tableau", "tags": ["Tableau", "인구 통계"]},
-            {"id": "powerbi", "tags": ["Power BI", "매출 분석"]},
-            {"id": "looker", "tags": ["Looker Studio", "인구 통계"]},
-            {"id": "ordinary", "tags": ["기타", "Other", "고객 분석"]},
+            {"id": "tableau", "tags": ["Tableau", "Reference", "인구 통계"]},
+            {"id": "powerbi", "tags": ["Power BI", "reference", "매출 분석"]},
+            {"id": "looker", "tags": ["Looker Studio", "레퍼런스", "인구 통계"]},
+            {"id": "ordinary", "tags": ["기타", "Other", "참고", "고객 분석"]},
         ]
 
         self.assertEqual(

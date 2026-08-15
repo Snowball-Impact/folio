@@ -19,9 +19,12 @@ from folio_app.services.auth import (
 )
 from folio_app.styles import apply_global_styles
 
+APP_VERSION = "v2026.08.15.2"
+
 _FOOTER_HTML = """
 <footer class="folio-footer">
-    <p>Copyright &copy; 2026 Snowball Impact. All rights reserved.</p>
+    <p class="folio-footer-copy">Copyright &copy; 2026 Snowball Impact. All rights reserved.</p>
+    <span class="folio-footer-version">{version}</span>
     <nav class="folio-footer-links" aria-label="서비스 정책 및 문의">
         <a href="?page=Policy&type=privacy">개인정보처리방침</a>
         <a href="?page=Policy&type=terms">이용약관</a>
@@ -47,7 +50,7 @@ def _render_verified_notice() -> None:
 
 
 def _render_footer() -> None:
-    st.markdown(_FOOTER_HTML, unsafe_allow_html=True)
+    st.markdown(_FOOTER_HTML.format(version=APP_VERSION), unsafe_allow_html=True)
 
 
 def _capture_password_recovery_fragment() -> None:

@@ -18,6 +18,23 @@
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
 - **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 Playwright 기반 썸네일 자동 캡처를 실험하는 것이다.
 
+### 현재 핸드오프 상태 (2026-08-15)
+
+다음 대화에서는 아래 상태에서 이어가면 된다.
+
+- 마지막 원격 반영 기준 커밋은 `1af41bb Optimize home page loading`이다.
+- 현재 작업 트리에는 푸터 버전 표시, 홈 인기태그 `reference` 예외처리, 관련 테스트 변경이 남아 있다. 커밋/푸시는 아직 하지 않았다.
+- 푸터는 좌측 저작권, 중앙 앱 버전, 우측 정책 링크 묶음으로 배치한다. 버전 문자열은 `folio_app/app.py`의 `APP_VERSION`에 둔다.
+- 버전 숫자는 일반 수정 때마다 올리지 않는다. 실제 배포할 때만 `APP_VERSION`을 갱신한다.
+- 홈 기본 로딩 최적화를 위해 첫 화면 카드 레일은 레일당 6개만 가져와 렌더링한다. 검색/태그/플랫폼 필터를 쓰는 경우에는 기존 전체 필터 경로를 사용한다.
+- 홈 인기 태그에는 플랫폼 메뉴성 태그와 레퍼런스 분류 태그를 노출하지 않는다. 제외 대상은 `Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other`, `reference`, `references`, `레퍼런스`, `참고` 등이다.
+- 등록/수정에서 PBIX 업로드와 썸네일 자동 캡처를 함께 쓰면 PBIX 게시/배포 완료와 명시 대기 후 캡처가 실행되어야 한다. 게시 대기와 캡처 대기는 각각 진행률 메시지를 표시한다.
+- 검증 완료 명령:
+  - `python -m unittest tests.test_project_references -v`
+  - `python -m compileall -q folio_app tests`
+  - `python -m pyflakes folio_app app.py tests`
+  - `python -m unittest discover -s tests`
+
 ### PRD v1.5 전환 기준
 
 - 초기 콘텐츠 범위는 Power BI Embedded 기술 검증과 Tableau/Public Streamlit/Looker Studio 중심의 공개 데이터 시각화 프로젝트다.
@@ -123,7 +140,7 @@ folio_app/
 | 프로젝트 상세 | `project_detail.py`, `project_detail_content.py`, `project_comments.py` | `?project_id=` 쿼리로 Home 안에서 렌더링 |
 | 서비스 소개 | `about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
 | 좋아요 | `services/projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
-| 푸터 | `app.py` | Copyright © 2026 Snowball Impact |
+| 푸터 | `app.py`, `styles/tokens.py` | 좌측 저작권, 중앙 버전, 우측 정책 링크. 버전은 배포 시점에만 갱신 |
 
 ---
 
@@ -848,10 +865,34 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m pyflakes folio_app app.py tests\test_project_editor.py tests\test_powerbi.py`
 - `python -m compileall -q app.py folio_app tests`
 
-### 진행 중: 썸네일 업로드와 PBIX 수정 UX (2026-08-15)
+### 완료: 썸네일 업로드와 PBIX 수정 UX (2026-08-15)
 
 - 프로젝트 등록/수정 폼의 썸네일 설정에 `이미지 업로드` 모드를 추가했다. JPG, PNG, WebP를 최대 5MB까지 받으며 서버에서 960x540 JPEG로 정규화해 `project-thumbnails` Storage bucket의 기존 프로젝트 썸네일 경로에 저장한다.
 - 수정 화면에서는 기존 썸네일을 삭제해 기본 커버로 되돌릴 수 있고, 새 이미지 파일을 선택하면 같은 Storage 경로를 upsert해 교체한다.
 - Power BI 프로젝트 수정 화면에서도 PBIX 파일 업로드를 허용한다. 새 PBIX를 업로드하면 기존 프로젝트 ID와 상세 URL은 유지하고 `powerbi_reports` 메타데이터를 새 Import 결과로 갱신한다.
 - 수정 화면에서 기존 Power BI 게시본 연결 삭제를 선택하면 FOLIO의 `powerbi_reports` row와 `projects.power_bi_url` 연결을 제거한다. Power BI Workspace의 Report/Semantic Model 물리 삭제는 30일 cleanup 정책과 별도로 남겨둔다.
 - `projects.thumbnail_mode` 체크 제약에 `upload` 값이 추가됐으므로 원격 Supabase에 최신 `supabase/schema.sql` 재적용이 필요하다.
+- 기존 썸네일이 있는 수정 화면에서 `이미지 업로드`는 기존 썸네일 삭제 체크박스를 먼저 선택해야 새 업로드 컴포넌트가 나타난다. PBIX도 기존 게시본 연결 삭제를 선택해야 새 PBIX 업로드 컴포넌트가 나타난다.
+- 썸네일 모드 `자동 캡처`는 기존 캡처본을 삭제하고 새로 캡처할 수 있다. 수정 저장 완료 후에는 홈 갤러리로 이동한다.
+- 산출물 링크의 `Web Application URL` 라벨은 `Web App URL`로 통일했다.
+
+검증:
+
+- `python -m unittest tests.test_project_editor tests.test_powerbi tests.test_project_form tests.test_detail_components tests.test_config tests.test_project_queries tests.test_ui_cards -v`
+- `python -m pyflakes folio_app app.py tests`
+- `python -m compileall -q app.py folio_app tests`
+
+### 완료: 홈 로딩 최적화와 푸터 버전 표시 (2026-08-15)
+
+- 홈 기본 화면은 `list_home_project_snapshot(limit=6, tag_limit=40)`을 사용해 최근/조회/좋아요 레일에 필요한 프로젝트만 가져온다. 레일당 최대 카드 수는 6개다.
+- 공개 프로젝트 조회 컬럼은 `PUBLIC_PROJECT_LIST_COLUMNS`로 제한한다. `select("*")`는 홈 공개 목록 경로에서 피한다.
+- 댓글 통계는 `comment_stats_by_project()`로 댓글 수와 최신 댓글 시각을 한 번에 조회한다.
+- 홈 인기 태그는 스냅샷 경로와 프로젝트 기반 집계 경로 모두 `_filter_platform_tags()` / `_platform_tag_exclusions()`를 통과한다. `reference`, `references`, `레퍼런스`, `참고`는 인기 태그에서 제외한다.
+- 푸터는 좌측 저작권, 중앙 `APP_VERSION`, 우측 정책 링크 묶음으로 배치한다. 버전 문자열은 배포 때만 갱신한다.
+
+검증:
+
+- `python -m unittest tests.test_project_references -v`
+- `python -m unittest discover -s tests`
+- `python -m compileall -q folio_app tests`
+- `python -m pyflakes folio_app app.py tests`

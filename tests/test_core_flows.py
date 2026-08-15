@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from folio_app.app import APP_VERSION, _FOOTER_HTML
 from folio_app.components.layout import _header_nav_items
 from folio_app.components.project_form import parse_project_body
 from folio_app.navigation import navigate
@@ -122,6 +123,19 @@ class ProjectBodyParsingTests(unittest.TestCase):
     def test_unstructured_html_falls_back_to_problem(self) -> None:
         sections = parse_project_body("<p>자유 형식 본문</p>")
         self.assertEqual(sections["problem"], "<p>자유 형식 본문</p>")
+
+
+class FooterRenderingTests(unittest.TestCase):
+    def test_footer_places_version_before_policy_links(self) -> None:
+        rendered = _FOOTER_HTML.format(version=APP_VERSION)
+
+        self.assertIn('class="folio-footer-links"', rendered)
+        self.assertIn('class="folio-footer-version"', rendered)
+        self.assertIn(APP_VERSION, rendered)
+        self.assertLess(
+            rendered.index('class="folio-footer-version"'),
+            rendered.index('class="folio-footer-links"'),
+        )
 
 
 class URLNormalizationTests(unittest.TestCase):

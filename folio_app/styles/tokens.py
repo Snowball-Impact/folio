@@ -29,17 +29,18 @@ h1, h2, h3 {
     align-items: center;
     border-top: 1px solid var(--folio-border);
     color: var(--folio-muted);
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     gap: 16px;
-    font-size: 0.82rem;
-    justify-content: space-between;
+    font-size: 13px;
     margin-top: 52px;
     padding: 22px 0;
-    text-align: left;
 }
 
-.folio-footer p {
+.folio-footer-copy {
+    justify-self: start;
     margin: 0;
+    min-width: 0;
 }
 
 .folio-footer-links {
@@ -48,14 +49,24 @@ h1, h2, h3 {
     flex-wrap: wrap;
     gap: 8px 14px;
     justify-content: flex-end;
+    justify-self: end;
     margin-top: 0;
+    text-align: right;
 }
 
 .folio-footer-links a,
-.folio-footer-links span {
+.folio-footer-links span,
+.folio-footer-version {
     color: var(--folio-muted);
-    font-size: 0.8rem;
+    font-size: 12px;
     text-decoration: none;
+}
+
+.folio-footer-version {
+    font-weight: 700;
+    justify-self: center;
+    letter-spacing: 0;
+    white-space: nowrap;
 }
 
 .folio-footer-links a:hover {
@@ -65,12 +76,20 @@ h1, h2, h3 {
 
 @media (max-width: 720px) {
     .folio-footer {
-        align-items: flex-start;
-        flex-direction: column;
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
     }
 
     .folio-footer-links {
-        justify-content: flex-start;
+        justify-content: center;
+        justify-self: center;
+        text-align: center;
+    }
+
+    .folio-footer-copy,
+    .folio-footer-version {
+        justify-self: center;
     }
 }
 

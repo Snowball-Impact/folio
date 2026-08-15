@@ -61,7 +61,23 @@ Supabase Dashboard의 Authentication > URL Configuration에서 Streamlit Cloud �
 
 `APP_URL`은 이 주소와 같아야 한다.
 
-## 4. 자동 캡처 실험
+## 4. 배포 버전 표시
+
+앱 하단 푸터 우측에는 `folio_app/app.py`의 `APP_VERSION`이 표시된다.
+
+- 버전 값은 일반 수정이나 로컬 테스트 때마다 올리지 않는다.
+- 실제 Streamlit Cloud에 배포할 커밋을 만들 때만 갱신한다.
+- 권장 형식은 날짜 기반 `vYYYY.MM.DD.N`이다. 예: `v2026.08.15.2`
+- 배포 후 사용자가 변경사항 반영 여부를 확인해야 할 때 푸터 중앙 버전을 기준으로 안내한다.
+
+배포 전 체크:
+
+1. `APP_VERSION`을 이번 배포 버전으로 올린다.
+2. `python -m unittest discover -s tests`를 통과시킨다.
+3. 커밋 후 `git push origin main`으로 Streamlit Cloud 자동 재배포를 트리거한다.
+4. 배포된 앱 푸터 중앙 버전이 커밋의 `APP_VERSION`과 일치하는지 확인한다.
+
+## 5. 자동 캡처 실험
 
 자동 캡처 기능은 `folio_app/services/project_thumbnails.py`에서 Playwright를 사용한다. Playwright managed Chromium을 먼저 실행하고, 해당 브라우저 바이너리가 준비되지 않은 환경에서는 `CHROME_BINARY_PATH`의 시스템 Chromium으로 fallback한다. 실험은 배포 앱에서 실제 프로젝트 등록 또는 수정으로 진행한다.
 
@@ -92,7 +108,7 @@ Power BI 플랫폼에서 PBIX를 업로드하고 썸네일 모드를 `자동 캡
 4. Supabase Storage `project-thumbnails/projects/<project-id>/thumbnail-<timestamp>.jpg`가 생성됐는지 확인한다.
 5. 홈 카드와 상세 히어로 우측 썸네일에 캡처 이미지가 보이는지 확인한다.
 
-## 5. 커스텀 도메인 우회
+## 6. 커스텀 도메인 우회
 
 Streamlit Community Cloud는 `*.streamlit.app` 서브도메인을 제공한다. 완전한 커스텀 도메인을 직접 연결할 수 없으면, 별도 정적 호스팅에서 전체 화면 iframe shell을 둔다.
 
@@ -102,7 +118,7 @@ Streamlit Community Cloud는 `*.streamlit.app` 서브도메인을 제공한다. 
 
 이 방식은 주소창을 커스텀 도메인처럼 보이게 할 수 있지만, 앱의 실제 origin은 `streamlit.app`이다. 인증 redirect, 쿠키, 브라우저 iframe 정책을 배포 후 반드시 확인한다.
 
-## 6. 한계
+## 7. 한계
 
 - Community Cloud는 무료 서비스이므로 cold start, resource limit, hibernation 영향이 있을 수 있다.
 - Streamlit Cloud의 일부 서버 설정은 `.streamlit/config.toml`보다 우선한다.
