@@ -114,10 +114,10 @@ def _platform_nav_item_html(platform, selected_key: str) -> str:
 
 def _platform_logo_html(platform_key: str) -> str:
     logo_file = {
-        "tableau": "reference-tableau-logo-cropped.png",
-        "powerbi": "reference-powerbi-logo-cropped.png",
-        "datastudio": "reference-datastudio-logo-cropped.png",
-        "streamlit": "reference-streamlit-logo-cropped.png",
+        "tableau": "reference-tableau-logo-cropped.webp",
+        "powerbi": "reference-powerbi-logo-cropped.webp",
+        "datastudio": "reference-datastudio-logo-cropped.webp",
+        "streamlit": "reference-streamlit-logo-cropped.webp",
     }.get(platform_key)
     if not logo_file:
         return ""

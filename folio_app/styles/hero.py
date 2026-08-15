@@ -49,7 +49,7 @@ CSS = """
     gap: 18px;
     grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
     min-height: 220px;
-    padding: 28px 42px 34px;
+    padding: 28px 41px 34px;
     width: 50%;
 }
 
@@ -285,7 +285,7 @@ CSS = """
     margin-bottom: 20px;
     min-height: 220px;
     overflow: hidden;
-    padding: 28px 42px 34px;
+    padding: 28px 41px 34px;
 }
 
 .folio-page-hero-copy {
@@ -342,6 +342,15 @@ CSS = """
     justify-self: end;
     padding: 6px;
     width: min(100%, 440px);
+}
+
+.folio-submit-preview-hero .folio-page-hero-visual {
+    background: transparent;
+    padding: 0;
+}
+
+.folio-submit-preview-hero .folio-page-hero-visual .folio-home-card {
+    border-radius: 18px;
 }
 
 .folio-page-hero-visual img,

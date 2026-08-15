@@ -77,7 +77,7 @@ def _hero_section() -> str:
 
 
 def _team_section() -> str:
-    team_image = static_image_src("snowball-impact.png")
+    team_image = static_image_src("snowball-impact.webp")
     return f"""
     <section class="folio-about-section">
         <div class="folio-about-team">
@@ -123,7 +123,7 @@ def _service_section() -> str:
 
 
 def _vision_section() -> str:
-    vision_image = static_image_src("vision-snowball.png")
+    vision_image = static_image_src("vision-snowball.webp")
     phases = "\n".join(_vision_phase_html(*phase) for phase in _VISION_PHASES)
     return f"""
     <section class="folio-about-section">

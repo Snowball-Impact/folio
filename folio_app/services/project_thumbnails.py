@@ -25,6 +25,8 @@ THUMBNAIL_WIDTH = 960
 THUMBNAIL_HEIGHT = 540
 THUMBNAIL_CAPTURE_TIMEOUT_SECONDS = 18
 THUMBNAIL_CAPTURE_WAIT_SECONDS = 10
+THUMBNAIL_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
+THUMBNAIL_UPLOAD_ALLOWED_TYPES = {"image/jpeg", "image/png", "image/webp"}
 CHROME_BINARY_COMMANDS = ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable")
 CHROME_BINARY_PATHS = (
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -88,6 +90,56 @@ def capture_project_thumbnail_from_html(
     except Exception:
         logger.exception("Failed to capture project thumbnail from HTML")
         return ThumbnailCaptureResult(ok=False)
+
+
+def upload_project_thumbnail_file(project_id: str, uploaded_file: Any) -> ThumbnailCaptureResult:
+    try:
+        image_bytes = prepare_uploaded_thumbnail_bytes(uploaded_file)
+        public_url = upload_project_thumbnail(project_id, image_bytes)
+        update_project_thumbnail_url(project_id, public_url)
+        return ThumbnailCaptureResult(ok=True, url=public_url)
+    except Exception:
+        logger.exception("Failed to upload project thumbnail file")
+        return ThumbnailCaptureResult(ok=False)
+
+
+def prepare_uploaded_thumbnail_bytes(uploaded_file: Any) -> bytes:
+    filename = str(getattr(uploaded_file, "name", "") or "")
+    mime_type = str(getattr(uploaded_file, "type", "") or "")
+    size = int(getattr(uploaded_file, "size", 0) or 0)
+    if size > THUMBNAIL_UPLOAD_MAX_BYTES:
+        raise ValueError("Thumbnail file is too large.")
+    if mime_type and mime_type not in THUMBNAIL_UPLOAD_ALLOWED_TYPES:
+        raise ValueError("Unsupported thumbnail file type.")
+
+    raw_bytes = bytes(uploaded_file.getbuffer())
+    if not raw_bytes:
+        raise ValueError("Thumbnail file is empty.")
+    if len(raw_bytes) > THUMBNAIL_UPLOAD_MAX_BYTES:
+        raise ValueError("Thumbnail file is too large.")
+    if filename and not filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):
+        raise ValueError("Unsupported thumbnail file extension.")
+
+    from PIL import Image
+
+    image = Image.open(BytesIO(raw_bytes))
+    image.thumbnail((THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT))
+    canvas = Image.new("RGB", (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT), (245, 248, 252))
+    if image.mode in {"RGBA", "LA"}:
+        alpha = image.getchannel("A")
+        rgb_image = image.convert("RGB")
+        x = (THUMBNAIL_WIDTH - image.width) // 2
+        y = (THUMBNAIL_HEIGHT - image.height) // 2
+        canvas.paste(rgb_image, (x, y), alpha)
+    else:
+        rgb_image = image.convert("RGB")
+        x = (THUMBNAIL_WIDTH - rgb_image.width) // 2
+        y = (THUMBNAIL_HEIGHT - rgb_image.height) // 2
+        canvas.paste(rgb_image, (x, y))
+
+    output = BytesIO()
+    canvas.save(output, format="JPEG", quality=86, optimize=True)
+    return output.getvalue()
 
 
 def thumbnail_capture_source_url(payload: dict) -> str | None:

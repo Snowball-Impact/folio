@@ -98,6 +98,19 @@ class AutomaticProjectCoverTests(unittest.TestCase):
         self.assertIn("썸네일 프로젝트", rendered)
         self.assertNotIn("folio-auto-cover", rendered)
 
+    def test_card_uses_data_image_thumbnail_for_local_preview(self) -> None:
+        project = {
+            "id": "project-thumbnail-preview",
+            "title": "업로드 미리보기",
+            "thumbnail_url": "data:image/png;base64,aW1hZ2U=",
+        }
+
+        rendered = render_project_card_html(project)
+
+        self.assertIn("folio-home-card-has-thumbnail", rendered)
+        self.assertIn('src="data:image/png;base64,aW1hZ2U="', rendered)
+        self.assertNotIn("folio-auto-cover", rendered)
+
     def test_card_falls_back_to_auto_cover_for_invalid_thumbnail(self) -> None:
         project = {
             "id": "project-invalid-thumbnail",

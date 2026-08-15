@@ -154,8 +154,22 @@ div[data-testid="stForm"] button {
     align-items: stretch;
 }
 
+[class*="_form_section_overview"] {
+    position: relative !important;
+}
+
+[class*="_form_section_overview"]::after {
+    background: var(--folio-border);
+    bottom: 24px;
+    content: "";
+    left: 50%;
+    pointer-events: none;
+    position: absolute;
+    top: 24px;
+    width: 1px;
+}
+
 [class*="_form_section_overview"] [data-testid="stColumn"]:nth-child(2) {
-    border-left: 1px solid var(--folio-border);
     padding-left: 28px;
 }
 
@@ -164,20 +178,101 @@ div[data-testid="stForm"] button {
     width: 100%;
 }
 
-[class*="_form_section_pbix"] {
-    border-color: #b9d4ff !important;
-    box-shadow: 0 18px 42px rgba(22, 83, 168, 0.08) !important;
+[class*="_platform_panel"],
+[class*="_thumbnail_panel"] {
+    background: #f7fbff !important;
+    border: 1px solid #cfe0ff !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+    margin-top: 4px !important;
+    padding: 16px !important;
 }
 
-[class*="_form_section_pbix"] [data-testid="stFileUploader"] {
+[class*="_platform_panel"] {
+    padding: 14px 16px !important;
+    position: relative !important;
+}
+
+[class*="_thumbnail_panel"] {
+    position: relative !important;
+}
+
+[class*="_platform_panel"]:has([class*="_delete_pbix_zone"]),
+[class*="_thumbnail_panel"]:has([class*="_delete_thumbnail_zone"]) {
+    padding-bottom: 42px !important;
+}
+
+[class*="_pbix_upload"] [data-testid="stFileUploader"],
+[class*="_thumbnail_panel"] [data-testid="stFileUploader"] {
     background: #f7fbff;
     border: 1px dashed #9ec5fe;
     border-radius: 12px;
     padding: 14px;
 }
 
-[class*="_form_section_pbix"] [data-testid="stAlert"] {
-    margin-bottom: 10px;
+[class*="_pbix_upload"] [data-testid="stAlert"] {
+    margin: 10px 0 0;
+}
+
+[class*="_pbix_upload"] [data-testid="stAlert"] p {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+}
+
+[class*="_pbix_upload"] [data-testid="stFileUploaderDropzoneInstructions"] > *,
+[class*="_thumbnail_upload"] [data-testid="stFileUploaderDropzoneInstructions"] > * {
+    display: none !important;
+}
+
+[class*="_pbix_upload"] [data-testid="stFileUploaderDropzoneInstructions"]::after,
+[class*="_thumbnail_upload"] [data-testid="stFileUploaderDropzoneInstructions"]::after {
+    color: var(--folio-muted);
+    display: block;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    margin-top: 4px;
+}
+
+[class*="_pbix_upload"] [data-testid="stFileUploaderDropzoneInstructions"]::after {
+    content: "최대 100MB / 파일 · PBIX";
+}
+
+[class*="_thumbnail_upload"] [data-testid="stFileUploaderDropzoneInstructions"]::after {
+    content: "최대 5MB / 파일 · JPG, PNG, WebP";
+}
+
+[class*="_delete_thumbnail_zone"],
+[class*="_delete_pbix_zone"] {
+    bottom: 14px !important;
+    margin: 0 !important;
+    position: absolute !important;
+    right: 16px !important;
+    width: auto !important;
+    z-index: 2 !important;
+}
+
+[class*="_delete_thumbnail_zone"] [data-testid="stVerticalBlock"],
+[class*="_delete_pbix_zone"] [data-testid="stVerticalBlock"] {
+    align-items: flex-end !important;
+    gap: 0 !important;
+}
+
+[class*="_delete_thumbnail_zone"] .stCheckbox,
+[class*="_delete_pbix_zone"] .stCheckbox {
+    display: flex !important;
+    justify-content: flex-end !important;
+    margin-left: auto !important;
+    width: fit-content !important;
+}
+
+[class*="_delete_thumbnail_zone"] [data-testid="stWidgetLabel"],
+[class*="_delete_pbix_zone"] [data-testid="stWidgetLabel"] {
+    justify-content: flex-end !important;
+}
+
+[class*="_delete_thumbnail_zone"] [data-testid="stWidgetLabel"] p,
+[class*="_delete_pbix_zone"] [data-testid="stWidgetLabel"] p {
+    white-space: nowrap !important;
 }
 
 .folio-form-section-heading strong {
@@ -211,16 +306,20 @@ div[data-testid="stForm"] button {
 
 [class*="_form_section_overview"] .stRadio > div {
     align-items: center;
-    column-gap: 18px;
+    column-gap: 8px;
     flex-wrap: wrap;
-    row-gap: 4px;
+    row-gap: 3px;
 }
 
 [class*="_form_section_overview"] .stRadio label {
+    align-items: center;
     color: var(--folio-navy);
+    display: inline-flex !important;
     font-size: 0.84rem;
     font-weight: 700;
-    min-height: 24px;
+    gap: 4px !important;
+    min-height: 22px;
+    padding-right: 2px !important;
 }
 
 [class*="_form_section_overview"] .stRadio p {
@@ -228,6 +327,10 @@ div[data-testid="stForm"] button {
     font-weight: inherit !important;
     line-height: 1 !important;
     white-space: nowrap;
+}
+
+[class*="_form_section_overview"] .stRadio [data-baseweb="radio"] {
+    margin-right: 0 !important;
 }
 
 [class*="_form_section_overview"] .stTextInput div[data-baseweb="input"] {
@@ -279,6 +382,29 @@ div[data-testid="stForm"] button {
     justify-content: flex-end !important;
 }
 
+[class*="_operation_panel"],
+[class*="_operation_error"] {
+    background: #ffffff !important;
+    border: 1px solid #cfe0ff !important;
+    border-radius: 12px !important;
+    bottom: 24px !important;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.18) !important;
+    box-sizing: border-box !important;
+    max-width: calc(100vw - 32px) !important;
+    padding: 16px !important;
+    position: fixed !important;
+    right: 24px !important;
+    width: 420px !important;
+    z-index: 10000 !important;
+}
+
+.folio-operation-title {
+    color: var(--folio-navy);
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 860px) {
     .folio-project-form-intro {
@@ -313,12 +439,24 @@ div[data-testid="stForm"] button {
         padding-top: 20px;
     }
 
+    [class*="_form_section_overview"]::after {
+        display: none;
+    }
+
     [class*="_form_section_overview"] [data-testid="stHorizontalBlock"] {
         flex-direction: column;
     }
 
     [class*="_form_section_overview"] [data-testid="stColumn"] {
         width: 100% !important;
+    }
+
+    [class*="_operation_panel"],
+    [class*="_operation_error"] {
+        bottom: 16px !important;
+        left: 16px !important;
+        right: 16px !important;
+        width: auto !important;
     }
 }
 """

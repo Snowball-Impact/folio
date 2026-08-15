@@ -19,7 +19,7 @@ def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
     selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
     current_page = st.query_params.get("page") or "Home"
-    logo_src = static_image_src("logo.png")
+    logo_src = static_image_src("logo.webp")
     unread_notification_count = count_unread_notifications(user["id"]) if user else 0
     if unread_notification_count:
         st.html(

@@ -53,7 +53,7 @@ create table if not exists public.projects (
     report_url text,
     github_url text,
     thumbnail_url text,
-    thumbnail_mode text not null default 'auto_cover' check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture')),
+    thumbnail_mode text not null default 'auto_cover' check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture', 'upload')),
     project_type text not null default 'other' check (project_type in ('powerbi', 'tableau', 'looker', 'streamlit', 'notebook', 'html_report', 'markdown_report', 'web', 'other')),
     status text not null default 'published' check (status in ('processing', 'published', 'failed', 'deleted')),
     embed_status text not null default 'external_only' check (embed_status in ('supported', 'external_only', 'failed')),
@@ -176,18 +176,12 @@ add column if not exists deleted_at timestamptz;
 create index if not exists projects_status_created_at_idx on public.projects(status, created_at desc);
 create index if not exists projects_project_type_idx on public.projects(project_type);
 
-do $$
-begin
-    if not exists (
-        select 1 from pg_constraint
-        where conname = 'projects_thumbnail_mode_check'
-          and conrelid = 'public.projects'::regclass
-    ) then
-        alter table public.projects
-        add constraint projects_thumbnail_mode_check
-        check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture'));
-    end if;
-end $$;
+alter table public.projects
+drop constraint if exists projects_thumbnail_mode_check;
+
+alter table public.projects
+add constraint projects_thumbnail_mode_check
+check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture', 'upload'));
 
 do $$
 begin

@@ -55,6 +55,22 @@ class SafeMutationMessageTests(unittest.TestCase):
         self.assertIn("projects.thumbnail_mode", result.message)
 
     @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_create_reports_outdated_thumbnail_mode_check_constraint(self, get_client) -> None:
+        builder = MagicMock()
+        builder.insert.return_value = builder
+        builder.execute.side_effect = RuntimeError(
+            'new row for relation "projects" violates check constraint "projects_thumbnail_mode_check"'
+        )
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = create_project("author-id", {"thumbnail_mode": "upload"})
+
+        self.assertFalse(result.ok)
+        self.assertIn("projects.thumbnail_mode", result.message)
+
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_delete_error_does_not_expose_provider_detail(self, get_client) -> None:
         builder = MagicMock()
         builder.delete.return_value = builder

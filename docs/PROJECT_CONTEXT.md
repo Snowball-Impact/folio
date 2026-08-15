@@ -104,9 +104,8 @@ folio_app/
     email_notifications.py # SMTP 댓글 이메일 알림
     supabase_client.py    # Streamlit 세션별 Supabase client
   static/
-    hero-preview.png      # 홈 히어로 우측 미리보기 이미지
     hero-preview-home.jpg # 홈 히어로 전용 경량 미리보기 이미지
-    gapyear-hero-banner.jpg, snowball-impact.png, vision-snowball.png # 서비스 소개 페이지 이미지
+    gapyear-hero-banner.jpg, snowball-impact.webp, vision-snowball.webp # 서비스 소개 페이지 이미지
 ```
 
 ---
@@ -632,7 +631,7 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
   - 네비게이션 라벨은 `프로젝트 등록`을 사용한다.
   - 섹션 제목은 왼쪽, 설명은 오른쪽에 한 행으로 배치하고 모바일에서는 세로로 쌓는다.
   - 카드 미리보기 설명은 제거하고, 실제 홈 카드에서 보일 내용만 확인하게 한다.
-  - 프로젝트명은 48자, 한 줄 소개는 56자, 태그는 최대 10개 기준으로 제한한다. 제목/소개 입력에는 카드 노출 기준 툴팁을 둔다.
+  - 프로젝트명은 48자, 한 줄 소개는 56자, 태그는 최대 5개 기준으로 제한한다. 제목/소개 입력에는 카드 노출 기준 툴팁을 둔다.
 - **마이페이지**
   - 프로필 영역은 중앙 정렬한다.
   - 작성자, 소속, 이메일 값은 20px로 키워 가독성을 확보한다.
@@ -837,7 +836,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 신규 PBIX 등록은 프로젝트를 `processing`으로 먼저 생성한 뒤 Import를 실행한다. Import 성공 시 `published`와 `embed_status='supported'`로 전환하고, 실패/timeout은 `failed`로 표시한다.
 - 상세 페이지는 PBIX 게시본이면 `powerbi_reports` 메타데이터로 Embed Token을 동적 발급해 Power BI JS SDK Viewer를 렌더한다. 기존 공개 iframe 레퍼런스는 기존 iframe fallback을 유지한다.
 - PBIX 게시 성공 후 썸네일 모드가 자동 캡처이면 Power BI report HTML을 직접 렌더링해 캡처한다. Streamlit 내부 페이지 iframe을 캡처하지 않아 Power BI JS SDK 로딩 경합과 중첩 iframe 문제를 피한다.
-- 등록/수정 폼의 우측 카드 미리보기는 상세 히어로 우측 썸네일 영역과 같은 Home 카드 구조를 쓴다. 별도 미리보기 섹션은 두지 않고, 기본정보 아래에 PBIX 게시 섹션, 산출물 링크, 프로젝트 내용 순으로 배치한다.
+- 등록/수정 폼의 우측 카드 미리보기는 상세 히어로 우측 썸네일 영역과 같은 Home 카드 구조를 쓴다. 별도 미리보기 섹션은 두지 않고, 기본 정보 좌측 열의 플랫폼 선택 아래에는 PBIX 업로드를, 우측 열의 산출물 링크 아래에는 썸네일 설정을 배치한다.
 - 홈/레퍼런스 카드 hover iframe preview는 제거했다. hover 시 카드는 작게 떠오르고, `cards.py`의 `::after` 오버레이가 5px 파란 테두리를 표시한다. stretched link 레이어보다 높은 z-index를 써서 썸네일/그라데이션에 묻히지 않게 한다.
 - 상세 페이지 작성자 화면에는 프로젝트 삭제 버튼을 둔다. 삭제는 soft delete이며 `status='deleted'`, `deleted_at`, `is_public=false`로 즉시 목록과 상세 접근에서 숨긴다.
 - 수정 화면에서 PBIX 교체, failed 프로젝트 재시도 버튼, Power BI Report/Semantic Model 30일 cleanup job은 아직 후속이다.
@@ -848,3 +847,11 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m unittest tests.test_project_editor tests.test_powerbi tests.test_project_form tests.test_detail_components tests.test_config tests.test_project_queries tests.test_ui_cards -v`
 - `python -m pyflakes folio_app app.py tests\test_project_editor.py tests\test_powerbi.py`
 - `python -m compileall -q app.py folio_app tests`
+
+### 진행 중: 썸네일 업로드와 PBIX 수정 UX (2026-08-15)
+
+- 프로젝트 등록/수정 폼의 썸네일 설정에 `이미지 업로드` 모드를 추가했다. JPG, PNG, WebP를 최대 5MB까지 받으며 서버에서 960x540 JPEG로 정규화해 `project-thumbnails` Storage bucket의 기존 프로젝트 썸네일 경로에 저장한다.
+- 수정 화면에서는 기존 썸네일을 삭제해 기본 커버로 되돌릴 수 있고, 새 이미지 파일을 선택하면 같은 Storage 경로를 upsert해 교체한다.
+- Power BI 프로젝트 수정 화면에서도 PBIX 파일 업로드를 허용한다. 새 PBIX를 업로드하면 기존 프로젝트 ID와 상세 URL은 유지하고 `powerbi_reports` 메타데이터를 새 Import 결과로 갱신한다.
+- 수정 화면에서 기존 Power BI 게시본 연결 삭제를 선택하면 FOLIO의 `powerbi_reports` row와 `projects.power_bi_url` 연결을 제거한다. Power BI Workspace의 Report/Semantic Model 물리 삭제는 30일 cleanup 정책과 별도로 남겨둔다.
+- `projects.thumbnail_mode` 체크 제약에 `upload` 값이 추가됐으므로 원격 Supabase에 최신 `supabase/schema.sql` 재적용이 필요하다.

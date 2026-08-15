@@ -1,5 +1,9 @@
 import unittest
+from io import BytesIO
 from unittest.mock import ANY, patch
+from types import SimpleNamespace
+
+from PIL import Image
 
 from folio_app.services.project_thumbnails import (
     ThumbnailCaptureResult,
@@ -10,6 +14,7 @@ from folio_app.services.project_thumbnails import (
     _resolve_chromedriver_path,
     delete_project_thumbnail_file,
     maybe_capture_project_thumbnail,
+    prepare_uploaded_thumbnail_bytes,
     thumbnail_capture_source_url,
     try_delete_project_thumbnail_file,
 )
@@ -77,6 +82,22 @@ class ProjectThumbnailTests(unittest.TestCase):
 
         self.assertTrue(result.ok)
         self.assertTrue(result.skipped)
+
+    def test_prepare_uploaded_thumbnail_converts_image_to_optimized_jpeg(self) -> None:
+        source = BytesIO()
+        Image.new("RGB", (1200, 800), (20, 80, 140)).save(source, format="PNG")
+        uploaded_file = SimpleNamespace(
+            name="thumb.png",
+            type="image/png",
+            size=len(source.getvalue()),
+            getbuffer=lambda: source.getvalue(),
+        )
+
+        result = prepare_uploaded_thumbnail_bytes(uploaded_file)
+
+        with Image.open(BytesIO(result)) as image:
+            self.assertEqual(image.format, "JPEG")
+            self.assertEqual(image.size, (960, 540))
 
     @patch("folio_app.services.project_thumbnails.update_project_thumbnail_url")
     @patch("folio_app.services.project_thumbnails.upload_project_thumbnail", return_value="https://cdn.example.com/thumb.jpg")

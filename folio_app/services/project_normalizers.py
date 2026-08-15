@@ -9,10 +9,12 @@ from folio_app.services.project_content import sanitize_project_html
 THUMBNAIL_MODE_AUTO_COVER = "auto_cover"
 THUMBNAIL_MODE_MANUAL_URL = "manual_url"
 THUMBNAIL_MODE_CAPTURE = "capture"
+THUMBNAIL_MODE_UPLOAD = "upload"
 THUMBNAIL_MODES = {
     THUMBNAIL_MODE_AUTO_COVER,
     THUMBNAIL_MODE_MANUAL_URL,
     THUMBNAIL_MODE_CAPTURE,
+    THUMBNAIL_MODE_UPLOAD,
 }
 PROJECT_TYPE_POWERBI = "powerbi"
 PROJECT_TYPE_TABLEAU = "tableau"

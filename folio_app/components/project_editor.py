@@ -25,8 +25,14 @@ from folio_app.services.project_drafts import (
     load_project_draft,
     save_project_draft,
 )
-from folio_app.services.powerbi import generate_embed_token, publish_pbix_for_project
-from folio_app.services.project_thumbnails import capture_project_thumbnail_from_html
+from folio_app.services.powerbi import (
+    PowerBIServiceError,
+    delete_powerbi_report_for_project,
+    generate_embed_token,
+    get_powerbi_report_for_project,
+    publish_pbix_for_project,
+)
+from folio_app.services.project_thumbnails import capture_project_thumbnail_from_html, upload_project_thumbnail_file
 from folio_app.services.projects import clear_project_caches, create_project, update_project
 from folio_app.services.project_references import reference_platform_for_project
 
@@ -80,13 +86,14 @@ def render_submit_project_form(user_id: str) -> None:
         if powerbi_result is None:
             return
         if powerbi_result.ok:
+            _apply_uploaded_thumbnail_if_requested(powerbi_result.project_id, form_data)
             track_event("pbix_import_success", {"item_id": powerbi_result.project_id})
             clear_project_draft(st.session_state, user_id, draft_id, widget_prefix)
             st.session_state["project_notice"] = powerbi_result.message
             navigate("Home", project_id=powerbi_result.project_id)
         else:
             track_event("pbix_import_failed", {"item_id": powerbi_result.project_id})
-            st.error(powerbi_result.message)
+            _show_operation_error(powerbi_result.message)
         return
 
     result = _run_with_thumbnail_progress(
@@ -96,21 +103,28 @@ def render_submit_project_form(user_id: str) -> None:
     )
 
     if result.ok:
+        _apply_uploaded_thumbnail_if_requested(result.project_id, form_data)
         track_event("project_submit", {"item_id": result.project_id})
         clear_project_draft(st.session_state, user_id, draft_id, widget_prefix)
         st.session_state["project_notice"] = result.message
         navigate("Home", project_id=result.project_id)
     else:
-        st.error(result.message)
+        _show_operation_error(result.message)
 
 
 def render_edit_project_form(author_id: str, project: dict) -> None:
-    st.markdown("### 프로젝트 수정")
-
     draft_id = f"edit:{project['id']}"
     widget_prefix = f"edit_{project['id']}"
     apply_pending_draft_clear(st.session_state, author_id, draft_id)
     draft = load_project_draft(st.session_state, author_id, draft_id, _edit_project_defaults(project))
+    has_powerbi_report = _has_powerbi_report(project)
+    render_hero(
+        "Edit",
+        "프로젝트 수정",
+        "프로젝트 정보와 대표 썸네일을 업데이트하세요.",
+        image_html=render_project_card_html(hero_preview_project(draft, widget_prefix)),
+        class_name="folio-project-detail-hero folio-submit-preview-hero",
+    )
 
     form_data, submitted, cancelled = render_project_form(
         widget_prefix,
@@ -123,10 +137,12 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
         etc_url=draft["report_url"],
         platform_key=draft["platform"],
         thumbnail_url=draft["thumbnail_url"],
+        existing_thumbnail_url=project.get("thumbnail_url") or "",
         thumbnail_mode=draft["thumbnail_mode"],
+        has_powerbi_report=has_powerbi_report,
         is_public=bool(draft["is_public"]),
         show_visibility_setting=True,
-        allow_pbix_upload=False,
+        allow_pbix_upload=True,
         submit_label="수정 완료",
         secondary_label="목록으로 돌아가기",
     )
@@ -135,7 +151,7 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
     if cancelled:
         clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
         st.session_state.pop("editing_project_id", None)
-        st.rerun()
+        navigate("My Page")
 
     if not submitted:
         return
@@ -145,6 +161,11 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
         return
 
     payload = build_project_payload(form_data, parsed_body)
+    pbix_file = form_data.get("pbix_file")
+    if pbix_file is not None:
+        payload["project_type"] = "powerbi"
+        payload["status"] = "processing"
+        payload["embed_status"] = "external_only"
     result = _run_with_thumbnail_progress(
         form_data,
         lambda progress_callback: update_project(
@@ -157,12 +178,30 @@ def render_edit_project_form(author_id: str, project: dict) -> None:
     )
 
     if result.ok:
+        if pbix_file is not None:
+            powerbi_result = _publish_replacement_pbix(project["id"], pbix_file)
+            if powerbi_result is None:
+                return
+            if not powerbi_result.ok:
+                _show_operation_error(powerbi_result.message)
+                return
+            _apply_uploaded_thumbnail_if_requested(project["id"], form_data)
+            result = powerbi_result
+        elif form_data.get("delete_pbix"):
+            try:
+                delete_powerbi_report_for_project(project["id"])
+                clear_project_caches()
+            except PowerBIServiceError as exc:
+                _show_operation_error(str(exc))
+                return
+        else:
+            _apply_uploaded_thumbnail_if_requested(project["id"], form_data)
         clear_project_draft(st.session_state, author_id, draft_id, widget_prefix)
         st.session_state.pop("editing_project_id", None)
         st.session_state["portfolio_notice"] = result.message
-        st.rerun()
+        navigate("My Page")
     else:
-        st.error(result.message)
+        _show_operation_error(result.message)
 
 
 def _submit_project_defaults() -> dict:
@@ -200,19 +239,33 @@ def _edit_project_defaults(project: dict) -> dict:
 def _validated_project_body(form_data: dict[str, str]) -> dict[str, str] | None:
     parsed_body, missing, url_error = validate_project_form(form_data)
     if missing:
-        st.error(f"필수 입력값을 확인하세요: {', '.join(missing)}")
+        _show_operation_error(f"필수 입력값을 확인하세요: {', '.join(missing)}")
         return None
     if url_error:
-        st.error(url_error)
+        _show_operation_error(url_error)
         return None
     return parsed_body
+
+
+def _show_operation_error(message: str) -> None:
+    with st.container(border=True, key=f"project_operation_error_{abs(hash(message))}"):
+        st.markdown('<div class="folio-operation-title">처리 결과</div>', unsafe_allow_html=True)
+        st.error(message)
+
+
+def _create_operation_progress(key: str, initial_value: int, text: str):
+    panel = st.container(border=True, key=f"{key}_operation_panel")
+    with panel:
+        st.markdown('<div class="folio-operation-title">작업 진행</div>', unsafe_allow_html=True)
+        progress = st.progress(initial_value, text=text)
+    return panel, progress
 
 
 def _run_with_thumbnail_progress(form_data: dict, action, message: str):
     if form_data.get("thumbnail_mode") != THUMBNAIL_MODE_CAPTURE:
         return action(None)
 
-    progress = st.progress(12, text=message)
+    _, progress = _create_operation_progress("thumbnail_capture", 12, message)
     try:
         def update_progress(value: int, text: str) -> None:
             progress.progress(value, text=text)
@@ -225,10 +278,57 @@ def _run_with_thumbnail_progress(form_data: dict, action, message: str):
         progress.empty()
 
 
+def _apply_uploaded_thumbnail_if_requested(project_id: str | None, form_data: dict) -> None:
+    if not project_id:
+        return
+    uploaded_thumbnail = form_data.get("thumbnail_file")
+    if uploaded_thumbnail is None:
+        return
+    result = upload_project_thumbnail_file(project_id, uploaded_thumbnail)
+    if not result.ok:
+        st.warning("프로젝트는 저장됐지만 썸네일 업로드에 실패했습니다. 이미지를 확인한 뒤 다시 시도하세요.")
+    else:
+        clear_project_caches()
+
+
+def _has_powerbi_report(project: dict) -> bool:
+    if project.get("project_type") == "powerbi" and project.get("power_bi_url"):
+        return True
+    try:
+        return get_powerbi_report_for_project(project["id"]) is not None
+    except PowerBIServiceError:
+        return False
+
+
+def _publish_replacement_pbix(project_id: str, pbix_file):
+    settings = get_settings()
+    if not settings.is_powerbi_configured:
+        _show_operation_error("Power BI 게시 환경 변수가 설정되지 않았습니다.")
+        return None
+
+    _, progress = _create_operation_progress(
+        "pbix_replacement",
+        20,
+        "새 PBIX 파일을 Power BI Workspace에 게시하는 중입니다.",
+    )
+    try:
+        pbix_bytes = bytes(pbix_file.getbuffer())
+        result = publish_pbix_for_project(project_id, pbix_bytes, pbix_file.name, settings=settings)
+        progress.progress(100, text="PBIX 교체 요청이 완료되었습니다.")
+        if result.ok:
+            track_event("pbix_import_success", {"item_id": result.project_id})
+            clear_project_caches()
+        else:
+            track_event("pbix_import_failed", {"item_id": result.project_id})
+        return result
+    finally:
+        progress.empty()
+
+
 def _create_and_publish_powerbi_project(user_id: str, payload: dict, pbix_file):
     settings = get_settings()
     if not settings.is_powerbi_configured:
-        st.error("Power BI 게시 환경 변수가 설정되지 않았습니다.")
+        _show_operation_error("Power BI 게시 환경 변수가 설정되지 않았습니다.")
         return None
 
     payload = dict(payload)
@@ -236,14 +336,15 @@ def _create_and_publish_powerbi_project(user_id: str, payload: dict, pbix_file):
     payload["status"] = "processing"
     payload["embed_status"] = "external_only"
 
-    progress = st.progress(10, text="Power BI 프로젝트를 등록하는 중입니다.")
+    panel, progress = _create_operation_progress("pbix_create", 10, "Power BI 프로젝트를 등록하는 중입니다.")
     try:
         def update_progress(value: int, text: str) -> None:
             progress.progress(value, text=text)
 
         create_result = create_project(user_id, payload)
         if not create_result.ok or not create_result.project_id:
-            st.error(create_result.message)
+            with panel:
+                st.error(create_result.message)
             return None
         progress.progress(35, text="PBIX 파일을 Power BI Workspace에 게시하는 중입니다.")
         pbix_bytes = bytes(pbix_file.getbuffer())

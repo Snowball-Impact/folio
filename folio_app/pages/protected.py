@@ -17,6 +17,9 @@ from folio_app.services.projects import (
 )
 
 
+_EDIT_PROJECT_QUERY_PARAM = "edit_project_id"
+
+
 def _render_login_required(page_key: str, message: str) -> None:
     st.warning(message)
     login_col, gallery_col = st.columns(2)
@@ -36,7 +39,7 @@ def render_submit() -> None:
             "Submit",
             "새 프로젝트 등록",
             "당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.",
-            image_name="hero-submit.png",
+            image_name="hero-submit.webp",
             image_alt="데이터 분석 프로젝트 등록 화면 일러스트",
         )
         _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
@@ -55,17 +58,16 @@ def render_profile() -> None:
 
 def render_my_page() -> None:
     user = get_current_user()
-    editing_project_id = st.session_state.get("editing_project_id") if user else None
-
-    render_hero(
-        "My Page",
-        "마이 페이지",
-        "프로필과 포트폴리오를 한곳에서 관리하세요.",
-        image_name="hero-my-page-v2.png",
-        image_alt="프로필 카드와 포트폴리오 통계를 표현한 3D 일러스트",
-    )
+    editing_project_id = _editing_project_id_from_query() if user else None
 
     if not user:
+        render_hero(
+            "My Page",
+            "마이 페이지",
+            "프로필과 포트폴리오를 한곳에서 관리하세요.",
+            image_name="hero-my-page-v2.webp",
+            image_alt="프로필 카드와 포트폴리오 통계를 표현한 3D 일러스트",
+        )
         _render_login_required("my_page", "마이 페이지를 이용하려면 로그인이 필요합니다.")
         return
 
@@ -91,8 +93,15 @@ def render_my_page() -> None:
         if project:
             render_edit_project_form(user["id"], project)
             return
-        st.session_state.pop("editing_project_id", None)
-        st.rerun()
+        navigate("My Page")
+
+    render_hero(
+        "My Page",
+        "마이 페이지",
+        "프로필과 포트폴리오를 한곳에서 관리하세요.",
+        image_name="hero-my-page-v2.webp",
+        image_alt="프로필 카드와 포트폴리오 통계를 표현한 3D 일러스트",
+    )
 
     try:
         profile = get_profile(user["id"])
@@ -167,8 +176,7 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
                     if st.button("보기", key=f"portfolio_view_{project['id']}", use_container_width=True):
                         navigate("Home", project_id=project["id"])
                     if st.button("수정", key=f"portfolio_edit_{project['id']}", use_container_width=True):
-                        st.session_state["editing_project_id"] = project["id"]
-                        st.rerun()
+                        navigate("My Page", **{_EDIT_PROJECT_QUERY_PARAM: project["id"]})
                     if st.button("삭제", key=f"portfolio_delete_{project['id']}", use_container_width=True):
                         _confirm_project_deletion(project, user["id"])
     else:
@@ -182,6 +190,14 @@ def _render_profile_view(user: dict, profile: dict, projects: list[dict]) -> Non
             )
             if st.button("프로젝트 등록", key="profile_create_project", type="primary"):
                 navigate("Submit")
+
+
+def _editing_project_id_from_query() -> str | None:
+    value = st.query_params.get(_EDIT_PROJECT_QUERY_PARAM)
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    value = str(value or "").strip()
+    return value or None
 
 
 def _render_profile_edit_form(user_id: str, profile: dict) -> None:

@@ -195,7 +195,12 @@ def _message_with_thumbnail_result(message: str, capture_result: object) -> str:
 
 def _is_thumbnail_mode_schema_error(exc: Exception) -> bool:
     message = str(exc).lower()
-    return "thumbnail_mode" in message and ("column" in message or "schema cache" in message)
+    return "thumbnail_mode" in message and (
+        "column" in message
+        or "schema cache" in message
+        or "check constraint" in message
+        or "projects_thumbnail_mode_check" in message
+    )
 
 
 def _is_status_schema_error(exc: Exception) -> bool:
@@ -204,4 +209,4 @@ def _is_status_schema_error(exc: Exception) -> bool:
 
 
 def _thumbnail_mode_schema_message() -> str:
-    return "프로젝트 썸네일 설정을 저장하려면 Supabase projects.thumbnail_mode 컬럼을 먼저 적용해야 합니다."
+    return "프로젝트 썸네일 설정을 저장하려면 Supabase projects.thumbnail_mode 스키마를 최신 상태로 적용해야 합니다."

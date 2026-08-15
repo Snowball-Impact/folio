@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from folio_app.config import Settings
 from folio_app.services.powerbi import (
     PowerBIServiceError,
+    delete_powerbi_report_for_project,
     fetch_powerbi_access_token,
     generate_embed_token,
     get_powerbi_embed_config,
@@ -172,6 +173,30 @@ class PowerBIImportTests(unittest.TestCase):
 
         self.assertFalse(result.ok)
         self.assertIn("PBIX", result.message)
+
+    @patch("folio_app.services.powerbi.get_supabase_client")
+    def test_delete_powerbi_report_removes_metadata_and_clears_project_embed(self, get_client) -> None:
+        table_builders = {}
+
+        def table(name):
+            builder = table_builders.setdefault(name, MagicMock())
+            builder.delete.return_value = builder
+            builder.update.return_value = builder
+            builder.eq.return_value = builder
+            builder.execute.return_value = SimpleNamespace(data=[{}])
+            return builder
+
+        client = MagicMock()
+        client.table.side_effect = table
+        get_client.return_value = client
+
+        delete_powerbi_report_for_project("project-id")
+
+        table_builders["powerbi_reports"].delete.assert_called_once()
+        table_builders["powerbi_reports"].eq.assert_called_with("project_id", "project-id")
+        project_payload = table_builders["projects"].update.call_args.args[0]
+        self.assertIsNone(project_payload["power_bi_url"])
+        self.assertEqual(project_payload["embed_status"], "external_only")
 
 
 class PowerBIEmbedTokenTests(unittest.TestCase):

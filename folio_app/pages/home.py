@@ -58,24 +58,21 @@ def render() -> None:
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
     try:
-        recent_projects = _filter_projects_by_platforms(
-            list_public_projects(search=search, tag=selected_tag, sort="최신순", limit=500),
-            selected_platforms,
+        all_projects = list_public_projects(sort="최신순", limit=None)
+        platform_projects = _filter_projects_by_platforms(all_projects, selected_platforms)
+        recent_projects = _filter_projects_by_query(platform_projects, search=search, tag=selected_tag)
+        viewed_projects = sorted(
+            recent_projects,
+            key=lambda project: project.get("view_count", 0) or 0,
+            reverse=True,
         )
-        viewed_projects = _filter_projects_by_platforms(
-            list_public_projects(search=search, tag=selected_tag, sort="조회수순", limit=500),
-            selected_platforms,
+        liked_projects = sorted(
+            recent_projects,
+            key=lambda project: project.get("like_count", 0) or 0,
+            reverse=True,
         )
-        liked_projects = _filter_projects_by_platforms(
-            list_public_projects(search=search, tag=selected_tag, sort="좋아요순", limit=500),
-            selected_platforms,
-        )
-        total_project_count = (
-            len(recent_projects)
-            if not search and selected_tag == "전체"
-            else len(_filter_projects_by_platforms(list_public_projects(sort="최신순", limit=500), selected_platforms))
-        )
-        popular_tags = _popular_tags(selected_platforms)
+        total_project_count = len(platform_projects)
+        popular_tags = _popular_tags_from_projects(platform_projects)
     except ProjectServiceError as exc:
         st.error(str(exc))
         if st.button("다시 시도", key="retry_public_projects"):
@@ -100,13 +97,6 @@ def _project_rail_specs(
         ("views", "조회수가 높은 프로젝트를 빠르게 훑어보세요.", viewed_projects),
         ("likes", "좋아요를 많이 받은 프로젝트를 확인해보세요.", liked_projects),
     ]
-
-
-def _popular_tags(selected_platforms: set[str], limit: int = 10) -> list[str]:
-    return _popular_tags_from_projects(
-        _filter_projects_by_platforms(list_public_projects(sort="최신순", limit=500), selected_platforms),
-        limit=limit,
-    )
 
 
 def _popular_tags_from_projects(projects: list[dict], limit: int = 10) -> list[str]:
@@ -183,6 +173,36 @@ def _filter_projects_by_platforms(projects: list[dict], selected_platforms: set[
         if platform_key in selected_platforms:
             filtered_projects.append(project)
     return filtered_projects
+
+
+def _filter_projects_by_query(projects: list[dict], *, search: str, tag: str) -> list[dict]:
+    filtered = list(projects)
+    if search:
+        filtered = [project for project in filtered if _project_matches_search(project, search)]
+    if tag and tag != "전체":
+        filtered = [project for project in filtered if tag in (project.get("tags") or [])]
+    return filtered
+
+
+def _project_matches_search(project: dict, search: str) -> bool:
+    term = search.strip().lower()
+    if not term:
+        return True
+
+    author = project.get("author") or {}
+    fields = [
+        project.get("title") or "",
+        project.get("one_liner") or "",
+        project.get("problem") or "",
+        project.get("dataset") or "",
+        project.get("process") or "",
+        project.get("insights") or "",
+        " ".join(project.get("tags") or []),
+        author.get("name") or "",
+        author.get("organization") or "",
+        project.get("created_at") or "",
+    ]
+    return any(term in str(field).lower() for field in fields)
 
 
 def _render_hero() -> None:

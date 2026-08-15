@@ -19,7 +19,7 @@ def list_public_projects(
     search: str = "",
     tag: str = "전체",
     sort: str = "최신순",
-    limit: int = 50,
+    limit: int | None = 50,
 ) -> list[dict[str, Any]]:
     try:
         projects = _attach_related_data(_fetch_public_projects(), sort=sort)
@@ -31,6 +31,8 @@ def list_public_projects(
         raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     if sort == "조회수순":
         projects.sort(key=lambda project: project.get("view_count", 0) or 0, reverse=True)
+    if limit is None:
+        return projects
     return projects[:limit]
 
 

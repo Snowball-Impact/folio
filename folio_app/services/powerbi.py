@@ -298,6 +298,20 @@ def get_powerbi_report_for_project(project_id: str) -> dict[str, Any] | None:
     return response.data or None
 
 
+def delete_powerbi_report_for_project(project_id: str) -> None:
+    client = get_supabase_client()
+    if client is None:
+        raise PowerBIServiceError("Supabase 환경 변수가 설정되지 않았습니다.")
+    client.table("powerbi_reports").delete().eq("project_id", project_id).execute()
+    client.table("projects").update(
+        {
+            "power_bi_url": None,
+            "embed_status": "external_only",
+            "status": PROJECT_STATUS_PUBLISHED,
+        }
+    ).eq("id", project_id).execute()
+
+
 def upsert_powerbi_report(project_id: str, metadata: dict[str, Any]) -> None:
     client = get_supabase_client()
     if client is None:
@@ -385,7 +399,7 @@ def _validate_pbix_upload(pbix_bytes: bytes, original_filename: str, max_upload_
 
 def _dataset_display_name(project_id: str, original_filename: str) -> str:
     safe_name = "".join(ch if ch.isalnum() or ch in {"-", "_", "."} else "_" for ch in original_filename)
-    return f"{project_id}_{safe_name}"[:120]
+    return f"{project_id}_{int(time.time())}_{safe_name}"[:120]
 
 
 def _first_report_from_import(import_payload: dict[str, Any]) -> dict[str, Any]:

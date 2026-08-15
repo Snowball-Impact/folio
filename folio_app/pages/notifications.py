@@ -17,7 +17,7 @@ def render() -> None:
         "Notifications",
         "알림",
         "내 프로젝트에 새로 들어온 반응을 확인하세요.",
-        image_name="hero-my-page-v2.png",
+        image_name="hero-my-page-v2.webp",
         image_alt="프로필 카드와 포트폴리오 통계를 표현한 3D 일러스트",
     )
 

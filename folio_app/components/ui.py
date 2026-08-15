@@ -12,6 +12,12 @@ def is_http_url(value: str | None) -> bool:
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
 
+def is_safe_image_src(value: str | None) -> bool:
+    if is_http_url(value):
+        return True
+    return bool(value) and str(value).startswith("data:image/") and ";base64," in str(value)
+
+
 def plain_text(value: str | None) -> str:
     if not value:
         return ""
@@ -210,7 +216,7 @@ def _card_cover(project: dict, *, compact: bool) -> str:
 
 
 def _has_card_thumbnail(project: dict) -> bool:
-    return is_http_url(project.get("thumbnail_url"))
+    return is_safe_image_src(project.get("thumbnail_url"))
 
 
 def _parse_timestamp(value: str | None) -> datetime | None:
