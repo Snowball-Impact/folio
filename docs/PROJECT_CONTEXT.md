@@ -896,3 +896,50 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m unittest discover -s tests`
 - `python -m compileall -q folio_app tests`
 - `python -m pyflakes folio_app app.py tests`
+
+### 완료: Power BI 콘텐츠 허브 리팩토링 (2026-08-15)
+
+- `folio_app/pages/powerbi.py`는 Streamlit 화면 조합, hero, 카드 HTML, 페이지네이션만 담당하도록 축소했다.
+- Power BI 큐레이션 CSV 로딩, 커뮤니티/학습 탭 그룹핑, 월간 업데이트와 패치 로그를 하나의 게시판 아이템으로 병합하는 로직은 `folio_app/services/powerbi_content.py`로 분리했다.
+- 업데이트/패치로그의 한국어 라벨과 요약 변환 규칙은 `folio_app/services/powerbi_i18n.py`로 분리했다.
+- `tools/collect_powerbi_all.py`는 `Collector` registry 구조로 정리했다. 새 수집원이 생기면 개별 수집기, `COLLECTORS`, `CSV_OUTPUTS`, 검증 규칙을 함께 갱신한다.
+- 프로젝트 등록/수정 공용 폼은 제출/공개 액션 영역을 `_render_project_form_actions()`로 분리해 `render_project_form()`의 책임을 줄였다.
+- 홈 히어로 배너는 마지막 슬라이드에서 첫 번째 슬라이드 clone으로 한 번 더 우측 진행한 뒤 원래 첫 번째 슬라이드로 snap back하는 구조로 수정했다. 이 변경은 Playwright 화면 확인 전에는 배포 판단에 포함하지 않는다.
+
+검증:
+
+- `python -m compileall -q folio_app\pages\powerbi.py folio_app\services\powerbi_content.py folio_app\services\powerbi_i18n.py folio_app\components\project_form.py tools\collect_powerbi_all.py`
+- `python tools\collect_powerbi_all.py --dry-run --skip-validation --skip-reference-check --skip-thumbnail-cleanup`
+- `python -m unittest tests.test_project_form tests.test_project_editor`
+- `python -m unittest tests.test_powerbi`
+- `python -m unittest tests.test_powerbi_content`
+- `python -m unittest discover -s tests`
+
+### 다음 할 일
+
+1. 홈 히어로 순환 방식 변경을 Playwright로 확인한다.
+   - 마지막 배너에서 첫 배너로 돌아갈 때 좌측 역주행처럼 보이지 않는지 확인한다.
+   - 배너 dot active 상태와 실제 슬라이드 위치가 같은 타이밍으로 움직이는지 확인한다.
+
+2. Power BI 페이지 렌더링 회귀를 Playwright로 확인한다.
+   - `업데이트 소식`, `커뮤니티 소식`, `학습 콘텐츠`, `자격증`, `공식 레퍼런스` 메뉴 진입을 확인한다.
+   - 업데이트 게시판의 접기/펼치기, 원문 버튼, 공식 업데이트 영상 썸네일이 정상인지 확인한다.
+   - 학습 콘텐츠 탭과 카드 CTA 우하단 정렬이 유지되는지 확인한다.
+
+3. Power BI 콘텐츠 자동 수집 운영을 한 번 실제 dry-run이 아닌 최신 수집으로 검증한다.
+   - `python tools\collect_powerbi_all.py --since-year 2025`
+   - 변경된 CSV/썸네일 diff를 보고, 불필요한 썸네일 삭제와 신규 콘텐츠 반영 여부를 확인한다.
+   - 원문 링크, 한국어 제목/요약, 공식 업데이트 영상 매칭이 깨진 항목을 샘플링한다.
+
+4. 프로젝트 등록 폼 리팩토링 2차를 진행한다.
+   - 기본 정보, 산출물 링크, 플랫폼/PBIX, 썸네일 패널을 함수 단위로 더 분리한다.
+   - 동작 변경 없이 `render_project_form()`의 길이를 줄이고 기존 `tests.test_project_form`, `tests.test_project_editor`로 보호한다.
+
+5. Power BI 콘텐츠 번역 규칙을 데이터화할지 결정한다.
+   - 지금은 `powerbi_i18n.py`의 if-chain이 가장 빠르다.
+   - 규칙이 더 늘어나면 키워드/결과 문장을 CSV 또는 JSON으로 옮겨 운영자가 수정할 수 있게 한다.
+
+6. 커밋/배포 전 체크를 진행한다.
+   - 현재 작업트리에는 리팩토링과 홈 히어로 순환 변경이 함께 있다.
+   - 둘을 한 커밋으로 묶을지, 홈 히어로 변경만 별도 커밋으로 분리할지 결정한다.
+   - 배포 전에는 `APP_VERSION` 갱신 여부를 확인한다.

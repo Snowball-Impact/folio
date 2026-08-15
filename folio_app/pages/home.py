@@ -257,7 +257,10 @@ def _project_matches_search(project: dict, search: str) -> bool:
 
 
 def _render_hero() -> None:
-    slides_html = "".join(_hero_slide_html(slide) for slide in _HOME_HERO_SLIDES)
+    # Append a clone of the first slide so the last -> first transition keeps
+    # moving in the same direction before snapping back to the real first slide.
+    track_slides = (*_HOME_HERO_SLIDES, _HOME_HERO_SLIDES[0])
+    slides_html = "".join(_hero_slide_html(slide) for slide in track_slides)
     st.markdown(
         clean_html(f"""
         <section class="folio-home-hero-shell">

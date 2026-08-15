@@ -103,6 +103,8 @@ flowchart TB
 
 `services/auth.py`, `services/projects.py`, `services/comments.py`는 기존 import 경로를 유지하는 public facade다. 실제 구현은 `auth_*`, `project_*`, `comment_*` 하위 모듈에 둔다. CSS도 `styles/__init__.py`가 영역별 모듈의 `CSS` 상수를 고정 순서로 합쳐 1회 주입한다.
 
+Power BI 콘텐츠 허브는 화면과 수집/가공을 분리한다. `pages/powerbi.py`는 Streamlit 화면 조합과 카드 렌더링만 맡고, 큐레이션 CSV 로딩·탭 그룹핑·업데이트/패치로그 병합은 `services/powerbi_content.py`가 담당한다. 월간 업데이트와 변경 로그를 한국어로 풀어 쓰는 규칙은 `services/powerbi_i18n.py`에 둔다.
+
 ## 3. 실행과 라우팅
 
 ```mermaid

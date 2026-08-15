@@ -28,6 +28,7 @@
 | [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | Streamlit Community Cloud 배포, Playwright 캡처 실험, 커스텀 도메인 iframe 우회 기준 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
+| [curation/powerbi_CONTENT_OPS.md](curation/powerbi_CONTENT_OPS.md) | Power BI 업데이트·커뮤니티·학습 콘텐츠 정기 수집과 점검 절차 |
 
 ## 큐레이션 데이터
 
@@ -36,6 +37,7 @@
 | [curation/tableau_gallery/](curation/tableau_gallery/) | Tableau Gallery 수집 결과와 수집 방식 |
 | [curation/looker_studio_gallery/](curation/looker_studio_gallery/) | Looker Studio/Data Studio Gallery 수집 결과와 skip 로그 |
 | [curation/streamlit_gallery/](curation/streamlit_gallery/) | Streamlit Gallery 수집 결과 CSV |
+| [curation/powerbi_*](curation/powerbi_CONTENT_OPS.md) | Power BI Desktop, 업데이트, 변경 로그, 공식 영상, 커뮤니티 블로그, 학습 영상 수집 결과 |
 
 ## Legacy
 

@@ -7,6 +7,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -18,6 +19,13 @@ class StepResult:
     name: str
     status: str
     detail: str = ""
+
+
+@dataclass(frozen=True)
+class Collector:
+    name: str
+    skip_attr: str
+    command_builder: Callable[[argparse.Namespace], list[str]]
 
 
 CSV_OUTPUTS = {
@@ -36,33 +44,51 @@ THUMBNAIL_CSVS = (
     CSV_OUTPUTS["learning_programs"],
 )
 
+COLLECTORS = (
+    Collector(
+        "Desktop download",
+        "skip_desktop",
+        lambda args: ["tools/collect_powerbi_desktop_download.py"],
+    ),
+    Collector(
+        "Monthly updates",
+        "skip_updates",
+        lambda args: _release_command(
+            "tools/collect_powerbi_updates.py",
+            args.since_year,
+            args.max_update_releases,
+        ),
+    ),
+    Collector(
+        "Desktop changelog",
+        "skip_changelog",
+        lambda args: _release_command(
+            "tools/collect_powerbi_changelog.py",
+            args.since_year,
+            args.max_changelog_releases,
+        ),
+    ),
+    Collector(
+        "Learning videos and programs",
+        "skip_learning",
+        lambda args: ["tools/collect_powerbi_learning_videos.py"],
+    ),
+    Collector(
+        "Community blog",
+        "skip_community",
+        lambda args: ["tools/collect_powerbi_community_blog.py", "--limit", str(args.community_limit)],
+    ),
+)
+
 
 def main() -> int:
     args = _parse_args()
     results: list[StepResult] = []
 
-    if not args.skip_desktop:
-        results.append(_run_step("Desktop download", ["tools/collect_powerbi_desktop_download.py"], dry_run=args.dry_run))
-    if not args.skip_updates:
-        command = ["tools/collect_powerbi_updates.py", "--since-year", str(args.since_year)]
-        if args.max_update_releases:
-            command.extend(["--max-releases", str(args.max_update_releases)])
-        results.append(_run_step("Monthly updates", command, dry_run=args.dry_run))
-    if not args.skip_changelog:
-        command = ["tools/collect_powerbi_changelog.py", "--since-year", str(args.since_year)]
-        if args.max_changelog_releases:
-            command.extend(["--max-releases", str(args.max_changelog_releases)])
-        results.append(_run_step("Desktop changelog", command, dry_run=args.dry_run))
-    if not args.skip_learning:
-        results.append(_run_step("Learning videos and programs", ["tools/collect_powerbi_learning_videos.py"], dry_run=args.dry_run))
-    if not args.skip_community:
-        results.append(
-            _run_step(
-                "Community blog",
-                ["tools/collect_powerbi_community_blog.py", "--limit", str(args.community_limit)],
-                dry_run=args.dry_run,
-            )
-        )
+    for collector in COLLECTORS:
+        if getattr(args, collector.skip_attr):
+            continue
+        results.append(_run_step(collector.name, collector.command_builder(args), dry_run=args.dry_run))
     if not args.skip_thumbnail_cleanup:
         results.append(_cleanup_thumbnails(dry_run=args.dry_run))
     if not args.skip_reference_check:
@@ -72,6 +98,13 @@ def main() -> int:
 
     _print_summary(results)
     return 1 if any(result.status == "failed" for result in results) else 0
+
+
+def _release_command(script_path: str, since_year: int, max_releases: int) -> list[str]:
+    command = [script_path, "--since-year", str(since_year)]
+    if max_releases:
+        command.extend(["--max-releases", str(max_releases)])
+    return command
 
 
 def _parse_args() -> argparse.Namespace:

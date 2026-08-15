@@ -262,6 +262,44 @@ def render_project_form(
         _render_form_section_heading("프로젝트 내용", "분석의 배경과 과정, 핵심 인사이트를 기록하세요.")
         project_body = render_project_body_editor(f"{key_prefix}_body", project_body_initial)
 
+    submitted, cancelled, is_public_input = _render_project_form_actions(
+        key_prefix,
+        submit_label,
+        is_public=is_public,
+        show_visibility_setting=show_visibility_setting,
+        secondary_label=secondary_label,
+    )
+    return (
+        {
+            "title": title_input,
+            "one_liner": one_liner_input,
+            "tags": tags_input,
+            "platform": platform_input,
+            "project_body": project_body,
+            "power_bi_url": power_bi_url_input,
+            "report_url": etc_url_input,
+            "github_url": github_url_input,
+            "thumbnail_url": thumbnail_url_input,
+            "thumbnail_mode": thumbnail_mode_input,
+            "thumbnail_file": thumbnail_file_input,
+            "delete_thumbnail": delete_thumbnail_input,
+            "pbix_file": pbix_file,
+            "delete_pbix": delete_pbix_input,
+            "is_public": is_public_input,
+        },
+        submitted,
+        cancelled,
+    )
+
+
+def _render_project_form_actions(
+    key_prefix: str,
+    submit_label: str,
+    *,
+    is_public: bool,
+    show_visibility_setting: bool,
+    secondary_label: str | None,
+) -> tuple[bool, bool, bool]:
     cancelled = False
     if show_visibility_setting:
         visibility_col, actions_col = st.columns([2, 1], gap="large", vertical_alignment="bottom")
@@ -293,8 +331,9 @@ def render_project_form(
                     use_container_width=True,
                     key=f"{key_prefix}_submit",
                 )
-    elif secondary_label:
-        is_public_input = is_public
+        return submitted, cancelled, is_public_input
+
+    if secondary_label:
         action_space, secondary_col, action_col = st.columns([2, 1, 1])
         with secondary_col:
             cancelled = st.button(
@@ -309,37 +348,17 @@ def render_project_form(
                 use_container_width=True,
                 key=f"{key_prefix}_submit",
             )
-    else:
-        is_public_input = is_public
-        action_space, action_col = st.columns([3, 1])
-        with action_col:
-            submitted = st.button(
-                submit_label,
-                type="primary",
-                use_container_width=True,
-                key=f"{key_prefix}_submit",
-            )
-    return (
-        {
-            "title": title_input,
-            "one_liner": one_liner_input,
-            "tags": tags_input,
-            "platform": platform_input,
-            "project_body": project_body,
-            "power_bi_url": power_bi_url_input,
-            "report_url": etc_url_input,
-            "github_url": github_url_input,
-            "thumbnail_url": thumbnail_url_input,
-            "thumbnail_mode": thumbnail_mode_input,
-            "thumbnail_file": thumbnail_file_input,
-            "delete_thumbnail": delete_thumbnail_input,
-            "pbix_file": pbix_file,
-            "delete_pbix": delete_pbix_input,
-            "is_public": is_public_input,
-        },
-        submitted,
-        cancelled,
-    )
+        return submitted, cancelled, is_public
+
+    action_space, action_col = st.columns([3, 1])
+    with action_col:
+        submitted = st.button(
+            submit_label,
+            type="primary",
+            use_container_width=True,
+            key=f"{key_prefix}_submit",
+        )
+    return submitted, cancelled, is_public
 
 
 def _render_project_form_intro() -> None:

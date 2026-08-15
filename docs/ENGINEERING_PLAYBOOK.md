@@ -49,6 +49,7 @@
 - 새 댓글 조회 로직은 `comment_queries.py`, 작성·삭제는 `comment_mutations.py`, 읽음 상태는 `comment_reads.py`, 댓글 수·최신 댓글 시각 캐시는 `comment_stats.py`, 트리/시간 변환 유틸은 `comment_utils.py`에 둔다.
 - `components/auth_forms.py`는 인증 UI facade다. 로그인/회원가입/비밀번호 재설정 화면 구현은 각각 `auth_login.py`, `auth_signup.py`, `auth_password_reset.py`, 입력·정책 검증은 `auth_validation.py`에 둔다.
 - 프로젝트 등록·수정 흐름은 `project_editor.py`, 공용 입력 폼은 `project_form.py`, Quill 본문 파싱은 `project_body.py`가 맡는다. 상세 대표 결과물/본문은 `project_detail_content.py`, 댓글 UI는 `project_comments.py`, 홈 카드 레일은 `home_gallery.py`에 둔다.
+- Power BI 콘텐츠 화면은 `pages/powerbi.py`에 두되 CSV 로딩, 그룹핑, 뉴스 아이템 병합은 `services/powerbi_content.py`, 한국어 요약·라벨 규칙은 `services/powerbi_i18n.py`에 둔다. 새 수집원을 추가하면 `tools/collect_powerbi_all.py`의 `Collector` registry와 `docs/curation/powerbi_CONTENT_OPS.md`를 함께 갱신한다.
 - 테스트가 과거 facade의 private helper를 patch하고 있다면 먼저 public 동작으로 바꿀 수 있는지 본다. 불가피하게 내부를 patch해야 하면 실제 구현 모듈을 patch한다.
 
 ## 3. 인증과 세션 정책

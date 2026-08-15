@@ -142,6 +142,7 @@ folio_app/app.py
 |---|---|
 | `folio_app/pages/home.py` | 홈 히어로, 검색·태그·플랫폼 필터, 공개 프로젝트 카드 목록 렌더링 |
 | `folio_app/pages/reference.py` | 플랫폼별 레퍼런스 히어로, 탭, 카드 그리드, 증분 로딩 렌더링 |
+| `folio_app/pages/powerbi.py` | Power BI 업데이트 소식, 커뮤니티 소식, 학습 콘텐츠, 자격증 화면 조합과 카드 렌더링 |
 | `folio_app/pages/about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO 소개와 VISION 렌더링 |
 | `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, 댓글, Power BI, 첨부 링크 렌더링 |
 | `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
@@ -182,6 +183,8 @@ folio_app/app.py
 | `folio_app/services/projects.py` | 프로젝트 public facade. 기존 import 경로를 유지하며 query/mutation/normalizer/type 모듈을 re-export |
 | `folio_app/services/project_queries.py`, `project_mutations.py`, `project_normalizers.py`, `project_types.py` | 공개 목록·검색·정렬·캐시, CRUD·조회수·좋아요, payload/URL 정규화, 결과 타입 |
 | `folio_app/services/project_references.py` | Tableau, Power BI, Data Studio, Streamlit 레퍼런스 분류 기준 |
+| `folio_app/services/powerbi_content.py` | Power BI 큐레이션 CSV 로딩, 탭 그룹핑, 업데이트/패치로그 뉴스 아이템 조립 |
+| `folio_app/services/powerbi_i18n.py` | Power BI 업데이트와 변경 로그의 한국어 라벨·요약 변환 규칙 |
 | `folio_app/services/project_thumbnails.py` | 직접 URL·기본 커버·Playwright 자동 캡처 썸네일 처리 |
 | `folio_app/services/comments.py` | 댓글 public facade. 기존 import 경로를 유지하며 조회/작성/읽음/통계 모듈을 re-export |
 | `folio_app/services/comment_queries.py`, `comment_mutations.py`, `comment_reads.py`, `comment_stats.py`, `comment_utils.py`, `comment_types.py` | 댓글 조회·작성·삭제, 댓글 읽음 상태, 댓글 수·최신 댓글 캐시, 트리 구성, 결과 타입 |
@@ -196,6 +199,7 @@ folio_app/app.py
 |---|---|
 | `tests/test_*.py` | 설정, 인증 안정성, 라우팅, 본문 정제, 프로젝트 조회·폼 동작에 대한 단위 테스트 |
 | `tools/capture_streamlit_scroll.py` | UI 변경 후 로컬 Streamlit 화면을 스크롤 캡처하는 개발 도구 |
+| `tools/collect_powerbi_all.py` | Power BI Desktop, 업데이트, 변경 로그, 커뮤니티, 학습 콘텐츠를 통합 수집·검증하는 collector registry |
 
 화면 문구나 버튼은 주로 `pages/`, 반복 UI는 `components/`, 데이터 처리나 Supabase 호출은 `services/`, 색상·간격·폰트는 `styles/`에서 수정합니다.
 

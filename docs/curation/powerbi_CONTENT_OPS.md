@@ -21,6 +21,8 @@ python tools\collect_powerbi_all.py
 이 명령은 Desktop 다운로드, 업데이트 소식, 커뮤니티 소식, 학습 콘텐츠를 순서대로 수집하고,
 Power BI 공식 레퍼런스 설정을 검증한 뒤 CSV/썸네일 출력물을 점검한다.
 
+`tools\collect_powerbi_all.py`의 수집 대상은 `Collector` registry에 등록한다. 새 수집원을 추가할 때는
+개별 스크립트를 먼저 만들고, 통합 명령의 `COLLECTORS`, `CSV_OUTPUTS`, 필요한 검증 규칙을 함께 갱신한다.
 개별 소스만 다시 수집해야 할 때는 아래 세부 스크립트를 사용한다.
 
 ## 콘텐츠별 출력물
@@ -48,11 +50,19 @@ Power BI 공식 레퍼런스 설정을 검증한 뒤 CSV/썸네일 출력물을 
 ## 수집 후 점검
 
 ```powershell
-python -m compileall -q folio_app\pages\powerbi.py folio_app\components\layout.py folio_app\styles\powerbi.py
-python -m unittest tests.test_core_flows.NavigationTests -v
+python -m compileall -q folio_app\pages\powerbi.py folio_app\services\powerbi_content.py folio_app\services\powerbi_i18n.py tools\collect_powerbi_all.py
+python -m unittest tests.test_powerbi_content
+python -m unittest discover -s tests
 ```
 
 작은 문구/간격 변경은 화면 테스트를 생략할 수 있다. 구조 변경, 새 카드/탭/HTML 마크업 변경, 스크롤/레이아웃 이슈는 Playwright로 확인한다.
+
+## 화면 반영 구조
+
+- `folio_app/pages/powerbi.py`: Streamlit 화면 조합, hero, 카드 HTML, 페이지네이션을 담당한다.
+- `folio_app/services/powerbi_content.py`: CSV 로딩, 커뮤니티/학습 탭 그룹핑, 월간 업데이트와 패치 로그를 하나의 게시판 아이템으로 병합한다.
+- `folio_app/services/powerbi_i18n.py`: 업데이트 항목과 변경 로그를 한국어로 이해하기 쉽게 바꾸는 라벨·요약 규칙을 둔다.
+- `tests/test_powerbi_content.py`: 수집 결과가 화면용 뉴스 아이템으로 정렬·병합되는 핵심 규칙을 보호한다.
 
 ## 통합 명령 옵션
 

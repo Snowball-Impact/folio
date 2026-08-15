@@ -15,7 +15,7 @@ CSS = """
 .folio-home-hero-track {
     animation: folio-home-hero-slide 20s ease-in-out infinite;
     display: flex;
-    width: 400%;
+    width: 500%;
 }
 
 .folio-home-hero-shell:hover .folio-home-hero-track,
@@ -25,25 +25,31 @@ CSS = """
 
 @keyframes folio-home-hero-slide {
     0%,
-    20% {
+    18% {
         transform: translateX(0);
     }
 
-    25%,
-    45% {
-        transform: translateX(-25%);
+    22%,
+    38% {
+        transform: translateX(-20%);
     }
 
-    50%,
-    70% {
-        transform: translateX(-50%);
+    42%,
+    58% {
+        transform: translateX(-40%);
     }
 
-    75%,
-    95% {
-        transform: translateX(-75%);
+    62%,
+    78% {
+        transform: translateX(-60%);
     }
 
+    82%,
+    98% {
+        transform: translateX(-80%);
+    }
+
+    98.01%,
     100% {
         transform: translateX(0);
     }
@@ -56,12 +62,12 @@ CSS = """
     border-radius: 16px;
     color: var(--folio-navy);
     display: grid;
-    flex: 0 0 25%;
+    flex: 0 0 20%;
     gap: 18px;
     grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
     min-height: 220px;
     padding: 28px 41px 34px;
-    width: 25%;
+    width: 20%;
 }
 
 .folio-home-guide-hero {
@@ -214,13 +220,15 @@ CSS = """
 
 @keyframes folio-home-hero-dot-one {
     0%,
-    20% {
+    18%,
+    82%,
+    100% {
         background: var(--folio-blue);
         transform: scaleX(1);
     }
 
-    25%,
-    100% {
+    22%,
+    78% {
         background: #c9d7ea;
         transform: scaleX(0.72);
     }
@@ -228,15 +236,15 @@ CSS = """
 
 @keyframes folio-home-hero-dot-two {
     0%,
-    20%,
-    50%,
+    18%,
+    42%,
     100% {
         background: #c9d7ea;
         transform: scaleX(0.72);
     }
 
-    25%,
-    45% {
+    22%,
+    38% {
         background: var(--folio-blue);
         transform: scaleX(1);
     }
@@ -244,15 +252,15 @@ CSS = """
 
 @keyframes folio-home-hero-dot-three {
     0%,
-    45%,
-    75%,
+    38%,
+    62%,
     100% {
         background: #c9d7ea;
         transform: scaleX(0.72);
     }
 
-    50%,
-    70% {
+    42%,
+    58% {
         background: var(--folio-blue);
         transform: scaleX(1);
     }
@@ -260,14 +268,15 @@ CSS = """
 
 @keyframes folio-home-hero-dot-four {
     0%,
-    70%,
+    58%,
+    82%,
     100% {
         background: #c9d7ea;
         transform: scaleX(0.72);
     }
 
-    75%,
-    95% {
+    62%,
+    78% {
         background: var(--folio-blue);
         transform: scaleX(1);
     }
