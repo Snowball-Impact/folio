@@ -10,6 +10,14 @@ Power BI 분석가 유입용 콘텐츠 후보를 Microsoft Learn 월별 업데�
 
 ## 실행
 
+정기 운영에서는 통합 명령을 사용한다.
+
+```powershell
+python tools\collect_powerbi_all.py
+```
+
+개별 갱신이 필요할 때는 아래 명령을 사용한다.
+
 ```powershell
 python tools\collect_powerbi_updates.py
 ```

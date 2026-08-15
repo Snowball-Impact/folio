@@ -132,7 +132,7 @@ def _render_reference_menu(current_page: str) -> None:
 def _render_powerbi_menu(current_page: str) -> None:
     active_topic = st.query_params.get("topic") or "news"
     items = [
-        ("news", "소식", "Power BI", {"topic": "news"}),
+        ("news", "업데이트 소식", "Power BI", {"topic": "news"}),
         ("community", "커뮤니티 소식", "Power BI", {"topic": "community"}),
         ("learning", "학습 콘텐츠", "Power BI", {"topic": "learning"}),
         ("certifications", "자격증", "Power BI", {"topic": "certifications"}),

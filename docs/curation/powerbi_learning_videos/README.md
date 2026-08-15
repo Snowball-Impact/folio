@@ -2,6 +2,16 @@
 
 YouTube RSS 기반 Power BI 학습 콘텐츠 수집 결과입니다.
 
+`Power BI > 학습 콘텐츠` 메뉴에서 카드형 영상 목록으로 사용합니다.
+
+정기 운영에서는 통합 명령을 사용합니다.
+
+```powershell
+python tools\collect_powerbi_all.py
+```
+
+개별 갱신이 필요할 때는 아래 명령을 사용합니다.
+
 ```powershell
 python tools\collect_powerbi_learning_videos.py
 ```

@@ -10,6 +10,14 @@ Power BI 분석가가 PBIX 보고서를 준비할 때 참고할 최신 Desktop �
 
 ## 실행
 
+정기 운영에서는 통합 명령을 사용한다.
+
+```powershell
+python tools\collect_powerbi_all.py
+```
+
+개별 갱신이 필요할 때는 아래 명령을 사용한다.
+
 ```powershell
 python tools\collect_powerbi_desktop_download.py
 ```

@@ -10,6 +10,14 @@ Power BI Desktop QFE 변경 로그에서 버그 수정과 개선 항목을 수�
 
 ## 실행
 
+정기 운영에서는 통합 명령을 사용한다.
+
+```powershell
+python tools\collect_powerbi_all.py
+```
+
+개별 갱신이 필요할 때는 아래 명령을 사용한다.
+
 ```powershell
 python tools\collect_powerbi_changelog.py
 ```
