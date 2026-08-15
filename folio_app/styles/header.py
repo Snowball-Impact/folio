@@ -89,10 +89,11 @@ CSS = """
 
 .st-key-folio_header_nav {
     align-items: center !important;
+    --folio-header-nav-gap: 18px;
     display: flex !important;
     flex: 0 1 auto !important;
     flex-direction: row !important;
-    gap: 18px !important;
+    gap: var(--folio-header-nav-gap) !important;
     justify-content: flex-end !important;
     min-width: 0 !important;
     width: auto !important;
@@ -102,7 +103,7 @@ CSS = """
     align-items: center !important;
     display: flex !important;
     flex-direction: row !important;
-    gap: 18px !important;
+    gap: var(--folio-header-nav-gap) !important;
     justify-content: flex-end !important;
 }
 
@@ -112,7 +113,98 @@ CSS = """
 }
 
 .st-key-folio_header_nav [data-testid="stElementContainer"] + [data-testid="stElementContainer"] {
-    margin-left: 18px !important;
+    margin-left: var(--folio-header-nav-gap) !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI),
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] {
+    flex: 0 0 auto !important;
+    width: auto !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) {
+    margin-left: var(--folio-header-nav-gap) !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI):has(+ [data-testid="stElementContainer"]) {
+    margin-right: var(--folio-header-nav-gap) !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) .stPopover > button,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] > button,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) button {
+    align-items: center !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    color: rgba(225, 234, 255, 0.82) !important;
+    display: inline-flex !important;
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+    gap: 4px !important;
+    height: 36px !important;
+    line-height: 1 !important;
+    min-height: 36px !important;
+    padding: 6px 0 !important;
+    position: relative !important;
+    transform: none !important;
+    transition: color 0.14s !important;
+    white-space: nowrap !important;
+    width: auto !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) .stPopover > button:hover,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] > button:hover,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) button:hover {
+    background: transparent !important;
+    color: #ffffff !important;
+    transform: none !important;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) .stPopover > button::after,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] > button::after {
+    background: rgba(255, 255, 255, 0.72);
+    bottom: 3px;
+    content: "";
+    height: 1px;
+    left: 50%;
+    position: absolute;
+    transform: translateX(-50%) scaleX(0);
+    transition: transform 0.16s ease;
+    width: 100%;
+}
+
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) .stPopover > button:hover::after,
+.st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] > button:hover::after {
+    transform: translateX(-50%) scaleX(1);
+}
+
+[data-testid="stPopoverBody"]:has(.st-key-nav_reference_tableau),
+[data-testid="stPopoverBody"]:has(.st-key-nav_powerbi_news) {
+    min-width: 168px !important;
+    padding: 8px !important;
+    width: 168px !important;
+}
+
+[data-testid="stPopoverBody"]:has(.st-key-nav_reference_tableau) [data-testid="stVerticalBlock"],
+[data-testid="stPopoverBody"]:has(.st-key-nav_powerbi_news) [data-testid="stVerticalBlock"] {
+    gap: 6px !important;
+}
+
+[data-testid="stPopoverBody"]:has(.st-key-nav_reference_tableau) [data-testid="stElementContainer"],
+[data-testid="stPopoverBody"]:has(.st-key-nav_powerbi_news) [data-testid="stElementContainer"] {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+[data-testid="stPopoverBody"]:has(.st-key-nav_reference_tableau) button,
+[data-testid="stPopoverBody"]:has(.st-key-nav_powerbi_news) button {
+    border-radius: 8px !important;
+    font-size: 0.86rem !important;
+    min-height: 32px !important;
+    padding: 4px 10px !important;
+    width: 100% !important;
 }
 
 /* Header nav buttons (dark bg) */
@@ -268,6 +360,16 @@ CSS = """
 
     .st-key-folio_header_nav [data-testid="stElementContainer"] + [data-testid="stElementContainer"] {
         margin-left: 12px !important;
+    }
+
+    .st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) .stPopover > button,
+    .st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) [data-testid="stPopover"] > button,
+    .st-key-folio_header_nav :is(.st-key-nav_Reference, .st-key-nav_Power_BI) button {
+        font-size: 0.82rem !important;
+        height: 30px !important;
+        min-height: 30px !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
     }
 
     .st-key-folio_header_nav .stButton > button {

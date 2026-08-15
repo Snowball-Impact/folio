@@ -10,7 +10,7 @@ CSS = """
     display: grid;
     gap: 18px;
     grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
-    margin: 24px 0 22px;
+    margin: -8px 0 22px;
     min-height: 220px;
     padding: 28px 42px 34px;
 }
@@ -192,80 +192,6 @@ CSS = """
     border-color: var(--folio-blue) !important;
 }
 
-.st-key-folio_header_nav .st-key-nav_Reference,
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] {
-    flex: 0 0 auto !important;
-    width: auto !important;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference {
-    margin-left: 18px !important;
-    margin-right: 18px !important;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference .stPopover > button,
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] > button,
-.st-key-folio_header_nav .st-key-nav_Reference button {
-    align-items: center !important;
-    background: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    color: rgba(225, 234, 255, 0.82) !important;
-    display: inline-flex !important;
-    font-size: 0.9rem !important;
-    font-weight: 700 !important;
-    gap: 4px !important;
-    height: 36px !important;
-    line-height: 1 !important;
-    min-height: 36px !important;
-    padding: 6px 0 !important;
-    position: relative !important;
-    transform: none !important;
-    transition: color 0.14s !important;
-    white-space: nowrap !important;
-    width: auto !important;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference .stPopover > button:hover,
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] > button:hover,
-.st-key-folio_header_nav .st-key-nav_Reference button:hover {
-    background: transparent !important;
-    color: #fff !important;
-    transform: none !important;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference .stPopover > button::after,
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] > button::after {
-    background: rgba(255, 255, 255, 0.72);
-    bottom: 3px;
-    content: "";
-    height: 1px;
-    left: 50%;
-    position: absolute;
-    transform: translateX(-50%) scaleX(0);
-    transition: transform 0.16s ease;
-    width: 100%;
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference .stPopover > button:hover::after,
-.st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] > button:hover::after {
-    transform: translateX(-50%) scaleX(1);
-}
-
-.st-key-folio_header_nav .st-key-nav_Reference svg {
-    color: currentColor !important;
-    fill: currentColor !important;
-    height: 16px !important;
-    opacity: 0.7 !important;
-    width: 16px !important;
-}
-
 @media (max-width: 860px) {
     .folio-reference-hero-shell {
         grid-template-columns: 1fr;
@@ -313,20 +239,5 @@ CSS = """
 }
 
 @media (max-width: 640px) {
-    .st-key-folio_header_nav .st-key-nav_Reference,
-    .st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .st-key-folio_header_nav .st-key-nav_Reference .stPopover > button,
-    .st-key-folio_header_nav .st-key-nav_Reference [data-testid="stPopover"] > button,
-    .st-key-folio_header_nav .st-key-nav_Reference button {
-        font-size: 0.82rem !important;
-        height: 30px !important;
-        min-height: 30px !important;
-        padding-left: 2px !important;
-        padding-right: 2px !important;
-    }
 }
 """

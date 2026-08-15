@@ -73,6 +73,9 @@ def render_header(initial_page: str | None = None) -> str:
                 if option == "Reference":
                     _render_reference_menu(current_page)
                     continue
+                if option == "Power BI":
+                    _render_powerbi_menu(current_page)
+                    continue
                 if option == "Notifications" and user:
                     _render_notifications_popover(user["id"], unread_notification_count)
                     continue
@@ -119,9 +122,35 @@ def _render_reference_menu(current_page: str) -> None:
         width="content",
     ):
         for platform in REFERENCE_PLATFORMS:
+            if platform.key == "powerbi":
+                continue
             is_active = current_page == "Reference" and active_platform == platform.key
             if st.button(platform.label, key=f"nav_reference_{platform.key}", disabled=is_active, use_container_width=True):
                 navigate("Reference", platform=platform.key)
+
+
+def _render_powerbi_menu(current_page: str) -> None:
+    active_topic = st.query_params.get("topic") or "news"
+    items = [
+        ("news", "소식", "Power BI", {"topic": "news"}),
+        ("community", "커뮤니티 소식", "Power BI", {"topic": "community"}),
+        ("learning", "학습 콘텐츠", "Power BI", {"topic": "learning"}),
+        ("certifications", "자격증", "Power BI", {"topic": "certifications"}),
+        ("reference", "공식 레퍼런스", "Reference", {"platform": "powerbi"}),
+    ]
+    with st.popover(
+        "Power BI",
+        key="nav_Power_BI",
+        help="Power BI",
+        width="content",
+    ):
+        for topic, label, page, params in items:
+            is_active = (
+                (current_page == "Power BI" and active_topic == topic)
+                or (current_page == "Reference" and params.get("platform") == st.query_params.get("platform"))
+            )
+            if st.button(label, key=f"nav_powerbi_{topic}", disabled=is_active, use_container_width=True):
+                navigate(page, **params)
 
 
 def _render_notifications_popover(user_id: str, unread_count: int) -> None:
