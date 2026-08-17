@@ -2,9 +2,11 @@ name: Keep Streamlit App Awake
 
 on:
   schedule:
-    # KST 07:00, 19:00 (12시간 간격)
-    # GitHub Actions cron은 UTC 기준
-    - cron: "0 10,22 * * *"
+    # 매일 KST 20:00
+    # GitHub Actions cron은 UTC 기준 → KST 20:00 = UTC 11:00
+    - cron: "0 11 * * *"
+
+  # 필요할 때 수동 실행 가능
   workflow_dispatch:
 
 jobs:
