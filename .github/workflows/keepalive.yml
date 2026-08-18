@@ -1,4 +1,4 @@
-name: Keep Streamlit App Awake
+name: Wake Streamlit App
 
 on:
   schedule:
@@ -7,11 +7,39 @@ on:
   workflow_dispatch:
 
 jobs:
-  ping:
+  wake:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Ping Streamlit app
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
         run: |
-          curl --silent --show-error --max-time 60 --retry 3 --retry-delay 10 \
-            --output /dev/null \
-            "https://folio-gapyear.streamlit.app"
+          pip install playwright
+          playwright install chromium
+
+      - name: Wake Streamlit app
+        run: |
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+
+          url = "https://folio-gapyear.streamlit.app"
+
+          with sync_playwright() as p:
+              browser = p.chromium.launch(headless=True)
+              page = browser.new_page()
+
+              print("Opening Streamlit app...")
+              page.goto(url, wait_until="domcontentloaded", timeout=120000)
+
+              # Streamlit이 실제로 실행될 시간을 확보
+              page.wait_for_timeout(30000)
+
+              print("Title:", page.title())
+              print("URL:", page.url)
+
+              browser.close()
+          PY
