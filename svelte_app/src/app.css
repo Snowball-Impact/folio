@@ -106,6 +106,23 @@ input {
 	box-shadow: var(--folio-shadow);
 }
 
+.powerbi-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 220px;
+	gap: 28px;
+	align-items: center;
+	padding: 30px 42px 34px;
+	border: 1px solid var(--folio-border);
+	border-radius: 16px;
+	background: var(--folio-surface);
+	box-shadow: var(--folio-shadow);
+}
+
+.powerbi-hero img {
+	display: block;
+	width: 100%;
+}
+
 .eyebrow {
 	margin-bottom: 12px;
 	color: var(--folio-blue);
@@ -116,7 +133,8 @@ input {
 
 .hero h1,
 .detail-hero h1,
-.reference-hero h1 {
+.reference-hero h1,
+.powerbi-hero h1 {
 	margin: 0;
 	font-size: 40px;
 	line-height: 1.18;
@@ -125,11 +143,24 @@ input {
 
 .hero p,
 .detail-hero p,
-.reference-hero p {
+.reference-hero p,
+.powerbi-hero p {
 	max-width: 680px;
 	margin: 16px 0 0;
 	color: var(--folio-muted);
 	font-size: 16px;
+}
+
+.hero-cta {
+	display: inline-flex;
+	align-items: center;
+	min-height: 40px;
+	margin-top: 18px;
+	padding: 0 16px;
+	border-radius: 8px;
+	background: var(--folio-blue);
+	color: white;
+	font-weight: 800;
 }
 
 .reference-hero h1 span {
@@ -267,6 +298,203 @@ input {
 	border-color: var(--folio-blue);
 	background: var(--folio-blue);
 	color: white;
+}
+
+.content-tabs {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 10px;
+	margin-top: 22px;
+}
+
+.content-tabs a {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 46px;
+	padding: 0 14px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+	color: var(--folio-muted);
+	font-weight: 800;
+}
+
+.content-tabs a.active {
+	border-color: var(--folio-blue);
+	background: var(--folio-blue);
+	color: white;
+}
+
+.content-tabs span {
+	font-size: 12px;
+}
+
+.content-section,
+.news-board,
+.content-list,
+.cert-grid {
+	margin-top: 26px;
+}
+
+.content-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.content-card {
+	display: grid;
+	gap: 10px;
+	overflow: hidden;
+	min-height: 285px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+}
+
+.content-card img {
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	background: var(--folio-subtle);
+}
+
+.content-card span,
+.content-card strong,
+.content-card em {
+	margin-left: 14px;
+	margin-right: 14px;
+}
+
+.content-card span {
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.content-card strong {
+	font-size: 16px;
+	line-height: 1.35;
+}
+
+.content-card em {
+	margin-bottom: 14px;
+	color: var(--folio-muted);
+	font-style: normal;
+}
+
+.news-board {
+	display: grid;
+	gap: 14px;
+}
+
+.news-item,
+.content-row,
+.cert-card {
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+}
+
+.news-item {
+	padding: 20px;
+}
+
+.news-item h2 {
+	margin: 10px 0 12px;
+	font-size: 20px;
+}
+
+.news-item ul {
+	margin: 0;
+	padding-left: 20px;
+	color: var(--folio-muted);
+}
+
+.news-meta,
+.news-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.news-actions {
+	margin-top: 16px;
+}
+
+.news-actions a {
+	display: inline-flex;
+	align-items: center;
+	min-height: 34px;
+	padding: 0 12px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	color: var(--folio-blue);
+}
+
+.content-list {
+	display: grid;
+	gap: 12px;
+}
+
+.content-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	gap: 14px;
+	padding: 18px;
+}
+
+.content-row span,
+.content-row em {
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-style: normal;
+	font-weight: 800;
+}
+
+.content-row strong {
+	display: block;
+	margin-top: 6px;
+	font-size: 18px;
+}
+
+.content-row p {
+	margin: 8px 0 0;
+	color: var(--folio-muted);
+}
+
+.cert-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 16px;
+}
+
+.cert-card {
+	display: grid;
+	gap: 12px;
+	min-height: 190px;
+	padding: 24px;
+}
+
+.cert-card span {
+	color: var(--folio-blue);
+	font-size: 12px;
+	font-weight: 800;
+	text-transform: uppercase;
+}
+
+.cert-card strong {
+	font-size: 24px;
+}
+
+.cert-card em {
+	color: var(--folio-muted);
+	font-style: normal;
 }
 
 .project-card {
@@ -519,15 +747,21 @@ input {
 
 	.hero,
 	.detail-hero,
-	.reference-hero {
+	.reference-hero,
+	.powerbi-hero {
 		grid-template-columns: 1fr;
 		padding: 26px 22px;
 	}
 
 	.hero h1,
 	.detail-hero h1,
-	.reference-hero h1 {
+	.reference-hero h1,
+	.powerbi-hero h1 {
 		font-size: 30px;
+	}
+
+	.powerbi-hero img {
+		width: min(220px, 70%);
 	}
 
 	.hero-panel {
@@ -539,6 +773,16 @@ input {
 	}
 
 	.reference-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.content-tabs,
+	.content-grid,
+	.cert-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.content-row {
 		grid-template-columns: 1fr;
 	}
 

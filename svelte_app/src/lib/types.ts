@@ -77,6 +77,43 @@ export type ReferenceProjectsResult = {
 	error: string;
 };
 
+export type PowerBIHubTopic = 'news' | 'learning' | 'community' | 'certifications';
+
+export type PowerBIContentLink = {
+	title: string;
+	summary: string;
+	url: string;
+	source: string;
+	date: string;
+	topic: string;
+	image_url: string | null;
+};
+
+export type PowerBINewsItem = {
+	label: string;
+	title: string;
+	date: string;
+	source_url: string;
+	bullets: string[];
+	video: PowerBIContentLink | null;
+};
+
+export type PowerBILearningGroup = {
+	category: string;
+	programs: PowerBIContentLink[];
+	videos: PowerBIContentLink[];
+};
+
+export type PowerBIHubContent = {
+	topic: PowerBIHubTopic;
+	desktop: PowerBIContentLink | null;
+	news: PowerBINewsItem[];
+	learning: PowerBILearningGroup[];
+	community: PowerBIContentLink[];
+	certifications: PowerBIContentLink[];
+	counts: Record<PowerBIHubTopic, number>;
+};
+
 export type PowerBIEmbedConfig = {
 	report_id: string;
 	dataset_id: string;
