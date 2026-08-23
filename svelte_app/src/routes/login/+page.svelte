@@ -9,6 +9,7 @@
 	let status = $state<'idle' | 'success' | 'error'>('idle');
 	let submitting = $state(false);
 	const verified = $derived(page.url.searchParams.get('verified') === '1');
+	const reset = $derived(page.url.searchParams.get('reset') === '1');
 
 	async function submitLogin(event: SubmitEvent) {
 		event.preventDefault();
@@ -40,6 +41,9 @@
 		{#if verified}
 			<div class="notice compact">이메일 인증이 완료되었습니다. 로그인하세요.</div>
 		{/if}
+		{#if reset}
+			<div class="notice compact">비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.</div>
+		{/if}
 		{#if message}
 			<div class:success={status === 'success'} class:error={status === 'error'} class="auth-message">
 				{message}
@@ -59,6 +63,7 @@
 		</form>
 
 		<div class="auth-links">
+			<a href="/reset-password">비밀번호 찾기</a>
 			<a href="/signup">회원가입하기</a>
 		</div>
 	</div>
