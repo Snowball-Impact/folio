@@ -4,6 +4,7 @@
 - 작성일: 2026-08-24
 - 기준 자료: `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/USER_FLOWS.md`, `docs/MVP_PRD.md`, `docs/PROJECT_CONTEXT.md`, 실제 `folio_app/` 코드와 `supabase/schema.sql`
 - 목적: 현재 Streamlit MVP를 유지하면서, 공개 사용자 경험부터 Svelte 기반 웹앱으로 단계 이전하기 위한 화면 우선순위와 데이터 계약을 먼저 정의한다.
+- Phase 0 상세 계약: `docs/SVELTE_PHASE0_DATA_CONTRACTS.md`
 
 ---
 
@@ -425,7 +426,7 @@ Power BI 허브의 CSV 기반 콘텐츠를 Svelte에서 다루기 위한 별도 
 ```ts
 type ContentItem = {
   id: string;
-  content_type: 'desktop_download' | 'update' | 'changelog' | 'community_blog' | 'learning_video' | 'learning_program';
+  content_type: 'desktop_download' | 'update' | 'changelog' | 'community_blog' | 'learning_video' | 'update_video' | 'learning_program';
   title: string;
   title_ko?: string | null;
   summary?: string | null;
@@ -658,9 +659,8 @@ Svelte 구현을 시작하기 전 아래가 완료되어야 한다.
 
 - [ ] `home_project_snapshot` 실제 응답 샘플 확보
 - [ ] `project_detail_snapshot` 실제 응답 샘플 확보
-- [ ] `ProjectCard`, `ProjectDetail`, `HomeSnapshot` 타입 확정
+- [x] `ProjectCard`, `ProjectDetail`, `HomeSnapshot` 타입 초안 확정
 - [ ] 공개 조회에서 필요한 Supabase RLS 재검증
 - [ ] 홈/상세 모바일 기준 스크린샷 또는 레이아웃 기준 확정
 - [ ] Power BI embed server boundary 확정
 - [ ] Svelte 배포 타깃과 앱 디렉터리 결정
-
