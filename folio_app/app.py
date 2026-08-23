@@ -19,7 +19,7 @@ from folio_app.services.auth import (
 )
 from folio_app.styles import apply_global_styles
 
-APP_VERSION = "v2026.08.23.6"
+APP_VERSION = "v2026.08.23.7"
 
 _FOOTER_HTML = """
 <footer class="folio-footer">
@@ -139,6 +139,15 @@ def _can_render_public_home_shell() -> bool:
     )
 
 
+def _can_skip_cookie_manager_for_public_home() -> bool:
+    return (
+        _can_render_public_home_shell()
+        and get_current_user() is None
+        and not st.session_state.get("folio_clear_browser_auth")
+        and not st.session_state.get("folio_logout_in_progress")
+    )
+
+
 def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     if st.query_params.get("reset") == "1":
         return
@@ -210,37 +219,7 @@ def _handle_logout_query() -> None:
         st.rerun()
 
 
-def main() -> None:
-    apply_global_styles()
-
-    settings = get_settings()
-    render_google_analytics(settings.ga_measurement_id)
-    _capture_password_recovery_fragment()
-
-    if not settings.is_supabase_configured:
-        missing = ", ".join(settings.missing_supabase_settings)
-        st.warning(
-            f"Supabase 설정을 찾지 못했습니다: {missing}. "
-            "Streamlit Cloud의 App settings > Secrets에서 키 이름과 저장 위치를 확인하세요."
-        )
-
-    cookies = _get_cookie_manager(settings)
-    if not cookies.ready():
-        if _can_render_public_home_shell():
-            render_header(initial_page="Home")
-            home.render_loading_shell()
-            _render_footer()
-        st.stop()
-
-    if _needs_visitor_id():
-        _ensure_visitor_id(cookies)
-    _handle_logout_query()
-    _sync_browser_auth_storage(cookies)
-    _restore_auth_from_cookies(cookies)
-    _normalize_legacy_routes()
-    _normalize_password_reset_routes()
-    _render_verified_notice()
-
+def _render_routed_page() -> None:
     selected_page = render_header(initial_page=_initial_page_from_query())
     user = get_current_user()
     if user is not None:
@@ -286,3 +265,41 @@ def main() -> None:
     page_handlers.get(selected_page, home.render)()
 
     _render_footer()
+
+
+def main() -> None:
+    apply_global_styles()
+
+    settings = get_settings()
+    render_google_analytics(settings.ga_measurement_id)
+    _capture_password_recovery_fragment()
+
+    if not settings.is_supabase_configured:
+        missing = ", ".join(settings.missing_supabase_settings)
+        st.warning(
+            f"Supabase 설정을 찾지 못했습니다: {missing}. "
+            "Streamlit Cloud의 App settings > Secrets에서 키 이름과 저장 위치를 확인하세요."
+        )
+
+    _normalize_legacy_routes()
+    _normalize_password_reset_routes()
+    _render_verified_notice()
+
+    if _can_skip_cookie_manager_for_public_home():
+        _render_routed_page()
+        return
+
+    cookies = _get_cookie_manager(settings)
+    if not cookies.ready():
+        if _can_render_public_home_shell():
+            render_header(initial_page="Home")
+            home.render_loading_shell()
+            _render_footer()
+        st.stop()
+
+    if _needs_visitor_id():
+        _ensure_visitor_id(cookies)
+    _handle_logout_query()
+    _sync_browser_auth_storage(cookies)
+    _restore_auth_from_cookies(cookies)
+    _render_routed_page()
