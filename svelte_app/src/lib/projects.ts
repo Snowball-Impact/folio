@@ -196,30 +196,9 @@ export async function createProject(input: ProjectSubmitInput) {
 		return { ok: false, message: validationError, projectId: null };
 	}
 
-	const powerBiUrl = normalizePowerBIEmbedUrl(input.power_bi_url);
-	const reportUrl = normalizeOptionalUrl(input.report_url);
-	const githubUrl = normalizeOptionalUrl(input.github_url);
-	const thumbnailUrl = input.thumbnail_mode === 'manual_url' ? normalizeOptionalUrl(input.thumbnail_url) : null;
-	const platformKey = normalizeSubmitPlatform(input.platform);
 	const payload = {
 		author_id: session.user.id,
-		title: input.title.trim(),
-		one_liner: input.one_liner.trim() || null,
-		problem: input.problem.trim(),
-		dataset: input.dataset.trim() || null,
-		process: input.process.trim() || null,
-		insights: input.insights.trim(),
-		power_bi_url: powerBiUrl,
-		report_url: reportUrl,
-		github_url: githubUrl,
-		thumbnail_url: thumbnailUrl,
-		thumbnail_mode: input.thumbnail_mode,
-		project_type: projectTypeForPlatform(input.platform),
-		platform_key: platformKey,
-		status: 'published',
-		embed_status: powerBiUrl ? 'supported' : 'external_only',
-		tags: tagsWithPlatform(input.tags, input.platform),
-		is_public: input.is_public
+		...buildProjectPayload(input)
 	};
 
 	const { data, error } = await supabase.from('projects').insert(payload).select('id').single();
@@ -228,6 +207,67 @@ export async function createProject(input: ProjectSubmitInput) {
 	}
 
 	return { ok: true, message: '프로젝트가 등록되었습니다.', projectId: String(data.id ?? '') };
+}
+
+export async function loadMyProject(projectId: string) {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return {
+			project: null,
+			error: '로그인 후 프로젝트를 수정할 수 있습니다.'
+		};
+	}
+
+	const { data, error } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('id', projectId)
+		.eq('author_id', session.user.id)
+		.maybeSingle();
+	if (error) {
+		return {
+			project: null,
+			error: '프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.'
+		};
+	}
+
+	const project = data ? normalizeProject(data) : null;
+	if (!project || project.status === 'deleted') {
+		return {
+			project: null,
+			error: '수정할 프로젝트를 찾을 수 없습니다.'
+		};
+	}
+
+	return {
+		project,
+		error: ''
+	};
+}
+
+export async function updateProject(projectId: string, input: ProjectSubmitInput) {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return { ok: false, message: '로그인 후 프로젝트를 수정할 수 있습니다.', projectId: null };
+	}
+
+	const validationError = validateProjectInput(input);
+	if (validationError) {
+		return { ok: false, message: validationError, projectId: null };
+	}
+
+	const { error } = await supabase
+		.from('projects')
+		.update(buildProjectPayload(input))
+		.eq('id', projectId)
+		.eq('author_id', session.user.id);
+	if (error) {
+		return { ok: false, message: '프로젝트 수정에 실패했습니다. 잠시 후 다시 시도하세요.', projectId: null };
+	}
+
+	return { ok: true, message: '프로젝트가 수정되었습니다.', projectId };
 }
 
 export async function listMyProjects() {
@@ -437,6 +477,29 @@ function validateProjectInput(input: ProjectSubmitInput) {
 		return '썸네일 URL은 http:// 또는 https://로 시작해야 합니다.';
 	}
 	return '';
+}
+
+function buildProjectPayload(input: ProjectSubmitInput) {
+	const powerBiUrl = normalizePowerBIEmbedUrl(input.power_bi_url);
+	return {
+		title: input.title.trim(),
+		one_liner: input.one_liner.trim() || null,
+		problem: input.problem.trim(),
+		dataset: input.dataset.trim() || null,
+		process: input.process.trim() || null,
+		insights: input.insights.trim(),
+		power_bi_url: powerBiUrl,
+		report_url: normalizeOptionalUrl(input.report_url),
+		github_url: normalizeOptionalUrl(input.github_url),
+		thumbnail_url: input.thumbnail_mode === 'manual_url' ? normalizeOptionalUrl(input.thumbnail_url) : null,
+		thumbnail_mode: input.thumbnail_mode,
+		project_type: projectTypeForPlatform(input.platform),
+		platform_key: normalizeSubmitPlatform(input.platform),
+		status: 'published',
+		embed_status: powerBiUrl ? 'supported' : 'external_only',
+		tags: tagsWithPlatform(input.tags, input.platform),
+		is_public: input.is_public
+	};
 }
 
 function tagsWithPlatform(tags: string, platformKey: SubmitPlatformKey) {
