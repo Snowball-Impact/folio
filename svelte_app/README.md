@@ -47,6 +47,7 @@ npm run build
 - Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract. PBIX upload, Storage thumbnail upload, and automatic thumbnail capture still need a server-side boundary.
 - My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, edits `profiles.name/organization/bio`, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
 - Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit.
+- Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, and marks project comment notifications/read state when the author opens the detail page.
 - SMTP email notification dispatch and PBIX/thumbnail upload automation are not part of this spike.
