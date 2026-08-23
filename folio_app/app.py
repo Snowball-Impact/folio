@@ -19,7 +19,7 @@ from folio_app.services.auth import (
 )
 from folio_app.styles import apply_global_styles
 
-APP_VERSION = "v2026.08.23.13"
+APP_VERSION = "v2026.08.23.14"
 
 _FOOTER_HTML = """
 <footer class="folio-footer">
@@ -124,6 +124,20 @@ def _ensure_visitor_id(cookies: EncryptedCookieManager) -> str:
     return visitor_id
 
 
+def _ensure_session_visitor_id() -> str:
+    visitor_id = st.session_state.get("folio_visitor_id")
+    try:
+        visitor_id = str(UUID(visitor_id)) if visitor_id else ""
+    except (TypeError, ValueError, AttributeError):
+        visitor_id = ""
+
+    if not visitor_id:
+        visitor_id = str(uuid4())
+
+    st.session_state["folio_visitor_id"] = visitor_id
+    return visitor_id
+
+
 def _needs_visitor_id() -> bool:
     return bool(st.query_params.get("project_id"))
 
@@ -153,6 +167,15 @@ def _can_render_public_detail_shell() -> bool:
 def _can_skip_cookie_manager_for_public_home() -> bool:
     return (
         _can_render_public_home_shell()
+        and get_current_user() is None
+        and not st.session_state.get("folio_clear_browser_auth")
+        and not st.session_state.get("folio_logout_in_progress")
+    )
+
+
+def _can_skip_cookie_manager_for_public_detail() -> bool:
+    return (
+        _can_render_public_detail_shell()
         and get_current_user() is None
         and not st.session_state.get("folio_clear_browser_auth")
         and not st.session_state.get("folio_logout_in_progress")
@@ -297,6 +320,10 @@ def main() -> None:
     _render_verified_notice()
 
     if _can_skip_cookie_manager_for_public_home():
+        _render_routed_page()
+        return
+    if _can_skip_cookie_manager_for_public_detail():
+        _ensure_session_visitor_id()
         _render_routed_page()
         return
 

@@ -7,7 +7,9 @@ from uuid import UUID
 from folio_app.app import (
     _can_render_public_detail_shell,
     _can_render_public_home_shell,
+    _can_skip_cookie_manager_for_public_detail,
     _can_skip_cookie_manager_for_public_home,
+    _ensure_session_visitor_id,
     _ensure_visitor_id,
     _needs_visitor_id,
 )
@@ -48,6 +50,13 @@ class VisitorIdentityTests(unittest.TestCase):
         self.assertEqual(session_state["folio_visitor_id"], result)
         self.assertEqual(cookies.save_count, 1)
 
+    @patch("folio_app.app.st.session_state", new_callable=dict)
+    def test_session_visitor_id_is_created_without_cookie_manager(self, session_state) -> None:
+        result = _ensure_session_visitor_id()
+
+        self.assertEqual(str(UUID(result)), result)
+        self.assertEqual(session_state["folio_visitor_id"], result)
+
     @patch("folio_app.app.st.query_params", {})
     def test_plain_home_does_not_need_visitor_id(self) -> None:
         self.assertFalse(_needs_visitor_id())
@@ -74,8 +83,15 @@ class VisitorIdentityTests(unittest.TestCase):
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st.session_state", new_callable=dict)
     @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
-    def test_project_detail_cannot_skip_cookie_manager(self, _session_state, _current_user) -> None:
+    def test_project_detail_can_skip_cookie_manager_for_public_render(self, _session_state, _current_user) -> None:
+        self.assertTrue(_can_skip_cookie_manager_for_public_detail())
         self.assertFalse(_can_skip_cookie_manager_for_public_home())
+
+    @patch("folio_app.app.get_current_user", return_value={"id": "user-id"})
+    @patch("folio_app.app.st.session_state", new_callable=dict)
+    @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
+    def test_logged_in_detail_cannot_skip_cookie_manager(self, _session_state, _current_user) -> None:
+        self.assertFalse(_can_skip_cookie_manager_for_public_detail())
 
     @patch("folio_app.app.get_current_user", return_value={"id": "user-id"})
     @patch("folio_app.app.st.session_state", new_callable=dict)
