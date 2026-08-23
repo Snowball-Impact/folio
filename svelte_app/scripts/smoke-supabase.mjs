@@ -1,11 +1,14 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
+process.on('unhandledRejection', handleFatalError);
+process.on('uncaughtException', handleFatalError);
+
 
 loadDotEnv();
 
 const required = process.env.SMOKE_SUPABASE_REQUIRED === 'true';
-const supabaseUrl = process.env.PUBLIC_SUPABASE_URL?.trim();
-const publishableKey = process.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+const supabaseUrl = firstEnv('PUBLIC_SUPABASE_URL', 'SUPABASE_URL');
+const publishableKey = firstEnv('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_PUBLISHABLE_KEY', 'SUPABASE_ANON_KEY');
 const projectIdOverride = process.env.SMOKE_PROJECT_ID?.trim();
 const thumbnailModes = new Set(['auto_cover', 'manual_url', 'capture', 'upload']);
 
@@ -142,6 +145,16 @@ function asRecord(value) {
 	return value && typeof value === 'object' ? value : {};
 }
 
+function firstEnv(...names) {
+	for (const name of names) {
+		const value = process.env[name]?.trim();
+		if (value) {
+			return value;
+		}
+	}
+	return '';
+}
+
 function loadDotEnv() {
 	if (!existsSync('.env')) {
 		return;
@@ -165,4 +178,10 @@ function unquoteEnvValue(value) {
 		return value.slice(1, -1);
 	}
 	return value;
+}
+
+function handleFatalError(error) {
+	const message = error instanceof Error ? error.message : String(error);
+	console.error('FAIL Supabase smoke: ' + message);
+	process.exitCode = 1;
 }
