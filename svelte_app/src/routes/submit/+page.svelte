@@ -4,6 +4,7 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import { currentSession } from '$lib/auth';
 	import { createProject, type ProjectSubmitInput } from '$lib/projects';
+	import { uploadProjectThumbnail } from '$lib/thumbnails';
 	import type { ProjectCard as ProjectCardType } from '$lib/types';
 
 	const platformOptions = [
@@ -33,6 +34,8 @@
 	let message = $state('');
 	let error = $state('');
 	let submitting = $state(false);
+	let thumbnailFile = $state<File | null>(null);
+	let thumbnailPreviewUrl = $state<string | null>(null);
 
 	const previewProject = $derived<ProjectCardType>({
 		id: 'submit-preview',
@@ -44,7 +47,12 @@
 		process: input.process,
 		insights: input.insights,
 		tags: previewTags(input.tags, input.platform),
-		thumbnail_url: input.thumbnail_mode === 'manual_url' ? input.thumbnail_url.trim() || null : null,
+		thumbnail_url:
+			input.thumbnail_mode === 'manual_url'
+				? input.thumbnail_url.trim() || null
+				: input.thumbnail_mode === 'upload'
+					? thumbnailPreviewUrl
+					: null,
 		power_bi_url: input.power_bi_url.trim() || null,
 		report_url: input.report_url.trim() || null,
 		github_url: input.github_url.trim() || null,
@@ -72,15 +80,38 @@
 		event.preventDefault();
 		message = '';
 		error = '';
+		if (input.thumbnail_mode === 'upload' && !thumbnailFile) {
+			error = '업로드할 썸네일 이미지를 선택하세요.';
+			return;
+		}
 		submitting = true;
 		const result = await createProject(input);
-		submitting = false;
 		if (!result.ok || !result.projectId) {
+			submitting = false;
 			error = result.message;
 			return;
 		}
+		if (thumbnailFile) {
+			const uploadResult = await uploadProjectThumbnail(result.projectId, thumbnailFile);
+			if (!uploadResult.ok) {
+				submitting = false;
+				error = `${uploadResult.message} 프로젝트는 등록되었습니다.`;
+				await goto(`/projects/${result.projectId}`);
+				return;
+			}
+		}
+		submitting = false;
 		message = result.message;
 		await goto(`/projects/${result.projectId}`);
+	}
+
+	function selectThumbnail(event: Event) {
+		const file = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
+		if (thumbnailPreviewUrl) {
+			URL.revokeObjectURL(thumbnailPreviewUrl);
+		}
+		thumbnailFile = file;
+		thumbnailPreviewUrl = file ? URL.createObjectURL(file) : null;
 	}
 
 	function previewTags(tags: string, platform: ProjectSubmitInput['platform']) {
@@ -181,9 +212,16 @@
 				<span>썸네일 설정</span>
 				<select bind:value={input.thumbnail_mode}>
 					<option value="auto_cover">기본 커버</option>
+					<option value="upload">이미지 업로드</option>
 					<option value="manual_url">URL 입력</option>
 				</select>
 			</label>
+			{#if input.thumbnail_mode === 'upload'}
+				<label>
+					<span>썸네일 이미지</span>
+					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={selectThumbnail} />
+				</label>
+			{/if}
 			{#if input.thumbnail_mode === 'manual_url'}
 				<label>
 					<span>썸네일 URL</span>

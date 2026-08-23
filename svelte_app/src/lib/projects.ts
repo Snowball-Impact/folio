@@ -32,7 +32,7 @@ export type ProjectSubmitInput = {
 	report_url: string;
 	github_url: string;
 	thumbnail_url: string;
-	thumbnail_mode: 'auto_cover' | 'manual_url';
+	thumbnail_mode: 'auto_cover' | 'manual_url' | 'upload';
 	is_public: boolean;
 };
 
@@ -492,7 +492,7 @@ function buildProjectPayload(input: ProjectSubmitInput) {
 		report_url: normalizeOptionalUrl(input.report_url),
 		github_url: normalizeOptionalUrl(input.github_url),
 		thumbnail_url: input.thumbnail_mode === 'manual_url' ? normalizeOptionalUrl(input.thumbnail_url) : null,
-		thumbnail_mode: input.thumbnail_mode,
+		thumbnail_mode: input.thumbnail_mode === 'upload' ? 'auto_cover' : input.thumbnail_mode,
 		project_type: projectTypeForPlatform(input.platform),
 		platform_key: normalizeSubmitPlatform(input.platform),
 		status: 'published',
