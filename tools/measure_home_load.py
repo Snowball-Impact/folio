@@ -95,6 +95,13 @@ def sample_page(driver: webdriver.Chrome) -> dict:
     return {"outer": outer, "inner": inner}
 
 
+def milestone_target(sample: dict) -> dict:
+    inner = sample.get("inner")
+    if inner and any(inner.get(name) for name in ("header", "hero", "loadingPanel", "browsePanel", "galleryCard")):
+        return inner
+    return sample["outer"]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--url", default="https://folio-gapyear.streamlit.app/")
@@ -124,7 +131,7 @@ def main() -> None:
                 while time.perf_counter() - started <= args.duration:
                     elapsed = round(time.perf_counter() - started, 3)
                     sample = sample_page(driver)
-                    target = sample["inner"] or sample["outer"]
+                    target = milestone_target(sample)
                     for name in ("header", "hero", "loadingPanel", "browsePanel", "galleryCard"):
                         if target.get(name) and name not in milestones:
                             milestones[name] = elapsed
