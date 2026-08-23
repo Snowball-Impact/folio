@@ -1,12 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import PowerBIReport from '$lib/components/PowerBIReport.svelte';
 	import { formatCount, formatDate, plainTextFromHtml } from '$lib/format';
 	import { recordProjectView } from '$lib/projects';
+	import type { PowerBIEmbedConfig } from '$lib/types';
 	import { getOrCreateVisitorId } from '$lib/visitor';
 
 	let { data } = $props();
 	const project = $derived(data.project);
+	let embedConfig = $state<PowerBIEmbedConfig | null>(null);
+	let embedError = $state('');
+	let embedLoading = $state(false);
 
 	const reportSections = $derived(
 		[
@@ -25,10 +30,35 @@
 		].filter((item): item is [string, string] => Boolean(item))
 	);
 
+	const shouldLoadPowerBIEmbed = $derived(
+		project.status === 'published' && project.project_type === 'powerbi'
+	);
+
 	onMount(() => {
 		const visitorId = getOrCreateVisitorId();
 		recordProjectView(project.id, visitorId);
+
+		if (shouldLoadPowerBIEmbed) {
+			loadPowerBIEmbedConfig();
+		}
 	});
+
+	async function loadPowerBIEmbedConfig() {
+		embedLoading = true;
+		try {
+			const response = await fetch(`/api/projects/${project.id}/powerbi-embed`);
+			if (!response.ok) {
+				const payload = (await response.json().catch(() => ({}))) as { error?: string };
+				embedError = payload.error || 'Power BI 보고서를 불러오지 못했습니다.';
+				return;
+			}
+			embedConfig = (await response.json()) as PowerBIEmbedConfig;
+		} catch {
+			embedError = 'Power BI 보고서를 불러오지 못했습니다.';
+		} finally {
+			embedLoading = false;
+		}
+	}
 </script>
 
 <svelte:head>
@@ -60,10 +90,24 @@
 	<div class="visual-panel">Power BI 보고서를 게시하는 중입니다. 잠시 후 다시 확인하세요.</div>
 {:else if project.status === 'failed'}
 	<div class="visual-panel">Power BI 보고서 게시에 실패했습니다.</div>
-{:else if project.power_bi_url}
+{:else if shouldLoadPowerBIEmbed || project.power_bi_url}
 	<section class="visual-panel">
 		<h2>대표 결과물</h2>
-		<iframe class="dashboard-frame" title={`${project.title} 대표 결과물`} src={project.power_bi_url}></iframe>
+		{#if embedConfig}
+			<PowerBIReport config={embedConfig} title={project.title} />
+			<p class="visual-caption">Power BI Embed Token은 요청 시 발급되며 저장하지 않습니다.</p>
+		{:else if project.power_bi_url}
+			<iframe class="dashboard-frame" title={`${project.title} 대표 결과물`} src={project.power_bi_url}></iframe>
+			<p class="visual-caption">
+				{embedLoading
+					? 'Power BI 임베드 토큰을 확인하는 중입니다.'
+					: embedError || '화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.'}
+			</p>
+		{:else}
+			<div class="embed-empty">
+				{embedLoading ? 'Power BI 임베드 토큰을 확인하는 중입니다.' : embedError || '표시할 대시보드가 없습니다.'}
+			</div>
+		{/if}
 		{#if resourceLinks.length > 0}
 			<div class="actions">
 				{#each resourceLinks as [label, url], index}

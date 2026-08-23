@@ -9,11 +9,15 @@ npm install
 Copy-Item .env.example .env
 ```
 
-`.env`에는 공개 Supabase 값만 넣습니다.
+`.env`에는 공개 Supabase 값과, Power BI 토큰 API를 켤 때만 서버 전용 Power BI 값을 넣습니다.
 
 ```text
 PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+POWERBI_TENANT_ID=your-tenant-id
+POWERBI_CLIENT_ID=your-client-id
+POWERBI_CLIENT_SECRET=your-client-secret
+POWERBI_API_BASE_URL=https://api.powerbi.com/v1.0/myorg
 ```
 
 ## Development
@@ -34,4 +38,5 @@ npm run build
 - Home calls `home_project_snapshot` with `p_platform_key='powerbi'`.
 - Project detail calls `project_detail_snapshot`.
 - Detail view count calls `increment_project_view_count` from the browser with a local anonymous UUID.
-- Auth, likes, comments, submit/edit, Power BI Embed Token API, references, and Power BI content hub are not part of this first spike.
+- Project detail calls `/api/projects/:id/powerbi-embed` for Power BI projects, renders with `powerbi-client` when an embed token is available, and falls back to the stored iframe URL.
+- Auth, likes, comments, submit/edit, references, and Power BI content hub are not part of this spike.

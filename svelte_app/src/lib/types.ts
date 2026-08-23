@@ -61,3 +61,11 @@ export type HomeSnapshot = {
 };
 
 export type ProjectDetail = ProjectCard;
+
+export type PowerBIEmbedConfig = {
+	report_id: string;
+	dataset_id: string;
+	embed_url: string;
+	embed_token: string;
+	token_expiration: string | null;
+};
