@@ -63,13 +63,12 @@ npm run build
 - Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit, replace uploaded thumbnails, and publish a replacement `.pbix` for Power BI projects.
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
-- Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, and marks project comment notifications/read state when the author opens the detail page.
-- SMTP email notification dispatch and automatic thumbnail capture are not part of this spike.
+- Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, requests best-effort SMTP email notifications through a server endpoint, and marks project comment notifications/read state when the author opens the detail page.
+- Automatic thumbnail capture is not part of this spike.
 
 ## Server Boundary Backlog
 
 The remaining Streamlit parity features require server-only secrets or server-side browser automation:
 
 - Automatic thumbnail capture: server runtime must provide Chromium/Playwright, render the external report or generated Power BI embed document, capture an image, upload it, and update `projects.thumbnail_url`.
-- SMTP email notification dispatch: comment creation currently creates in-app `notifications`; email delivery needs a server-side worker/endpoint with `SUPABASE_SERVICE_ROLE_KEY` and SMTP settings.
 - Deployment adapter: `@sveltejs/adapter-auto` builds locally but emits a warning until the final host is chosen. Pick the adapter for the target platform before production cutover.

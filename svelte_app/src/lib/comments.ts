@@ -133,6 +133,7 @@ async function createComment(projectId: string, body: string, parentId: string |
 	}
 
 	await createCommentNotification(projectId, normalizeComment(data), session.user.id, options);
+	void sendCommentEmailNotification(String(data.id ?? ''));
 	return { ok: true, message: '댓글이 등록되었습니다.' };
 }
 
@@ -159,6 +160,22 @@ async function createCommentNotification(
 
 	if (error && !isUniqueViolation(error)) {
 		console.warn('Failed to create comment notification', error);
+	}
+}
+
+async function sendCommentEmailNotification(commentId: string) {
+	const session = await currentSession();
+	if (!session || !commentId) {
+		return;
+	}
+	const response = await fetch(`/api/comments/${commentId}/email-notification`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${session.access_token}`
+		}
+	});
+	if (!response.ok && response.status !== 202) {
+		console.warn('Failed to request comment email notification');
 	}
 }
 
