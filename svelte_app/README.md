@@ -48,6 +48,12 @@ npm run check
 npm run build
 ```
 
+## Production Start
+
+```powershell
+node build
+```
+
 ## Current Scope
 
 - Home calls `home_project_snapshot` with `p_platform_key='powerbi'`.
@@ -67,8 +73,8 @@ npm run build
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, requests best-effort SMTP email notifications through a server endpoint, and marks project comment notifications/read state when the author opens the detail page.
 - Automatic thumbnail capture requires Playwright and Chromium in the server runtime; without them the endpoint returns a safe setup error.
 
-## Server Boundary Backlog
+## Deployment Runtime
 
-The remaining Streamlit parity features require server-only secrets or server-side browser automation:
+The spike now uses `@sveltejs/adapter-node` because project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints require a Node SSR runtime. Deploy to a host that can run the generated `build` server and provide private environment variables to server code.
 
-- Deployment adapter: `@sveltejs/adapter-auto` builds locally but emits a warning until the final host is chosen. Pick the adapter for the target platform before production cutover.
+Automatic thumbnail capture still depends on Playwright and Chromium being available in the runtime. If the managed Playwright browser is not installed, set `CHROME_BINARY_PATH` to a system Chrome/Chromium binary.
