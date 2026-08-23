@@ -270,6 +270,17 @@ python -m pyflakes folio_app app.py
 - **Power BI-first 기본 필터도 최적화 경로로 태워야 한다.** 홈 콘텐츠 유형 필터를 숨기고 기본값을 Power BI로 고정하면 `selected_platforms={"powerbi"}` 상태가 된다. 이를 "사용자 필터 적용"으로 오해하면 snapshot RPC 대신 전체 공개 프로젝트 fallback을 타서 갤러리가 다시 느려진다. 기본 Power BI scope는 기본 홈 scope로 취급하고, 플랫폼 필터는 DB/RPC 내부에서 처리한다.
 - **Power BI 판별은 URL/태그 추론보다 정규화 컬럼이 빠르고 안정적이다.** 홈 cold path에서 매번 태그와 URL marker로 후보를 찾으면 DB 함수 내부 집계 비용이 남는다. `projects.platform_key`를 backfill하고 partial index와 RPC가 이 컬럼을 먼저 쓰게 하되, 운영 DB 패치 전 배포도 견디도록 앱 fallback은 유지한다.
 
+
+### SvelteKit 전환 교훈
+
+- **Svelte 전환은 화면 이식보다 데이터 계약 분리다.** 홈/상세/콘텐츠 화면은 먼저 RPC 응답 모양, nullable field, enum, visibility 규칙을 고정한 뒤 컴포넌트를 붙인다.
+- **FOLIO Svelte 앱은 Node SSR 앱이다.** PBIX 게시, 썸네일 업로드/캡처, SMTP, Supabase service role 작업이 있으므로 `@sveltejs/adapter-node`와 private env를 지원하는 host를 기준으로 배포한다.
+- **원격 Supabase contract smoke를 완료 조건에 넣는다.** 로컬 schema가 맞아도 원격 RPC, check 제약, upsert 제약이 예전이면 앱은 실패한다. DB patch 후에는 `npm.cmd run smoke:supabase`로 확인한다.
+- **검증 명령은 하나로 수렴시킨다.** Svelte 앱 변경 후 기본 완료 gate는 `svelte_app/`에서 `npm.cmd run verify`다. 이 명령은 check, build, Node route smoke, Supabase contract smoke, security smoke를 실행한다.
+- **보안 smoke는 작은 경계를 자동화한다.** private env 이름/값이 클라이언트 코드와 bundle에 새지 않는지, thumbnail/PBIX/comment email endpoint가 익명 요청을 거절하는지 확인한다.
+- **SvelteKit CSRF와 앱 인증 gate를 구분한다.** FormData POST는 라우트 코드 전 CSRF 403으로 막힐 수 있다. bearer token 검증을 테스트하려면 같은 origin의 body 없는 POST처럼 앱 로직에 도달하는 최소 요청을 쓴다.
+- **Windows에서 JSON과 Markdown을 편집하면 BOM과 backtick을 확인한다.** `package.json`에 BOM이 붙으면 Vite가 읽지 못한다. Markdown backtick 치환은 PowerShell escape와 충돌할 수 있으므로 줄 단위 편집 후 `git diff --check`를 본다.
+- **자동 smoke와 수동 staging QA를 혼동하지 않는다.** verify가 통과해도 로그인, recovery, PBIX 실제 import, SMTP 발송, Chromium 캡처, Storage public URL은 실제 계정과 배포 환경에서 눌러봐야 한다. 자세한 회고는 `docs/SVELTE_MIGRATION_RETROSPECTIVE.md`를 따른다.
 ## 15. GitHub 이슈 기반 작업 관리
 
 모든 작업(버그, 기능, 완료된 작업 기록)은 GitHub 이슈로 관리한다.
