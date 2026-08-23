@@ -247,6 +247,7 @@ python -m pyflakes folio_app app.py
 - **Streamlit Cloud keepalive는 root보다 내부 앱 프레임을 친다.** `https://*.streamlit.app/`는 비브라우저 클라이언트에서 303 redirect loop를 만들 수 있다. 가벼운 HTTP ping은 `https://*.streamlit.app/~/+/`를 사용하고, sleep 해제 버튼 클릭이 필요할 때만 브라우저 기반 wake workflow를 사용한다.
 - **Streamlit Cloud 실서비스 측정도 root와 내부 앱 프레임을 구분한다.** 사용자가 보는 URL은 `https://folio-gapyear.streamlit.app`이지만, headless Playwright나 `urllib` 같은 비브라우저 클라이언트는 root에서 303 loop 또는 shell-only 상태를 볼 수 있다. 빈 body를 봤다고 장애로 단정하지 말고, 실제 브라우저 확인과 `https://folio-gapyear.streamlit.app/~/+/` 측정을 함께 본다.
 - **실서비스 로딩 측정은 계층별로 끊어서 한다.** 홈은 Supabase RPC cold/warm, 내부 앱 프레임 DOM milestone(header, hero, gallery cards, footer version), 메뉴 전환 시 header/hero top 좌표를 따로 남긴다. 상세는 hero, visual panel, report content, comments, 외부 iframe 완료를 분리한다.
+- **측정 스크립트는 비어 있는 내부 프레임을 앱으로 오인하지 않는다.** `measure_home_load.py`처럼 outer document와 inner `streamlitApp` frame을 모두 볼 때는 header, hero, loadingPanel, browsePanel, galleryCard 같은 앱 신호가 있는 프레임만 milestone target으로 삼는다. 빈 inner frame을 무조건 선택하면 실제 렌더된 outer shell을 놓쳐 실서비스를 장애처럼 오판한다.
 - **DB 패치가 바뀌면 사용자가 한 번 적용했어도 다시 적용 여부를 확인한다.** Supabase 함수 인자나 index가 중간에 추가되면 이전 적용분으로는 최종 성능을 판단할 수 없다. 재측정 전 `supabase/schema.sql` 또는 전용 patch 파일의 최신 내용을 기준으로 원격 DB가 맞는지 확인한다.
 - **Git 동작은 사용자의 동사를 그대로 따른다.** "커밋해"는 로컬 커밋까지만 의미한다. 푸시, PR, 머지, 이슈 닫기는 사용자가 명시적으로 말했을 때만 수행한다.
 - **Streamlit 정렬 문제는 CSS 문제가 아니라 구조 문제인 경우가 많다.** 버튼 높이, 칩 위치, 우측 정렬이 몇 px씩 어긋날 때는 먼저 같은 컨테이너에 묶였는지, column 비율이 불필요한 빈 폭을 만들고 있는지, custom component iframe 높이가 주변 요소와 다른지 확인한다. 작은 보정값을 반복하기 전에 구조를 단순화한다.
@@ -267,6 +268,7 @@ python -m pyflakes folio_app app.py
 - **로고 여백은 에셋 내부 여백, 부모 컬럼, object-fit 박스 여백을 분리해서 본다.** Power BI 로고처럼 내부 여백이 없는 이미지도 고정 width 박스 안에서 `object-fit: contain`이 적용되면 실제 그림이 오른쪽 기준선에서 떠 보일 수 있다.
 - **플랫폼 분류값과 태그는 중복되지 않게 관리한다.** 별도 `platform` 컬럼이 없을 때는 등록 폼의 플랫폼 선택값을 공식 플랫폼 태그로 저장하되, 사용자가 직접 입력한 `PowerBI`, `Looker Studio` 같은 플랫폼성 태그는 정규화 과정에서 제거해 중복과 오분류를 막는다.
 - **Power BI-first 기본 필터도 최적화 경로로 태워야 한다.** 홈 콘텐츠 유형 필터를 숨기고 기본값을 Power BI로 고정하면 `selected_platforms={"powerbi"}` 상태가 된다. 이를 "사용자 필터 적용"으로 오해하면 snapshot RPC 대신 전체 공개 프로젝트 fallback을 타서 갤러리가 다시 느려진다. 기본 Power BI scope는 기본 홈 scope로 취급하고, 플랫폼 필터는 DB/RPC 내부에서 처리한다.
+- **Power BI 판별은 URL/태그 추론보다 정규화 컬럼이 빠르고 안정적이다.** 홈 cold path에서 매번 태그와 URL marker로 후보를 찾으면 DB 함수 내부 집계 비용이 남는다. `projects.platform_key`를 backfill하고 partial index와 RPC가 이 컬럼을 먼저 쓰게 하되, 운영 DB 패치 전 배포도 견디도록 앱 fallback은 유지한다.
 
 ## 15. GitHub 이슈 기반 작업 관리
 

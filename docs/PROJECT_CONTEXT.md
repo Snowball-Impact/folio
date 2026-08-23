@@ -22,8 +22,8 @@
 
 다음 대화에서는 아래 상태에서 이어가면 된다.
 
-- 마지막 원격 반영 기준 커밋은 `7e08cc8 Improve Streamlit loading and home gallery performance`이다.
-- 현재 작업 트리는 문서 교훈 기록 전 기준으로 깨끗했다. 다음 작업은 별도 범위로 시작한다.
+- 마지막 원격 반영 기준 커밋은 `b361f37 Fix home load milestone target selection`이다.
+- 현재 작업 트리는 성능 개선 배포 직후 깨끗했다. 문서 교훈 기록은 별도 변경으로 남긴다.
 - 새 PRD 문서:
   - `docs/FOLIO_Community_PRD.md`: 하나의 `커뮤니티` 게시판으로 공지/질문/팁·노하우/기타를 다룬다. 별도 Q&A/자유게시판/공지사항 화면을 만들지 않는다. MVP 댓글은 기존 프로젝트 댓글 UI/기능을 확장해 재사용하는 방향이다.
   - `docs/FOLIO_Admin_PRD.md`: `/admin` 통합 운영 화면이다. 승인·심사 시스템이 아니라 프로젝트/커뮤니티/댓글/신고/사용자를 조회하고 필요 시 숨김/공개/삭제 또는 신고 상태 변경을 하는 사후 관리 도구다.
@@ -37,7 +37,7 @@
 - 홈 히어로 1번 설명은 서비스 방향성에 맞춰 "FOLIO는 좋은 시각화를 발견하고, 직접 경험하며 토론하고 함께 성장하는 커뮤니티입니다."로 변경했다. 히어로 설명 문장은 쉼표 뒤에서 줄바꿈하며, 첫 줄은 짧고 아래 줄이 더 길고 무겁게 받치는 구도를 선호한다.
 - 나머지 홈 히어로 설명도 같은 줄바꿈 균형을 적용했다.
 - 푸터는 좌측 저작권, 중앙 앱 버전, 우측 정책 링크 묶음으로 배치한다. 버전 문자열은 `folio_app/app.py`의 `APP_VERSION`에 둔다.
-- 버전 숫자는 실제 배포할 때 갱신한다. 현재 배포 확인 버전은 `v2026.08.23.15`이다.
+- 버전 숫자는 실제 배포할 때 갱신한다. 현재 배포 확인 버전은 `v2026.08.24.01`이다.
 - 홈 기본 로딩 최적화를 위해 첫 화면 카드 레일은 레일당 6개만 가져와 렌더링한다. 검색/태그/플랫폼 필터를 쓰는 경우에는 기존 전체 필터 경로를 사용한다.
 - 홈 인기 태그에는 플랫폼 메뉴성 태그와 레퍼런스 분류 태그를 노출하지 않는다. 제외 대상은 `Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other`, `reference`, `references`, `레퍼런스`, `참고` 등이다.
 - 등록/수정에서 PBIX 업로드와 썸네일 자동 캡처를 함께 쓰면 PBIX 게시/배포 완료와 명시 대기 후 캡처가 실행되어야 한다. 게시 대기와 캡처 대기는 각각 진행률 메시지를 표시한다.
@@ -928,8 +928,9 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - Streamlit Cloud 실서비스 자동 측정에서는 root URL과 내부 앱 프레임 URL을 구분한다. `https://folio-gapyear.streamlit.app`은 실제 브라우저에서는 정상이어도 headless/HTTP 클라이언트에서 303 redirect loop 또는 shell-only로 보일 수 있다. 성능 측정은 `https://folio-gapyear.streamlit.app/~/+/`로 하고, 최종 제품 확인은 사용자가 보는 root URL과 함께 검증한다.
 - 2026-08-23 배포 확인에서 `https://folio-gapyear.streamlit.app/~/+/` 기준 첫 측정은 header 2.19초, hero 2.71초, gallery/cards/footer 4.00초였다. 같은 배포본 반복 측정은 header 1.11초, hero/gallery/cards 1.24초, footer 1.35초였다. 이때 푸터 버전은 `v2026.08.23.15`, 홈 카드는 18개로 확인했다.
 - 같은 실서비스 측정에서 메뉴 전환 레이아웃은 header top 32px, About/Login/Submit 첫 콘텐츠 top 120px로 안정화됐다. Submit 히어로는 top 120px, height 약 311.5px였고, 이전처럼 히어로가 위에서 아래로 밀리는 느낌은 크게 줄었다.
-- 2026-08-24에는 홈 기본 성능 측정 도구 `tools/profile_home_snapshot.py`의 기본 `platform_key`를 `powerbi`로 맞췄고, 정상 홈 렌더 중 `st.empty()`로 로딩 패널을 그렸다가 같은 run에서 바로 지우는 왕복을 제거했다. 측정 결과는 원격 DB SQL 적용 전 기준 cold 약 1.2초, warm 약 0.3ms이며, cold 중 `get_supabase_client`가 약 0.4초를 차지했다.
-- 다음 홈 DB cold 개선은 `projects.platform_key` 정규화 컬럼이다. 코드와 SQL patch는 준비되어 있으며, 운영 Supabase에는 `supabase/update_home_snapshot_platform_filter.sql`을 다시 적용해야 한다. 적용 전에도 앱은 `platform_key` 컬럼 누락 시 생성/수정 payload에서 해당 필드를 제거하고 재시도한다.
+- 2026-08-24에는 홈 기본 성능 측정 도구 `tools/profile_home_snapshot.py`의 기본 `platform_key`를 `powerbi`로 맞췄고, 정상 홈 렌더 중 `st.empty()`로 로딩 패널을 그렸다가 같은 run에서 바로 지우는 왕복을 제거했다. 운영 DB에는 `projects.platform_key` 정규화 컬럼, partial index, `platform_key` 우선 `home_project_snapshot` RPC를 적용했다. 앱은 컬럼 미적용 DB에서도 생성/수정이 실패하지 않도록 `platform_key` 필드를 제거하고 재시도하는 fallback을 유지한다.
+- SQL 적용 후 원격 DB 측정은 `python tools\profile_home_snapshot.py --warm-runs 2` 기준 cold 1483.6ms(`get_supabase_client` 422.5ms 포함), warm 0.2~0.3ms였다. app cache clear 반복 측정은 첫 982.7ms 뒤 47.2/28.5/44.3ms로 내려갔다. `platform_key` backfill 결과는 powerbi 101, tableau 23, datastudio 80, streamlit 163, null 1이다.
+- 배포 커밋 `3041106 Optimize Power BI home snapshot routing`과 측정 도구 수정 커밋 `b361f37 Fix home load milestone target selection`을 `origin/main`에 푸시했다. `v2026.08.24.01` 실서비스 `https://folio-gapyear.streamlit.app/~/+/` corrected 측정은 header 1.43초, hero 2.53초, browse/gallery 3.18초였다. 별도 live DOM 확인에서는 카드 13개와 footer version `v2026.08.24.01`을 확인했다.
 - Streamlit Community Cloud는 공식 문서 기준 12시간 무트래픽 후 sleep 상태가 되므로 30분 반복 ping은 운영 목적 대비 과하다. `.github/workflows/keepalive.yml`의 KST 08:00 전후 wake 작업만 유지하고, 30분 간격 `keepalive-ping.yml`은 제거했다.
 - 공개 Home 기본 진입은 쿠키 복원보다 첫 렌더 속도를 우선해 CookieManager를 마운트하지 않는다. 새 브라우저 세션의 저장된 로그인 쿠키 복원은 상세/보호/인증 흐름으로 들어갈 때 수행된다. 기본 홈에서 CookieManager iframe과 ready 대기 rerun을 제거하는 목적이다.
 - 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다. 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정하며, 상단 독립 `레퍼런스` 메뉴는 숨긴다. Power BI 메뉴의 공식 레퍼런스 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
