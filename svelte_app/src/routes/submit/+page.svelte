@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import { currentSession } from '$lib/auth';
+	import { publishProjectPbix } from '$lib/powerbi-publish';
 	import { createProject, type ProjectSubmitInput } from '$lib/projects';
 	import { uploadProjectThumbnail } from '$lib/thumbnails';
 	import type { ProjectCard as ProjectCardType } from '$lib/types';
@@ -36,6 +37,7 @@
 	let submitting = $state(false);
 	let thumbnailFile = $state<File | null>(null);
 	let thumbnailPreviewUrl = $state<string | null>(null);
+	let pbixFile = $state<File | null>(null);
 
 	const previewProject = $derived<ProjectCardType>({
 		id: 'submit-preview',
@@ -84,6 +86,10 @@
 			error = '업로드할 썸네일 이미지를 선택하세요.';
 			return;
 		}
+		if (input.platform === 'powerbi' && input.power_bi_url.trim() === '' && !pbixFile) {
+			error = 'Power BI 프로젝트는 Embed Code 또는 PBIX 파일 중 하나를 입력하세요.';
+			return;
+		}
 		submitting = true;
 		const result = await createProject(input);
 		if (!result.ok || !result.projectId) {
@@ -100,6 +106,15 @@
 				return;
 			}
 		}
+		if (pbixFile) {
+			const publishResult = await publishProjectPbix(result.projectId, pbixFile);
+			if (!publishResult.ok) {
+				submitting = false;
+				error = `${publishResult.message} 프로젝트는 등록되었습니다.`;
+				await goto(`/projects/${result.projectId}`);
+				return;
+			}
+		}
 		submitting = false;
 		message = result.message;
 		await goto(`/projects/${result.projectId}`);
@@ -112,6 +127,10 @@
 		}
 		thumbnailFile = file;
 		thumbnailPreviewUrl = file ? URL.createObjectURL(file) : null;
+	}
+
+	function selectPbix(event: Event) {
+		pbixFile = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 	}
 
 	function previewTags(tags: string, platform: ProjectSubmitInput['platform']) {
@@ -192,6 +211,12 @@
 				<span>Embed Code</span>
 				<input bind:value={input.power_bi_url} placeholder="https://... 또는 iframe 코드" />
 			</label>
+			{#if input.platform === 'powerbi'}
+				<label>
+					<span>PBIX 파일</span>
+					<input type="file" accept=".pbix" onchange={selectPbix} />
+				</label>
+			{/if}
 			<label>
 				<span>GitHub URL</span>
 				<input bind:value={input.github_url} placeholder="https://github.com/..." />

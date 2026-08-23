@@ -58,19 +58,18 @@ npm run build
 - Login and signup use Supabase Auth from the browser. Signup sends `name` and `organization` through user metadata so the existing `handle_new_user` trigger can create `profiles`.
 - Password reset uses Supabase recovery links at `/reset-password` and accepts `code`, `token_hash`, or access/refresh token recovery callbacks before updating the password.
 - Policy consent onboarding reads active `policy_versions`, checks `user_policy_consents`, gates authenticated public routes, and stores missing required consents before returning users to their requested page.
-- Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract and can upload JPG/PNG/WebP thumbnails through a server endpoint backed by `SUPABASE_SERVICE_ROLE_KEY`.
+- Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract, can upload JPG/PNG/WebP thumbnails through a server endpoint backed by `SUPABASE_SERVICE_ROLE_KEY`, and can publish Power BI `.pbix` files through a server-only Power BI Import endpoint.
 - My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, edits `profiles.name/organization/bio`, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
-- Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit.
+- Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit, replace uploaded thumbnails, and publish a replacement `.pbix` for Power BI projects.
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, and marks project comment notifications/read state when the author opens the detail page.
-- SMTP email notification dispatch, PBIX publish, and automatic thumbnail capture are not part of this spike.
+- SMTP email notification dispatch and automatic thumbnail capture are not part of this spike.
 
 ## Server Boundary Backlog
 
 The remaining Streamlit parity features require server-only secrets or server-side browser automation:
 
-- PBIX publishing: authenticated route action or endpoint must verify the Supabase user, accept a `.pbix`, enforce `PBIX_MAX_UPLOAD_MB`, call Power BI Import APIs with `POWERBI_WORKSPACE_ID`, poll import status, upsert `powerbi_reports`, and update the project status/embed URL.
 - Automatic thumbnail capture: server runtime must provide Chromium/Playwright, render the external report or generated Power BI embed document, capture an image, upload it, and update `projects.thumbnail_url`.
 - SMTP email notification dispatch: comment creation currently creates in-app `notifications`; email delivery needs a server-side worker/endpoint with `SUPABASE_SERVICE_ROLE_KEY` and SMTP settings.
 - Deployment adapter: `@sveltejs/adapter-auto` builds locally but emits a warning until the final host is chosen. Pick the adapter for the target platform before production cutover.
