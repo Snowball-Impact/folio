@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import { currentProfile, currentSession, type AuthProfile } from '$lib/auth';
+	import { currentProfile, currentSession, updateProfile, type AuthProfile } from '$lib/auth';
 	import { deleteProject, listMyProjects } from '$lib/projects';
 	import { formatCount, formatDate, platformLabel } from '$lib/format';
 	import type { ProjectCard } from '$lib/types';
@@ -11,6 +11,11 @@
 	let loading = $state(true);
 	let deleting = $state(false);
 	let deleteConfirmId = $state<string | null>(null);
+	let editingProfile = $state(false);
+	let profileName = $state('');
+	let profileOrganization = $state('');
+	let profileBio = $state('');
+	let profileSaving = $state(false);
 	let message = $state('');
 	let error = $state('');
 
@@ -28,6 +33,7 @@
 			return;
 		}
 		profile = await currentProfile(session.user);
+		syncProfileForm();
 		await refreshProjects();
 	});
 
@@ -57,6 +63,46 @@
 		message = result.message;
 		await refreshProjects();
 	}
+
+	function startProfileEdit() {
+		syncProfileForm();
+		editingProfile = true;
+		message = '';
+		error = '';
+	}
+
+	function syncProfileForm() {
+		profileName = profile?.name ?? '';
+		profileOrganization = profile?.organization ?? '';
+		profileBio = profile?.bio ?? '';
+	}
+
+	async function saveProfile(event: SubmitEvent) {
+		event.preventDefault();
+		message = '';
+		error = '';
+		profileSaving = true;
+		const result = await updateProfile({
+			name: profileName,
+			organization: profileOrganization,
+			bio: profileBio
+		});
+		profileSaving = false;
+		if (!result.ok) {
+			error = result.message;
+			return;
+		}
+		profile = profile
+			? {
+					...profile,
+					name: profileName.trim(),
+					organization: profileOrganization.trim() || null,
+					bio: profileBio.trim() || null
+				}
+			: profile;
+		editingProfile = false;
+		message = result.message;
+	}
 </script>
 
 <svelte:head>
@@ -76,8 +122,40 @@
 		{#if profile?.organization}
 			<em>{profile.organization}</em>
 		{/if}
+		<p class:empty={!profile?.bio}>{profile?.bio || '아직 자기소개가 없습니다.'}</p>
+		<button type="button" onclick={startProfileEdit}>프로필 편집</button>
 	</div>
 </section>
+
+{#if editingProfile}
+	<section class="profile-edit-card">
+		<form class="project-form" onsubmit={saveProfile}>
+			<header>
+				<div class="eyebrow">Edit Profile</div>
+				<h2>프로필 정보 수정</h2>
+				<p>포트폴리오 방문자에게 보여줄 기본 정보를 관리합니다.</p>
+			</header>
+			<div class="form-grid two">
+				<label>
+					<span>이름 *</span>
+					<input bind:value={profileName} placeholder="이름을 입력하세요" />
+				</label>
+				<label>
+					<span>소속</span>
+					<input bind:value={profileOrganization} placeholder="학교, 기관 또는 회사" />
+				</label>
+			</div>
+			<label>
+				<span>자기소개</span>
+				<textarea bind:value={profileBio} maxlength="300" placeholder="관심 분야와 데이터 분석 관점을 소개해 보세요."></textarea>
+			</label>
+			<div class="project-form-actions">
+				<button type="button" class="secondary-action" onclick={() => (editingProfile = false)}>취소</button>
+				<button type="submit" disabled={profileSaving}>{profileSaving ? '저장 중...' : '변경사항 저장'}</button>
+			</div>
+		</form>
+	</section>
+{/if}
 
 <section class="stats-grid" aria-label="내 프로젝트 통계">
 	<div>

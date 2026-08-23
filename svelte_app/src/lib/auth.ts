@@ -6,6 +6,7 @@ export type AuthProfile = {
 	email: string;
 	name: string;
 	organization: string | null;
+	bio: string | null;
 };
 
 export type AuthResult = {
@@ -40,7 +41,7 @@ export async function currentProfile(user: User): Promise<AuthProfile> {
 
 	const { data } = await supabase
 		.from('profiles')
-		.select('id,email,name,organization')
+		.select('id,email,name,organization,bio')
 		.eq('id', user.id)
 		.maybeSingle();
 	if (!data) {
@@ -50,7 +51,8 @@ export async function currentProfile(user: User): Promise<AuthProfile> {
 		id: String(data.id ?? user.id),
 		email: String(data.email ?? user.email ?? ''),
 		name: String(data.name ?? fallback.name),
-		organization: nullableString(data.organization)
+		organization: nullableString(data.organization),
+		bio: nullableString(data.bio)
 	};
 }
 
@@ -200,6 +202,37 @@ export async function completePasswordReset(input: {
 	return { ok: true, message: '비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.' };
 }
 
+export async function updateProfile(input: { name: string; organization: string; bio: string }): Promise<AuthResult> {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return { ok: false, message: '로그인 후 프로필을 수정할 수 있습니다.' };
+	}
+
+	const name = input.name.trim();
+	const organization = input.organization.trim();
+	const bio = input.bio.trim();
+	if (!name) {
+		return { ok: false, message: '이름을 입력하세요.' };
+	}
+	if (bio.length > 300) {
+		return { ok: false, message: '자기소개는 최대 300자까지 입력할 수 있습니다.' };
+	}
+
+	const { error } = await supabase
+		.from('profiles')
+		.update({
+			name,
+			organization,
+			bio
+		})
+		.eq('id', session.user.id);
+	if (error) {
+		return { ok: false, message: '프로필을 저장하지 못했습니다. 잠시 후 다시 시도하세요.' };
+	}
+	return { ok: true, message: '프로필이 업데이트됐습니다.' };
+}
+
 export async function signOut() {
 	const supabase = getSupabaseClient();
 	if (supabase) {
@@ -213,7 +246,8 @@ function profileFromUser(user: User): AuthProfile {
 		id: user.id,
 		email: user.email ?? '',
 		name: String(metadata.name ?? user.email?.split('@')[0] ?? '사용자'),
-		organization: nullableString(metadata.organization)
+		organization: nullableString(metadata.organization),
+		bio: null
 	};
 }
 

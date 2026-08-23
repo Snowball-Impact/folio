@@ -45,8 +45,8 @@ npm run build
 - Password reset uses Supabase recovery links at `/reset-password` and accepts `code`, `token_hash`, or access/refresh token recovery callbacks before updating the password.
 - Policy consent onboarding reads active `policy_versions`, checks `user_policy_consents`, gates authenticated public routes, and stores missing required consents before returning users to their requested page.
 - Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract. PBIX upload, Storage thumbnail upload, and automatic thumbnail capture still need a server-side boundary.
-- My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
+- My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, edits `profiles.name/organization/bio`, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
 - Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, and marks project comment notifications/read state when the author opens the detail page.
-- SMTP email notification dispatch, PBIX/thumbnail upload automation, and profile edit are not part of this spike.
+- SMTP email notification dispatch and PBIX/thumbnail upload automation are not part of this spike.
