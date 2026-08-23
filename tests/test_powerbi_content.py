@@ -29,6 +29,38 @@ class PowerBIContentTests(unittest.TestCase):
         self.assertEqual(items[0].video_row, videos[0])
         self.assertIn("Shape Map", items[0].bullets[0])
 
+    def test_build_news_items_adds_newer_official_video_without_learn_release(self) -> None:
+        updates = [
+            {
+                "release_label": "July 2026 update",
+                "version": "2.156.951.0",
+                "section": "Overview",
+                "source_url": "https://learn.microsoft.com/update",
+            }
+        ]
+        videos = [
+            {
+                "title_en": "Power BI Update - August 2026",
+                "title_ko": "Power BI Update - August 2026",
+                "summary_ko": "Power BI 실무 학습에 참고할 수 있는 영상입니다.",
+                "video_url": "https://youtube.com/watch?v=august",
+            },
+            {
+                "title_en": "Power BI Update - July 2026",
+                "video_url": "https://youtube.com/watch?v=july",
+            },
+        ]
+
+        items = build_news_items(updates, [], videos)
+
+        self.assertEqual(len(items), 2)
+        self.assertEqual(items[0].label, "공식 업데이트 영상")
+        self.assertEqual(items[0].title, "8월 2026 업데이트 공식 영상")
+        self.assertEqual(items[0].source_row["source_url"], "https://youtube.com/watch?v=august")
+        self.assertEqual(items[0].video_row, videos[0])
+        self.assertEqual(items[1].label, "월간 정기 업데이트")
+        self.assertEqual(items[1].video_row, videos[1])
+
     def test_build_news_items_sorts_changelog_after_newer_update(self) -> None:
         updates = [{"release_label": "June 2026 update", "section": "Overview"}]
         changelog = [

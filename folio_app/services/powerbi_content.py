@@ -118,22 +118,33 @@ def build_news_items(
 ) -> list[PowerBINewsItem]:
     items: list[PowerBINewsItem] = []
     video_by_release = _update_videos_by_release(update_video_rows)
+    matched_video_keys: set[str] = set()
+    latest_update_sort_date: datetime | None = None
     for release_label, rows in _group_by(update_rows, "release_label").items():
         overview = _find_overview(rows)
         version = _first_value(rows, "version")
         title = localize_release_label(release_label)
         if version:
             title = f"{title} · v{version}"
+        release_key = _release_match_key(release_label)
+        video_row = video_by_release.get(release_key)
+        sort_date = _release_sort_date(release_label)
+        if video_row:
+            matched_video_keys.add(release_key)
+        if latest_update_sort_date is None or sort_date > latest_update_sort_date:
+            latest_update_sort_date = sort_date
         items.append(
             PowerBINewsItem(
-                sort_date=_release_sort_date(release_label),
+                sort_date=sort_date,
                 label="월간 정기 업데이트",
                 title=title,
                 source_row=overview or first_row(rows) or {},
                 bullets=_release_summary_bullets(rows),
-                video_row=video_by_release.get(_release_match_key(release_label)),
+                video_row=video_row,
             )
         )
+
+    items.extend(_standalone_update_video_items(update_video_rows, matched_video_keys, latest_update_sort_date))
 
     for release_label, rows in _group_by(changelog_rows, "release_label").items():
         version = _first_value(rows, "version")
@@ -182,6 +193,34 @@ def _update_videos_by_release(rows: list[dict[str, str]]) -> dict[str, dict[str,
         if key:
             videos[key] = row
     return videos
+
+
+def _standalone_update_video_items(
+    rows: list[dict[str, str]],
+    matched_video_keys: set[str],
+    latest_update_sort_date: datetime | None,
+) -> list[PowerBINewsItem]:
+    items: list[PowerBINewsItem] = []
+    for row in rows:
+        key = _release_match_key(row.get("title_en") or row.get("title_ko"))
+        if not key or key in matched_video_keys:
+            continue
+        sort_date = _release_sort_date(f"{key.title()} update")
+        if latest_update_sort_date is not None and sort_date <= latest_update_sort_date:
+            continue
+        source_row = {**row, "source_url": row.get("source_url") or row.get("video_url") or ""}
+        summary = row.get("summary_ko") or "Microsoft Power BI 공식 채널에 게시된 월간 업데이트 영상입니다."
+        items.append(
+            PowerBINewsItem(
+                sort_date=sort_date,
+                label="공식 업데이트 영상",
+                title=f"{localize_release_label(f'{key.title()} update')} 공식 영상",
+                source_row=source_row,
+                bullets=[summary],
+                video_row=row,
+            )
+        )
+    return items
 
 
 def _release_match_key(value: str | None) -> str:
