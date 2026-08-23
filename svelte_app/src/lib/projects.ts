@@ -230,6 +230,62 @@ export async function createProject(input: ProjectSubmitInput) {
 	return { ok: true, message: '프로젝트가 등록되었습니다.', projectId: String(data.id ?? '') };
 }
 
+export async function listMyProjects() {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return {
+			projects: [],
+			error: '로그인 후 내 프로젝트를 확인할 수 있습니다.'
+		};
+	}
+
+	const { data, error } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('author_id', session.user.id)
+		.order('created_at', { ascending: false });
+
+	if (error) {
+		return {
+			projects: [],
+			error: '내 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.'
+		};
+	}
+
+	const projects = (Array.isArray(data) ? data : [])
+		.map(normalizeProject)
+		.filter((project) => project.status !== 'deleted');
+	return {
+		projects: await attachPublicProjectMetadata(projects),
+		error: ''
+	};
+}
+
+export async function deleteProject(projectId: string) {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return { ok: false, message: '로그인 후 프로젝트를 삭제할 수 있습니다.' };
+	}
+
+	const { error } = await supabase
+		.from('projects')
+		.update({
+			status: 'deleted',
+			deleted_at: new Date().toISOString(),
+			is_public: false
+		})
+		.eq('id', projectId)
+		.eq('author_id', session.user.id);
+
+	if (error) {
+		return { ok: false, message: '프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.' };
+	}
+
+	return { ok: true, message: '프로젝트가 삭제되었습니다.' };
+}
+
 const projectListColumns = [
 	'id',
 	'author_id',
