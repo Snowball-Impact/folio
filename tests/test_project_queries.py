@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import ANY, MagicMock, call, patch
 
@@ -9,7 +10,9 @@ from folio_app.services.project_mutations import delete_project, update_project
 from folio_app.services.project_queries import (
     HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER,
     PUBLIC_PROJECT_LIST_COLUMNS,
+    HomeProjectSnapshot,
     HomeTagSummary,
+    _fetch_home_project_snapshot_rpc,
     _fetch_home_tag_summary,
     _fetch_home_liked_project_ids,
     _fetch_public_projects,
@@ -221,6 +224,56 @@ class FilterPublicProjectsTests(unittest.TestCase):
 
 
 class ProjectReadFailureTests(unittest.TestCase):
+    @patch("folio_app.services.project_queries._fetch_home_project_snapshot_rpc")
+    @patch("folio_app.services.project_queries._fetch_home_project_rows")
+    def test_home_snapshot_uses_rpc_when_available(self, fetch_rows, fetch_rpc) -> None:
+        rpc_snapshot = HomeProjectSnapshot(
+            total_project_count=1,
+            popular_tags=["Power BI"],
+            recent_projects=[{"id": "recent-1"}],
+            viewed_projects=[{"id": "viewed-1"}],
+            liked_projects=[{"id": "liked-1"}],
+        )
+        fetch_rpc.return_value = rpc_snapshot
+
+        snapshot = list_home_project_snapshot(limit=6, tag_limit=40)
+
+        self.assertIs(snapshot, rpc_snapshot)
+        fetch_rpc.assert_called_once_with(6, 40)
+        fetch_rows.assert_not_called()
+
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_home_snapshot_rpc_maps_payload(self, get_client) -> None:
+        _fetch_home_project_snapshot_rpc.clear()
+        rpc_builder = MagicMock()
+        rpc_builder.execute.return_value = SimpleNamespace(
+            data={
+                "total_project_count": 2,
+                "popular_tags": ["Power BI", "분석"],
+                "recent_projects": [{"id": "recent-1"}],
+                "viewed_projects": [{"id": "viewed-1"}],
+                "liked_projects": [{"id": "liked-1"}],
+            }
+        )
+        client = MagicMock()
+        client.rpc.return_value = rpc_builder
+        get_client.return_value = client
+
+        snapshot = _fetch_home_project_snapshot_rpc(6, 40)
+
+        self.assertEqual(snapshot.total_project_count, 2)
+        self.assertEqual(snapshot.popular_tags, ["Power BI", "분석"])
+        self.assertEqual(snapshot.recent_projects, [{"id": "recent-1"}])
+        client.rpc.assert_called_once_with(
+            "home_project_snapshot",
+            {
+                "p_limit": 6,
+                "p_tag_limit": 40,
+                "p_like_sample_limit": 6 * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER,
+            },
+        )
+
+    @patch("folio_app.services.project_queries._fetch_home_project_snapshot_rpc", return_value=None)
     @patch("folio_app.services.project_queries._fetch_public_projects")
     @patch(
         "folio_app.services.project_queries.home_tag_summary",
@@ -238,6 +291,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         attach_related,
         tag_summary,
         fetch_all,
+        fetch_rpc,
     ) -> None:
         recent = [{"id": "recent-1", "author_id": "author-1"}]
         viewed = [{"id": "viewed-1", "author_id": "author-1"}]
@@ -248,6 +302,7 @@ class ProjectReadFailureTests(unittest.TestCase):
 
         snapshot = list_home_project_snapshot(limit=6)
 
+        fetch_rpc.assert_called_once_with(6, 10)
         self.assertEqual(snapshot.total_project_count, 42)
         self.assertEqual(snapshot.popular_tags, ["Power BI", "분석"])
         self.assertEqual([project["id"] for project in snapshot.recent_projects], ["recent-1"])
@@ -317,6 +372,13 @@ class ProjectReadFailureTests(unittest.TestCase):
         self.assertEqual(result.total_project_count, 3)
         self.assertEqual(result.popular_tags, ["분석", "Power BI"])
         fetch_tags.assert_called_once()
+
+    def test_schema_includes_home_snapshot_rpc(self) -> None:
+        schema_sql = Path("supabase/schema.sql").read_text(encoding="utf-8")
+
+        self.assertIn("create or replace function public.home_project_snapshot", schema_sql)
+        self.assertIn("returns jsonb", schema_sql)
+        self.assertIn("grant execute on function public.home_project_snapshot", schema_sql)
 
     @patch("folio_app.services.project_queries._fetch_public_projects")
     def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:

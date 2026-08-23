@@ -18,6 +18,7 @@ import folio_app.services.project_queries as project_queries
 
 PROFILE_TARGETS = (
     "get_supabase_client",
+    "_fetch_home_project_snapshot_rpc",
     "_fetch_home_project_rows",
     "_fetch_home_liked_project_ids",
     "_fetch_public_projects_by_ids",

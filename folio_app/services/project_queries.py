@@ -16,6 +16,7 @@ from folio_app.services.supabase_client import get_supabase_client, recover_from
 logger = logging.getLogger(__name__)
 
 HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER = 20
+HOME_PROJECT_SNAPSHOT_RPC = "home_project_snapshot"
 
 PUBLIC_PROJECT_LIST_COLUMNS = ",".join(
     (
@@ -81,6 +82,17 @@ def list_public_projects(
 
 def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProjectSnapshot:
     try:
+        snapshot = _fetch_home_project_snapshot_rpc(limit, tag_limit)
+        if snapshot is not None:
+            return snapshot
+    except Exception:
+        logger.warning("Home project snapshot RPC failed; falling back to table queries", exc_info=True)
+
+    return _list_home_project_snapshot_from_queries(limit=limit, tag_limit=tag_limit)
+
+
+def _list_home_project_snapshot_from_queries(limit: int = 6, tag_limit: int = 10) -> HomeProjectSnapshot:
+    try:
         recent_rows = _fetch_home_project_rows("created_at", limit)
         viewed_rows = _fetch_home_project_rows("view_count", limit)
         liked_ids = _fetch_home_liked_project_ids(limit)
@@ -106,6 +118,39 @@ def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProje
     except Exception as exc:
         logger.exception("Failed to load home project snapshot")
         raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _fetch_home_project_snapshot_rpc(limit: int, tag_limit: int) -> HomeProjectSnapshot | None:
+    client = get_supabase_client()
+    if client is None:
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
+
+    response = _execute_public_read(
+        lambda: client.rpc(
+            HOME_PROJECT_SNAPSHOT_RPC,
+            {
+                "p_limit": limit,
+                "p_tag_limit": tag_limit,
+                "p_like_sample_limit": max(limit * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER, limit),
+            },
+        ).execute()
+    )
+    if response is None:
+        return None
+    if not response.data:
+        return None
+    return _home_snapshot_from_payload(response.data)
+
+
+def _home_snapshot_from_payload(payload: dict[str, Any]) -> HomeProjectSnapshot:
+    return HomeProjectSnapshot(
+        total_project_count=int(payload.get("total_project_count") or 0),
+        popular_tags=list(payload.get("popular_tags") or []),
+        recent_projects=list(payload.get("recent_projects") or []),
+        viewed_projects=list(payload.get("viewed_projects") or []),
+        liked_projects=list(payload.get("liked_projects") or []),
+    )
 
 
 @st.cache_data(ttl=30, show_spinner=False)
@@ -526,6 +571,7 @@ def _fetch_like_counts(project_ids: tuple[str, ...]) -> dict[str, int]:
 
 
 def clear_project_caches() -> None:
+    _fetch_home_project_snapshot_rpc.clear()
     _fetch_public_projects.clear()
     _fetch_home_project_rows.clear()
     _fetch_public_projects_by_ids.clear()
