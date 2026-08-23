@@ -19,12 +19,15 @@ from folio_app.navigation import EDIT_PROJECT_QUERY_PARAM, navigate
 from folio_app.services.auth import get_current_user
 from folio_app.services.projects import (
     ProjectServiceError,
+    REPORT_REASON_EMBED_BROKEN,
+    REPORT_REASON_LABELS,
     clear_project_caches,
     delete_project,
     get_project,
     increment_view_count,
     is_project_liked,
     set_project_liked,
+    submit_project_report,
 )
 
 _HOME_PAGE = "Home"
@@ -183,6 +186,7 @@ def _render_hero_footer_actions(
             unsafe_allow_html=True,
         )
         _render_detail_like_button(project_id, like_count, user)
+        _render_detail_report_button(project, project_id, user)
         _render_detail_edit_button(project, project_id, user)
         _render_detail_delete_button(project, project_id, user)
         render_project_share_handler(project_id)
@@ -276,6 +280,60 @@ def _render_detail_edit_button(project: dict, project_id: str, user: dict | None
         use_container_width=False,
     ):
         navigate("My Page", **{EDIT_PROJECT_QUERY_PARAM: project_id})
+
+
+def _render_detail_report_button(project: dict, project_id: str, user: dict | None) -> None:
+    if st.button(
+        "신고",
+        key="detail_report_project_action",
+        icon=":material/flag:",
+        help="대시보드가 열리지 않거나 콘텐츠에 문제가 있으면 알려주세요.",
+        use_container_width=False,
+    ):
+        if not user:
+            st.session_state["project_notice"] = "로그인 후 신고할 수 있습니다."
+            navigate("Login")
+        else:
+            _open_project_report_dialog(project, project_id, user["id"])
+
+
+@st.dialog("콘텐츠 신고")
+def _open_project_report_dialog(project: dict, project_id: str, reporter_id: str) -> None:
+    _render_project_report_dialog(project, project_id, reporter_id)
+
+
+def _render_project_report_dialog(project: dict, project_id: str, reporter_id: str) -> None:
+    title = project.get("title") or "제목 없는 프로젝트"
+    st.write(f"‘{title}’ 콘텐츠에 어떤 문제가 있나요?")
+    reason_codes = list(REPORT_REASON_LABELS.keys())
+    reason_labels = [REPORT_REASON_LABELS[code] for code in reason_codes]
+    default_index = reason_codes.index(REPORT_REASON_EMBED_BROKEN)
+    selected_label = st.selectbox(
+        "신고 사유",
+        reason_labels,
+        index=default_index,
+        key=f"detail_report_reason_{project_id}",
+    )
+    details = st.text_area(
+        "메모",
+        placeholder="예: 임베딩 영역이 비어 있거나, 보고서 보기 링크가 열리지 않아요.",
+        max_chars=500,
+        key=f"detail_report_details_{project_id}",
+    )
+    selected_reason = reason_codes[reason_labels.index(selected_label)]
+
+    cancel_col, submit_col = st.columns(2)
+    with cancel_col:
+        if st.button("취소", key=f"detail_report_cancel_{project_id}", use_container_width=True):
+            st.rerun()
+    with submit_col:
+        if st.button("신고 접수", key=f"detail_report_submit_{project_id}", type="primary", use_container_width=True):
+            result = submit_project_report(project_id, reporter_id, selected_reason, details)
+            if result.ok:
+                st.session_state["project_notice"] = result.message
+                st.rerun()
+            else:
+                st.error(result.message)
 
 
 def _render_detail_delete_button(project: dict, project_id: str, user: dict | None) -> None:

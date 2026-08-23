@@ -13,6 +13,7 @@ from folio_app.pages.project_detail import (
     _is_project_owner,
     _render_detail_edit_button,
     _render_detail_project_deletion_dialog,
+    _render_project_report_dialog,
 )
 from folio_app.services.project_types import ProjectResult
 
@@ -122,6 +123,38 @@ class DetailHelperTests(unittest.TestCase):
         delete_project.assert_called_once_with("project-1", "user-1")
         self.assertEqual(session_state["home_notice"], "프로젝트가 삭제되었습니다.")
         navigate.assert_called_once_with("Home")
+
+    @patch("folio_app.pages.project_detail.st.rerun")
+    @patch("folio_app.pages.project_detail.submit_project_report")
+    @patch("folio_app.pages.project_detail.st.session_state", new_callable=dict)
+    @patch("folio_app.pages.project_detail.st.text_area", return_value="임베딩이 비어 있습니다.")
+    @patch("folio_app.pages.project_detail.st.selectbox")
+    @patch("folio_app.pages.project_detail.st.button")
+    @patch("folio_app.pages.project_detail.st.columns")
+    def test_project_report_dialog_defaults_to_embed_broken(
+        self,
+        columns,
+        button,
+        selectbox,
+        _text_area,
+        session_state,
+        submit_project_report,
+        _rerun,
+    ) -> None:
+        columns.return_value = [_context_column(), _context_column()]
+        button.side_effect = [False, True]
+        selectbox.side_effect = lambda _label, options, index, key: options[index]
+        submit_project_report.return_value = ProjectResult(True, "신고가 접수되었습니다.", "report-1")
+
+        _render_project_report_dialog({"title": "신고 테스트"}, "project-1", "user-1")
+
+        submit_project_report.assert_called_once_with(
+            "project-1",
+            "user-1",
+            "embed_broken",
+            "임베딩이 비어 있습니다.",
+        )
+        self.assertEqual(session_state["project_notice"], "신고가 접수되었습니다.")
 
     def test_visual_context_detects_any_resource(self) -> None:
         context = project_visual_context(

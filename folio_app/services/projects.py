@@ -5,6 +5,14 @@ from folio_app.services.project_mutations import (
     set_project_liked,
     update_project,
 )
+from folio_app.services.project_reports import (
+    REPORT_REASON_EMBED_BROKEN,
+    REPORT_REASON_INAPPROPRIATE,
+    REPORT_REASON_LABELS,
+    REPORT_REASON_OTHER,
+    REPORT_REASON_WRONG_CONTENT,
+    submit_project_report,
+)
 from folio_app.services.project_normalizers import (
     _IframeSrcParser,
     clean_project_payload as _clean_project_payload,
@@ -33,13 +41,19 @@ from folio_app.services.project_queries import (
     list_projects_by_author,
     list_public_projects,
 )
-from folio_app.services.project_types import ProjectResult, ProjectServiceError, ViewCountResult
+from folio_app.services.project_types import ProjectReportResult, ProjectResult, ProjectServiceError, ViewCountResult
 
 
 __all__ = [
     "ProjectResult",
+    "ProjectReportResult",
     "ProjectServiceError",
     "HomeProjectSnapshot",
+    "REPORT_REASON_EMBED_BROKEN",
+    "REPORT_REASON_INAPPROPRIATE",
+    "REPORT_REASON_LABELS",
+    "REPORT_REASON_OTHER",
+    "REPORT_REASON_WRONG_CONTENT",
     "ViewCountResult",
     "_IframeSrcParser",
     "_attach_related_data",
@@ -68,5 +82,6 @@ __all__ = [
     "normalize_power_bi_embed_url",
     "normalize_thumbnail_mode",
     "set_project_liked",
+    "submit_project_report",
     "update_project",
 ]
