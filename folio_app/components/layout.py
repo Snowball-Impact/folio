@@ -129,7 +129,7 @@ def _render_powerbi_menu(current_page: str) -> None:
         ("community", "커뮤니티 소식", "Power BI", {"topic": "community"}),
         ("learning", "학습 콘텐츠", "Power BI", {"topic": "learning"}),
         ("certifications", "자격증", "Power BI", {"topic": "certifications"}),
-        ("reference", "공식 레퍼런스", "Reference", {"platform": "powerbi"}),
+        ("reference", "레퍼런스", "Reference", {"platform": "powerbi"}),
     ]
     with st.popover(
         "Power BI",

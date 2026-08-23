@@ -130,6 +130,52 @@ CSS = """
     max-height: 136px;
 }
 
+.folio-reference-sort-bar {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin: -8px 0 14px;
+}
+
+.folio-reference-sort-bar > span {
+    color: var(--folio-muted);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.folio-reference-sort-tabs {
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid var(--folio-border);
+    border-radius: 8px;
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px;
+}
+
+.folio-reference-sort-tab {
+    align-items: center;
+    border-radius: 6px;
+    border: 0;
+    color: #40516d !important;
+    cursor: pointer;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: inherit;
+    min-height: 32px;
+    padding: 0 12px;
+    text-decoration: none !important;
+    transition: background 0.14s ease, color 0.14s ease;
+}
+
+.folio-reference-sort-tab:hover,
+.folio-reference-sort-tab.is-active {
+    background: #eaf2ff;
+    color: var(--folio-blue) !important;
+}
+
 @media (max-width: 1180px) {
     .folio-reference-hero-copy h1.folio-reference-hero-title {
         text-wrap: balance;
@@ -231,6 +277,11 @@ CSS = """
         max-height: 120px;
         max-width: 320px;
         width: auto;
+    }
+
+    .folio-reference-sort-bar {
+        justify-content: center;
+        margin-top: -4px;
     }
 
     .folio-reference-grid {

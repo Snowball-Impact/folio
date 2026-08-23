@@ -19,7 +19,7 @@ from folio_app.services.auth import (
 )
 from folio_app.styles import apply_global_styles
 
-APP_VERSION = "v2026.08.23.8"
+APP_VERSION = "v2026.08.23.10"
 
 _FOOTER_HTML = """
 <footer class="folio-footer">

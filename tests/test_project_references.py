@@ -3,7 +3,16 @@ import unittest
 from unittest.mock import patch
 
 from folio_app.pages.home import _filter_projects_by_platforms, _platform_filter_options, _popular_tags_from_projects
-from folio_app.pages.reference import _next_visible_count, _selected_platform_key
+from folio_app.pages.reference import (
+    _next_visible_count,
+    _reference_back_params,
+    _reference_card_query_params,
+    _reference_card_slot_html,
+    _selected_platform_key,
+    _selected_sort_key,
+    _sort_label_for_query,
+    _sort_item_html,
+)
 from folio_app.services.project_references import (
     DEFAULT_REFERENCE_PLATFORM_KEY,
     VISIBLE_REFERENCE_PLATFORMS,
@@ -53,6 +62,57 @@ class ProjectReferenceTests(unittest.TestCase):
     @patch("folio_app.pages.reference.st.query_params", {"platform": "tableau"})
     def test_hidden_reference_platform_url_falls_back_to_powerbi(self) -> None:
         self.assertEqual(_selected_platform_key(), "powerbi")
+
+    @patch("folio_app.pages.reference.st.query_params", {"sort": "likes"})
+    def test_reference_sort_query_uses_home_gallery_sort_labels(self) -> None:
+        self.assertEqual(_selected_sort_key(), "likes")
+        self.assertEqual(_sort_label_for_query("latest"), "최신순")
+        self.assertEqual(_sort_label_for_query("likes"), "좋아요순")
+        self.assertEqual(_sort_label_for_query("views"), "조회수순")
+
+    @patch("folio_app.pages.reference.st.query_params", {"sort": "unknown"})
+    def test_unknown_reference_sort_falls_back_to_latest(self) -> None:
+        self.assertEqual(_selected_sort_key(), "latest")
+
+    @patch("folio_app.pages.reference.st.query_params", {"visible": "24"})
+    def test_reference_card_query_params_preserve_sort_and_visible_count(self) -> None:
+        self.assertEqual(
+            _reference_card_query_params("powerbi", "views"),
+            {"platform": "powerbi", "sort": "views", "visible": "24"},
+        )
+
+    def test_reference_back_params_preserve_non_default_sort(self) -> None:
+        self.assertEqual(_reference_back_params("powerbi", "latest"), {"platform": "powerbi"})
+        self.assertEqual(
+            _reference_back_params("powerbi", "likes"),
+            {"platform": "powerbi", "sort": "likes"},
+        )
+
+    def test_reference_sort_item_is_client_side_button(self) -> None:
+        rendered = _sort_item_html("likes", "views", "조회수")
+        self.assertIn('type="button"', rendered)
+        self.assertIn('data-folio-reference-sort="views"', rendered)
+        self.assertNotIn("<a ", rendered)
+
+    @patch("folio_app.pages.reference.st.query_params", {})
+    def test_reference_card_slot_exposes_client_sort_values(self) -> None:
+        rendered = _reference_card_slot_html(
+            {
+                "id": "project-1",
+                "title": "Power BI Sample",
+                "created_at": "2026-08-23T10:00:00",
+                "like_count": 7,
+                "view_count": 42,
+            },
+            "powerbi",
+            "latest",
+            1,
+            2,
+        )
+        self.assertIn("is-hidden", rendered)
+        self.assertIn('data-created-at="2026-08-23T10:00:00"', rendered)
+        self.assertIn('data-like-count="7"', rendered)
+        self.assertIn('data-view-count="42"', rendered)
 
     def test_home_platform_filter_supports_all_other_and_reference_platform(self) -> None:
         projects = [

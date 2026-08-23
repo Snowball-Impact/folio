@@ -11,29 +11,39 @@
 **FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
 핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
 
-2026-08 기준 제품 방향은 `docs/MVP_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI Embedded/PBIX 게시 흐름과 데이터 시각화 갤러리 경험을 단계적으로 결합하는 것이다.
+2026-08 기준 제품 방향은 `docs/MVP_PRD.md`를 기본으로 하며, 커뮤니티 게시판은 `docs/FOLIO_Community_PRD.md`, 운영자 화면은 `docs/FOLIO_Admin_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI-first 콘텐츠, 데이터 시각화 갤러리 경험, 커뮤니티/운영 기능을 단계적으로 결합하는 것이다.
 
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
 - **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 Playwright 기반 썸네일 자동 캡처를 실험하는 것이다.
 
-### 현재 핸드오프 상태 (2026-08-15)
+### 현재 핸드오프 상태 (2026-08-23)
 
 다음 대화에서는 아래 상태에서 이어가면 된다.
 
-- 마지막 원격 반영 기준 커밋은 `1af41bb Optimize home page loading`이다.
-- 현재 작업 트리에는 푸터 버전 표시, 홈 인기태그 `reference` 예외처리, 관련 테스트 변경이 남아 있다. 커밋/푸시는 아직 하지 않았다.
+- 마지막 원격 반영 기준 커밋은 `c336dc6 Enable Power BI first launch mode`이다.
+- 현재 작업 트리에는 레퍼런스 정렬 UX 개선, 홈 히어로 설명 문구 변경, 푸터 버전 `v2026.08.23.10`, 새 PRD 문서 2개와 이 문서 갱신이 남아 있다. 커밋/푸시는 아직 하지 않았다.
+- 새 PRD 문서:
+  - `docs/FOLIO_Community_PRD.md`: 하나의 `커뮤니티` 게시판으로 공지/질문/팁·노하우/기타를 다룬다. 별도 Q&A/자유게시판/공지사항 화면을 만들지 않는다. MVP 댓글은 기존 프로젝트 댓글 UI/기능을 확장해 재사용하는 방향이다.
+  - `docs/FOLIO_Admin_PRD.md`: `/admin` 통합 운영 화면이다. 승인·심사 시스템이 아니라 프로젝트/커뮤니티/댓글/사용자를 조회하고 필요 시 숨김/공개/삭제하는 사후 관리 도구다.
+- 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다.
+- 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정한다. 상단 독립 `레퍼런스` 메뉴는 숨기며, Power BI 메뉴 안의 `레퍼런스` 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
+- 레퍼런스 페이지는 히어로에서 "공식" 문구를 제거했다. 정렬 옵션은 `최신`, `좋아요`, `조회수`이며 홈 갤러리 정렬 값(`최신순`, `좋아요순`, `조회수순`)을 재사용한다.
+- 레퍼런스 정렬 버튼은 페이지 리로드 없이 클라이언트 JS가 이미 렌더된 카드 DOM을 `data-created-at`, `data-like-count`, `data-view-count` 기준으로 재정렬한다. URL의 `sort`는 `history.pushState`로 조용히 갱신하고, 상세 카드 링크에도 현재 정렬값을 반영한다.
+- 레퍼런스의 `더 보기`는 아직 기존 Streamlit 방식이다. 하단 도달 시 `visible` query parameter를 늘리고 rerun으로 다음 묶음을 렌더링한다.
+- 홈 히어로 1번 설명은 서비스 방향성에 맞춰 "FOLIO는 좋은 시각화를 발견하고, 직접 경험하며 토론하고 함께 성장하는 커뮤니티입니다."로 변경했다. 히어로 설명 문장은 쉼표 뒤에서 줄바꿈하며, 첫 줄은 짧고 아래 줄이 더 길고 무겁게 받치는 구도를 선호한다.
+- 나머지 홈 히어로 설명도 같은 줄바꿈 균형을 적용했다.
 - 푸터는 좌측 저작권, 중앙 앱 버전, 우측 정책 링크 묶음으로 배치한다. 버전 문자열은 `folio_app/app.py`의 `APP_VERSION`에 둔다.
-- 버전 숫자는 일반 수정 때마다 올리지 않는다. 실제 배포할 때만 `APP_VERSION`을 갱신한다.
+- 버전 숫자는 실제 배포할 때 갱신한다. 현재 작업트리 버전은 `v2026.08.23.10`이다.
 - 홈 기본 로딩 최적화를 위해 첫 화면 카드 레일은 레일당 6개만 가져와 렌더링한다. 검색/태그/플랫폼 필터를 쓰는 경우에는 기존 전체 필터 경로를 사용한다.
 - 홈 인기 태그에는 플랫폼 메뉴성 태그와 레퍼런스 분류 태그를 노출하지 않는다. 제외 대상은 `Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other`, `reference`, `references`, `레퍼런스`, `참고` 등이다.
 - 등록/수정에서 PBIX 업로드와 썸네일 자동 캡처를 함께 쓰면 PBIX 게시/배포 완료와 명시 대기 후 캡처가 실행되어야 한다. 게시 대기와 캡처 대기는 각각 진행률 메시지를 표시한다.
+- 다음 작업 후보는 Power BI 콘텐츠 번역 품질 개선이다. 새 컨텍스트에서는 `docs/curation/powerbi_CONTENT_OPS.md`, `docs/curation/powerbi_*`, `folio_app/services/powerbi_content.py`, `folio_app/services/powerbi_i18n.py`, `tests/test_powerbi_content.py`와 관련 테스트를 먼저 분석하고, 바로 수정하지 말고 번역 대상/방식/우선순위 계획부터 세운다.
 - 검증 완료 명령:
-  - `python -m unittest tests.test_project_references -v`
-  - `python -m compileall -q folio_app tests`
   - `python -m pyflakes folio_app app.py tests`
-  - `python -m unittest discover -s tests`
+  - `python -m unittest tests.test_project_references tests.test_core_flows tests.test_ui_cards -v`
+  - `python -m pyflakes folio_app\pages\home.py`
 
 ### PRD v1.5 전환 기준
 
@@ -923,6 +933,27 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m pyflakes folio_app app.py tests`
 - `python -m unittest discover -s tests -v`
 
+### 진행 중: Power BI-first UI 정리와 레퍼런스 UX 개선 (2026-08-23)
+
+- 작업트리 기준 푸터 버전은 `v2026.08.23.10`이다. 이 변경은 아직 커밋되지 않았다.
+- 레퍼런스 페이지 히어로에서 "공식" 문구를 제거했다. Power BI 메뉴 안의 `공식 레퍼런스` 라벨도 `레퍼런스`로 바꿨다.
+- 레퍼런스 페이지 우상단에 정렬 버튼 `최신`, `좋아요`, `조회수`를 추가했다. 정렬 기준은 홈 갤러리의 `최신순`, `좋아요순`, `조회수순`을 재사용한다.
+- 레퍼런스 정렬 버튼은 Streamlit rerun이 아니라 클라이언트 JS로 카드 DOM을 재정렬한다. 카드 슬롯에는 `data-created-at`, `data-like-count`, `data-view-count`가 들어간다.
+- 레퍼런스 정렬 클릭 시 URL의 `sort`만 `history.pushState`로 갱신하고, 상세 카드 링크에도 현재 정렬값을 반영한다.
+- 레퍼런스 `더 보기`는 아직 기존 방식이다. 자동 스크롤이 Streamlit 버튼을 클릭하고 `visible` query parameter가 늘면서 rerun된다.
+- 홈 히어로 설명 문구를 서비스 방향성에 맞게 조정했다. 설명은 쉼표 뒤 줄바꿈으로 첫 줄을 짧게, 아래 줄을 길고 무겁게 받치는 구도를 우선한다.
+- 현재 홈 히어로 설명:
+  - `FOLIO는 좋은 시각화를 발견하고,` / `직접 경험하며 토론하고 함께 성장하는 커뮤니티입니다.`
+  - `각자의 시각화 경험을 나누고,` / `댓글과 피드백으로 더 나은 관점을 만들어갑니다.`
+  - `PBIX 파일을 간편하게 게시하고,` / `누구나 열어볼 수 있는 보고서 페이지로 프로젝트를 공유합니다.`
+  - `스터디 클럽에서 함께 실습하고,` / `보고서 디자인과 DAX, 경영정보시각화 실기를 토론하며 성장합니다.`
+
+검증:
+
+- `python -m pyflakes folio_app app.py tests`
+- `python -m unittest tests.test_project_references tests.test_core_flows tests.test_ui_cards -v`
+- `python -m pyflakes folio_app\pages\home.py`
+
 ### 완료: Power BI 콘텐츠 허브 리팩토링 (2026-08-15)
 
 - `folio_app/pages/powerbi.py`는 Streamlit 화면 조합, hero, 카드 HTML, 페이지네이션만 담당하도록 축소했다.
@@ -943,29 +974,35 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 
 ### 다음 할 일
 
-1. 홈 히어로 순환 방식 변경을 Playwright로 확인한다.
-   - 마지막 배너에서 첫 배너로 돌아갈 때 좌측 역주행처럼 보이지 않는지 확인한다.
-   - 배너 dot active 상태와 실제 슬라이드 위치가 같은 타이밍으로 움직이는지 확인한다.
+1. 현재 작업트리 정리 여부를 결정한다.
+   - 미커밋 변경: 레퍼런스 정렬 UX, 홈 히어로 문구, 푸터 버전, `docs/FOLIO_Community_PRD.md`, `docs/FOLIO_Admin_PRD.md`, 문서 갱신.
+   - 콘텐츠 번역 작업과 UI 작업 diff가 섞이지 않도록 커밋/배포 여부를 먼저 정한다.
 
-2. Power BI 페이지 렌더링 회귀를 Playwright로 확인한다.
-   - `업데이트 소식`, `커뮤니티 소식`, `학습 콘텐츠`, `자격증`, `공식 레퍼런스` 메뉴 진입을 확인한다.
-   - 업데이트 게시판의 접기/펼치기, 원문 버튼, 공식 업데이트 영상 썸네일이 정상인지 확인한다.
-   - 학습 콘텐츠 탭과 카드 CTA 우하단 정렬이 유지되는지 확인한다.
+2. Power BI 콘텐츠 번역 품질 개선을 위한 구조 분석을 먼저 한다.
+   - `docs/curation/powerbi_CONTENT_OPS.md`
+   - `docs/curation/powerbi_desktop_download/`, `docs/curation/powerbi_updates/`, `docs/curation/powerbi_changelog/`, `docs/curation/powerbi_community/`, `docs/curation/powerbi_learning/`
+   - `folio_app/services/powerbi_content.py`
+   - `folio_app/services/powerbi_i18n.py`
+   - `tools/collect_powerbi_all.py`
+   - `tests/test_powerbi_content.py`, `tests/test_powerbi.py`
 
-3. Power BI 콘텐츠 자동 수집 운영을 한 번 실제 dry-run이 아닌 최신 수집으로 검증한다.
-   - `python tools\collect_powerbi_all.py --since-year 2025`
-   - 변경된 CSV/썸네일 diff를 보고, 불필요한 썸네일 삭제와 신규 콘텐츠 반영 여부를 확인한다.
-   - 원문 링크, 한국어 제목/요약, 공식 업데이트 영상 매칭이 깨진 항목을 샘플링한다.
+3. 바로 번역을 수정하지 말고 번역 대상/방식/우선순위 계획을 먼저 세운다.
+   - 어떤 CSV 컬럼이 화면에 노출되는지 확인한다.
+   - 현재 번역 규칙이 코드 기반(`powerbi_i18n.py`)인지, CSV 저장값 기반인지 구분한다.
+   - 자동 수집을 다시 돌릴 때 기존 수동 수정 번역이 덮이는지 확인한다.
+   - 샘플 20~30개를 뽑아 어색한 번역 유형을 분류한다.
 
-4. 프로젝트 등록 폼 리팩토링 2차를 진행한다.
-   - 기본 정보, 산출물 링크, 플랫폼/PBIX, 썸네일 패널을 함수 단위로 더 분리한다.
-   - 동작 변경 없이 `render_project_form()`의 길이를 줄이고 기존 `tests.test_project_form`, `tests.test_project_editor`로 보호한다.
+4. 번역 개선 방향 후보를 비교한다.
+   - 빠른 규칙 보강: `powerbi_i18n.py`의 용어/패턴 매핑 보강.
+   - 데이터 보정: 이미 수집된 CSV의 `title_ko`, `summary_ko`, `feature_description_ko`를 선별 보정.
+   - 운영 가능 구조: 용어집/문장 패턴을 CSV 또는 JSON으로 분리해 반복 수정 가능하게 만든다.
 
-5. Power BI 콘텐츠 번역 규칙을 데이터화할지 결정한다.
-   - 지금은 `powerbi_i18n.py`의 if-chain이 가장 빠르다.
-   - 규칙이 더 늘어나면 키워드/결과 문장을 CSV 또는 JSON으로 옮겨 운영자가 수정할 수 있게 한다.
+5. 새 PRD 기반 커뮤니티/Admin 구현은 번역 작업 이후 별도 컨텍스트에서 다룬다.
+   - 커뮤니티는 하나의 게시판으로 공지/질문/팁·노하우/기타를 처리한다.
+   - Admin은 승인 시스템이 아니라 사후 관리 도구다.
+   - 두 기능 모두 기존 프로젝트/댓글/조회수/권한 구조를 먼저 분석한 뒤 최소 변경 계획을 세운다.
 
-6. 커밋/배포 전 체크를 진행한다.
-   - 현재 작업트리에는 리팩토링과 홈 히어로 순환 변경이 함께 있다.
-   - 둘을 한 커밋으로 묶을지, 홈 히어로 변경만 별도 커밋으로 분리할지 결정한다.
-   - 배포 전에는 `APP_VERSION` 갱신 여부를 확인한다.
+6. 홈/레퍼런스 UI 변경을 배포한다면 배포 후 직접 확인한다.
+   - 레퍼런스 정렬 버튼 클릭 시 페이지 전체 리로드 없이 카드 순서가 바뀌는지 확인한다.
+   - 상세 진입/복귀 시 `sort` 상태가 유지되는지 확인한다.
+   - 홈 히어로 설명 줄바꿈이 첫 줄 짧게, 아래 줄 길게 보이는지 확인한다.

@@ -2,7 +2,7 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록한 프로젝트를 함께 탐색·공유하는 Streamlit + Supabase 기반 MVP입니다. 현재 구현은 기존 포트폴리오 기능을 유지하면서 Tableau, Power BI, Looker Studio/Data Studio, Streamlit 레퍼런스 탐색을 확장하는 방향입니다.
+FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록한 프로젝트를 함께 탐색·공유하는 Streamlit + Supabase 기반 MVP입니다. 현재 런칭 모드는 Power BI-first이며, 기존 포트폴리오 기능과 Tableau, Looker Studio/Data Studio, Streamlit 레퍼런스 분류 데이터는 유지하되 UI 노출은 Power BI 콘텐츠를 우선합니다.
 
 ## 현재 구현 범위
 
@@ -15,8 +15,9 @@ FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록�
 - 홈 화면 안의 검색·태그·플랫폼 중심 프로젝트 탐색
 - 검색, 태그 필터, 최신순/조회수순/좋아요순 정렬
 - 최근 등록순·조회순·좋아요순 홈 카드 레일
-- 플랫폼별 레퍼런스 서브페이지와 레퍼런스 상세 복귀
+- Power BI 중심 레퍼런스 서브페이지와 레퍼런스 상세 복귀
 - 레퍼런스 페이지의 브라우저 기반 증분 로딩
+- 레퍼런스 페이지의 클라이언트 기반 최신/조회수/좋아요 정렬
 - 홈 카드 hover 기반 Power BI 미리보기
 - Home 안에서 `project_id` 쿼리 기반 상세 페이지 렌더링
 - 경기청년 갭이어 2026과 Snowball Impact를 소개하는 서비스 소개 페이지
@@ -252,6 +253,8 @@ Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용�
 - 작업 전 현재 컨텍스트: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 - 디자인 시스템: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
 - 제품/기획 개요: [`docs/MVP_PRD.md`](docs/MVP_PRD.md)
+- 커뮤니티 게시판 PRD: [`docs/FOLIO_Community_PRD.md`](docs/FOLIO_Community_PRD.md)
+- 관리자 페이지 PRD: [`docs/FOLIO_Admin_PRD.md`](docs/FOLIO_Admin_PRD.md)
 - Supabase 설정: [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
 - Streamlit Cloud 배포와 캡처 실험: [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)
 - 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)
