@@ -45,40 +45,14 @@ def embedded_dashboard_html(url: str) -> str:
             background: #f4f7fc;
             color: #60708f;
             display: flex;
-            flex-direction: column;
             font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
             font-size: 14px;
-            gap: 12px;
             min-height: {min_height}px;
             inset: 0;
             justify-content: center;
             position: absolute;
-            text-align: center;
             width: 100%;
             z-index: 1;
-        }}
-        .folio-dashboard-placeholder strong {{
-            color: #0b1f3f;
-            font-size: 16px;
-        }}
-        .folio-dashboard-placeholder span {{
-            max-width: 360px;
-        }}
-        .folio-dashboard-load-button {{
-            background: #1459c8;
-            border: 0;
-            border-radius: 999px;
-            color: #ffffff;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 13px;
-            font-weight: 700;
-            min-height: 36px;
-            padding: 0 18px;
-        }}
-        .folio-dashboard-load-button:disabled {{
-            cursor: default;
-            opacity: 0.72;
         }}
         .folio-dashboard-iframe {{
             background: #ffffff;
@@ -96,34 +70,17 @@ def embedded_dashboard_html(url: str) -> str:
     </style>
     <div class="folio-dashboard-frame">
         <div class="folio-dashboard-placeholder" id="folio-dashboard-placeholder">
-            <strong>대시보드 미리보기</strong>
-            <span>외부 대시보드는 필요할 때만 불러와 상세페이지 첫 로딩을 가볍게 유지합니다.</span>
-            <button class="folio-dashboard-load-button" id="folio-dashboard-load-button" type="button">
-                대시보드 불러오기
-            </button>
+            대시보드 불러오는 중...
         </div>
         <iframe
             title="Embedded dashboard"
-            data-src="{safe_url}"
+            src="{safe_url}"
             frameborder="0"
             allowFullScreen="true"
             class="folio-dashboard-iframe"
-            onload="if (!this.getAttribute('src')) return; this.style.opacity='1'; var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
+            onload="this.style.opacity='1'; var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
         </iframe>
     </div>
-    <script>
-        (function () {{
-            var button = document.getElementById("folio-dashboard-load-button");
-            var iframe = document.querySelector(".folio-dashboard-iframe");
-            if (!button || !iframe) return;
-            button.addEventListener("click", function () {{
-                if (iframe.getAttribute("src")) return;
-                button.disabled = true;
-                button.textContent = "대시보드 불러오는 중...";
-                iframe.setAttribute("src", iframe.getAttribute("data-src"));
-            }});
-        }})();
-    </script>
     """
 
 
