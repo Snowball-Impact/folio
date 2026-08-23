@@ -67,9 +67,14 @@ def render(
     if notice:
         st.success(notice)
 
+    loading_placeholder = st.empty()
+    with loading_placeholder.container():
+        render_loading_shell()
+
     try:
         project = get_project(project_id)
     except ProjectServiceError as exc:
+        loading_placeholder.empty()
         st.error(str(exc))
         retry_col, back_col = st.columns(2)
         with retry_col:
@@ -81,11 +86,13 @@ def render(
                 navigate(back_page, **back_params)
         return
     if project is None:
+        loading_placeholder.empty()
         st.error("프로젝트를 찾을 수 없습니다.")
         if st.button("목록으로 돌아가기"):
             _clear_detail_query(back_page, back_params)
             st.rerun()
         return
+    loading_placeholder.empty()
 
     track_event("view_item", {"item_id": project_id, "item_name": project.get("title") or ""})
     _track_share_open(project_id)
