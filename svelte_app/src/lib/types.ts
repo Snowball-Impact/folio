@@ -1,0 +1,63 @@
+export type ThumbnailMode = 'auto_cover' | 'manual_url' | 'capture' | 'upload';
+
+export type ProjectType =
+	| 'powerbi'
+	| 'tableau'
+	| 'looker'
+	| 'streamlit'
+	| 'notebook'
+	| 'html_report'
+	| 'markdown_report'
+	| 'web'
+	| 'other';
+
+export type ProjectStatus = 'processing' | 'published' | 'failed' | 'deleted';
+
+export type EmbedStatus = 'supported' | 'external_only' | 'failed';
+
+export type PlatformKey = 'powerbi' | 'tableau' | 'datastudio' | 'streamlit';
+
+export type PublicAuthor = {
+	id?: string;
+	name?: string;
+	organization?: string | null;
+	avatar_url?: string | null;
+};
+
+export type ProjectCard = {
+	id: string;
+	author_id: string;
+	title: string;
+	one_liner: string | null;
+	problem: string | null;
+	dataset: string | null;
+	process: string | null;
+	insights: string | null;
+	tags: string[];
+	thumbnail_url: string | null;
+	power_bi_url: string | null;
+	report_url: string | null;
+	github_url: string | null;
+	platform_key: PlatformKey | null;
+	project_type: ProjectType;
+	status: ProjectStatus;
+	embed_status: EmbedStatus;
+	is_public: boolean;
+	view_count: number;
+	created_at: string;
+	updated_at: string;
+	author: PublicAuthor;
+	like_count: number;
+	comment_count: number;
+	latest_comment_at?: string | null;
+};
+
+export type HomeSnapshot = {
+	total_project_count: number;
+	popular_tags: string[];
+	recent_projects: ProjectCard[];
+	viewed_projects: ProjectCard[];
+	liked_projects: ProjectCard[];
+};
+
+export type ProjectDetail = ProjectCard;
