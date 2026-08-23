@@ -10,12 +10,12 @@ Validate that the SvelteKit app can replace the Streamlit public/user flows for 
 
 - [ ] `npm.cmd install` completes in `svelte_app/`.
 - [ ] `npm.cmd run check` returns 0 Svelte/TypeScript errors.
-- [ ] `npm.cmd run verify` passes the local build, Node route smoke, Supabase contract smoke, and security smoke checks.
-- [ ] `npm.cmd run build` completes with `@sveltejs/adapter-node`.
-- [ ] `npm.cmd run smoke` passes against the Node build server.
+- [ ] `npm.cmd run verify` passes the Cloudflare adapter build, Wrangler route smoke, Supabase contract smoke, and security smoke checks.
+- [ ] `npm.cmd run build` completes with `@sveltejs/adapter-cloudflare`.
+- [ ] `npm.cmd run smoke` passes against local `wrangler pages dev`.
 - [ ] `npm.cmd run smoke:supabase` passes or is intentionally skipped when Supabase env vars are unavailable.
-- [ ] `npm.cmd run smoke:security` passes against the Node build server.
-- [ ] The generated app starts with `node build`.
+- [ ] `npm.cmd run smoke:security` passes against the Cloudflare client bundle.
+- [ ] The generated Cloudflare app starts with `npm.cmd run preview:cloudflare`.
 - [ ] The host exposes private env vars only to server code.
 
 ## Environment Gate

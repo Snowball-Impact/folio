@@ -1,4 +1,4 @@
-import adapter from '@sveltejs/adapter-node';
+import adapter from '@sveltejs/adapter-cloudflare';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
@@ -11,8 +11,8 @@ export default defineConfig({
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 			},
 
-			// FOLIO uses server endpoints for Supabase service role work, PBIX publishing,
-			// SMTP, and thumbnail capture, so deploy as a Node SSR app.
+			// FOLIO uses server endpoints with private env, so deploy to Cloudflare
+			// through the SvelteKit Cloudflare adapter instead of static hosting.
 			adapter: adapter()
 		})
 	]

@@ -57,10 +57,12 @@ npm run smoke:supabase
 npm run smoke:security
 ```
 
-## Production Start
+## Cloudflare Preview And Deploy
 
 ```powershell
-node build
+npm run build
+npm run preview:cloudflare
+npm run deploy:cloudflare
 ```
 
 ## Current Scope
@@ -84,8 +86,8 @@ node build
 
 ## Deployment Runtime
 
-The spike now uses `@sveltejs/adapter-node` because project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints require a Node SSR runtime. Deploy to a host that can run the generated `build` server and provide private environment variables to server code.
+The spike now uses `@sveltejs/adapter-cloudflare` because the chosen deployment target is Cloudflare Workers/Pages. It is not a static-only deployment: project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints still require server runtime access to private environment variables.
 
-Automatic thumbnail capture still depends on Playwright and Chromium being available in the runtime. If the managed Playwright browser is not installed, set `CHROME_BINARY_PATH` to a system Chrome/Chromium binary.
+Automatic thumbnail capture is not Cloudflare-compatible as currently implemented because it depends on local Playwright/Chromium. For Cloudflare staging, use manual URL/upload thumbnails or replace capture with Cloudflare Browser Run before enabling it.
 
-Use [../docs/SVELTE_E2E_READINESS.md](../docs/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/SVELTE_STAGING_QA_RUNBOOK.md](../docs/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.
+Use [../docs/CLOUDFLARE_DEPLOYMENT.md](../docs/CLOUDFLARE_DEPLOYMENT.md) for the Cloudflare deployment plan, [../docs/SVELTE_E2E_READINESS.md](../docs/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/SVELTE_STAGING_QA_RUNBOOK.md](../docs/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.

@@ -30,6 +30,7 @@
 |---|---|
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
 | [PAAS_DEPLOYMENT.md](PAAS_DEPLOYMENT.md) | Docker 기반 PaaS 배포와 운영 전환 절차 |
+| [CLOUDFLARE_DEPLOYMENT.md](CLOUDFLARE_DEPLOYMENT.md) | SvelteKit 앱을 Cloudflare Workers/Pages 런타임에 올리기 위한 배포 기준과 제약 |
 | [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | 이전 Streamlit Community Cloud 배포 기준과 캡처 실험 기록 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [SVELTE_E2E_READINESS.md](SVELTE_E2E_READINESS.md) | SvelteKit 전환 전 운영 환경·E2E go/no-go 체크리스트 |

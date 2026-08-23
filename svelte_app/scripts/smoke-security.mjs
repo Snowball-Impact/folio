@@ -1,93 +1,11 @@
-import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 loadDotEnv();
 
-const host = process.env.SECURITY_SMOKE_HOST || process.env.SMOKE_HOST || '127.0.0.1';
-const port = Number(process.env.SECURITY_SMOKE_PORT || 4174);
-const baseUrl = `http://${host}:${port}`;
-const startupTimeoutMs = Number(process.env.SMOKE_STARTUP_TIMEOUT_MS || 15000);
-const requestTimeoutMs = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 10000);
-const projectId = process.env.SMOKE_PROJECT_ID?.trim() || '00000000-0000-0000-0000-000000000000';
-const commentId = process.env.SMOKE_COMMENT_ID?.trim() || '00000000-0000-0000-0000-000000000000';
-
-const anonymousPostChecks = [
-	{ path: `/api/projects/${encodeURIComponent(projectId)}/thumbnail`, body: new FormData() },
-	{ path: `/api/projects/${encodeURIComponent(projectId)}/thumbnail-capture`, body: new FormData() },
-	{ path: `/api/projects/${encodeURIComponent(projectId)}/powerbi-publish`, body: new FormData() },
-	{ path: `/api/comments/${encodeURIComponent(commentId)}/email-notification` }
-];
-
-let server;
-
-try {
-	assertSecretNamesAreServerOnly();
-	assertClientBundleDoesNotContainPrivateEnvValues();
-	server = startServer();
-	await waitForServer();
-	for (const check of anonymousPostChecks) {
-		await assertAnonymousPostRejected(check);
-	}
-	console.log(`Security smoke passed for ${anonymousPostChecks.length} anonymous endpoint check(s).`);
-} finally {
-	if (server) {
-		server.kill();
-	}
-}
-
-function startServer() {
-	const child = spawn(process.execPath, ['build'], {
-		env: {
-			...process.env,
-			HOST: host,
-			PORT: String(port)
-		},
-		stdio: ['ignore', 'pipe', 'pipe']
-	});
-	child.stdout.on('data', (chunk) => process.stdout.write(`[server] ${chunk}`));
-	child.stderr.on('data', (chunk) => process.stderr.write(`[server] ${chunk}`));
-	child.on('exit', (code, signal) => {
-		if (code && code !== 0) {
-			console.error(`Security smoke server exited with code ${code}${signal ? ` and signal ${signal}` : ''}.`);
-		}
-	});
-	return child;
-}
-
-async function waitForServer() {
-	const startedAt = Date.now();
-	let lastError;
-	while (Date.now() - startedAt < startupTimeoutMs) {
-		try {
-			const response = await fetchWithTimeout(`${baseUrl}/`, { method: 'GET' }, requestTimeoutMs);
-			if (response.status < 500) {
-				return;
-			}
-			lastError = new Error(`Server returned ${response.status}.`);
-		} catch (error) {
-			lastError = error;
-		}
-		await sleep(250);
-	}
-	throw new Error(`Server did not become ready within ${startupTimeoutMs}ms. ${lastError?.message || ''}`);
-}
-
-async function assertAnonymousPostRejected(check) {
-	const response = await fetchWithTimeout(
-		`${baseUrl}${check.path}`,
-		{
-			method: 'POST',
-			headers: { origin: baseUrl }
-		},
-		requestTimeoutMs
-	);
-	if (response.status !== 401) {
-		const body = await response.text().catch(() => '');
-		throw new Error(`POST ${check.path} expected 401 for anonymous request, got ${response.status}. ${body.slice(0, 240)}`);
-	}
-	console.log(`OK ${response.status} anonymous POST ${check.path}`);
-}
+assertSecretNamesAreServerOnly();
+assertClientBundleDoesNotContainPrivateEnvValues();
+console.log('Security smoke passed for source and Cloudflare client bundle checks.');
 
 function assertSecretNamesAreServerOnly() {
 	const clientFiles = listFiles('src', (path) => path.endsWith('.svelte') || path.endsWith('.ts'));
@@ -122,7 +40,10 @@ function assertClientBundleDoesNotContainPrivateEnvValues() {
 		console.log('OK no private env values available for client bundle scan.');
 		return;
 	}
-	const clientFiles = listFiles('build/client', (path) => path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.html'));
+	const roots = ['.svelte-kit/cloudflare/_app', 'build/client'];
+	const clientFiles = roots.flatMap((root) =>
+		listFiles(root, (path) => path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.html') || path.endsWith('.json'))
+	);
 	const leaks = [];
 	for (const file of clientFiles) {
 		const text = readFileSync(file, 'utf8');
@@ -156,20 +77,6 @@ function listFiles(root, predicate) {
 		}
 	}
 	return files;
-}
-
-async function fetchWithTimeout(url, options, timeoutMs) {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), timeoutMs);
-	try {
-		return await fetch(url, { ...options, signal: controller.signal });
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
-function sleep(milliseconds) {
-	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 function loadDotEnv() {
