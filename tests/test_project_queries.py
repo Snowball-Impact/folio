@@ -7,9 +7,14 @@ from postgrest.types import CountMethod, ReturnMethod
 from folio_app.services.auth import AuthResult
 from folio_app.services.project_mutations import delete_project, update_project
 from folio_app.services.project_queries import (
+    HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER,
     PUBLIC_PROJECT_LIST_COLUMNS,
+    HomeTagSummary,
+    _fetch_home_tag_summary,
+    _fetch_home_liked_project_ids,
     _fetch_public_projects,
     _filter_public_projects,
+    home_tag_summary,
     list_home_project_snapshot,
     list_public_projects,
 )
@@ -217,8 +222,10 @@ class FilterPublicProjectsTests(unittest.TestCase):
 
 class ProjectReadFailureTests(unittest.TestCase):
     @patch("folio_app.services.project_queries._fetch_public_projects")
-    @patch("folio_app.services.project_queries.list_home_popular_tags", return_value=["Power BI", "분석"])
-    @patch("folio_app.services.project_queries._fetch_public_project_count", return_value=42)
+    @patch(
+        "folio_app.services.project_queries.home_tag_summary",
+        return_value=HomeTagSummary(total_project_count=42, popular_tags=["Power BI", "분석"]),
+    )
     @patch("folio_app.services.project_queries._attach_related_data")
     @patch("folio_app.services.project_queries._fetch_public_projects_by_ids")
     @patch("folio_app.services.project_queries._fetch_home_liked_project_ids", return_value=["liked-1"])
@@ -229,8 +236,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         _liked_ids,
         fetch_by_ids,
         attach_related,
-        _count,
-        _tags,
+        tag_summary,
         fetch_all,
     ) -> None:
         recent = [{"id": "recent-1", "author_id": "author-1"}]
@@ -243,10 +249,12 @@ class ProjectReadFailureTests(unittest.TestCase):
         snapshot = list_home_project_snapshot(limit=6)
 
         self.assertEqual(snapshot.total_project_count, 42)
+        self.assertEqual(snapshot.popular_tags, ["Power BI", "분석"])
         self.assertEqual([project["id"] for project in snapshot.recent_projects], ["recent-1"])
         self.assertEqual([project["id"] for project in snapshot.viewed_projects], ["viewed-1"])
         self.assertEqual([project["id"] for project in snapshot.liked_projects], ["liked-1"])
         fetch_rows.assert_has_calls([call("created_at", 6), call("view_count", 6)])
+        tag_summary.assert_called_once_with(10)
         fetch_all.assert_not_called()
 
     @patch("folio_app.services.project_queries.get_supabase_client")
@@ -268,6 +276,46 @@ class ProjectReadFailureTests(unittest.TestCase):
         builder.select.assert_called_once_with(PUBLIC_PROJECT_LIST_COLUMNS)
         self.assertNotIn("*", PUBLIC_PROJECT_LIST_COLUMNS)
         self.assertNotIn("project_body", PUBLIC_PROJECT_LIST_COLUMNS)
+
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_home_liked_project_ids_reads_recent_like_sample(self, get_client) -> None:
+        _fetch_home_liked_project_ids.clear()
+        builder = MagicMock()
+        builder.select.return_value = builder
+        builder.order.return_value = builder
+        builder.limit.return_value = builder
+        builder.execute.return_value = SimpleNamespace(
+            data=[
+                {"project_id": "a"},
+                {"project_id": "b"},
+                {"project_id": "a"},
+                {"project_id": "c"},
+            ]
+        )
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+
+        result = _fetch_home_liked_project_ids(2)
+
+        self.assertEqual(result, ["a", "b"])
+        builder.order.assert_called_once_with("created_at", desc=True)
+        builder.limit.assert_called_once_with(2 * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER)
+
+    @patch("folio_app.services.project_queries._fetch_public_project_tags")
+    def test_home_tag_summary_combines_count_and_popular_tags(self, fetch_tags) -> None:
+        _fetch_home_tag_summary.clear()
+        fetch_tags.return_value = [
+            {"tags": ["Power BI", "분석"]},
+            {"tags": ["분석"]},
+            {"tags": ["Tableau"]},
+        ]
+
+        result = home_tag_summary(2)
+
+        self.assertEqual(result.total_project_count, 3)
+        self.assertEqual(result.popular_tags, ["분석", "Power BI"])
+        fetch_tags.assert_called_once()
 
     @patch("folio_app.services.project_queries._fetch_public_projects")
     def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:

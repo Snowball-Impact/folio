@@ -897,6 +897,27 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m compileall -q folio_app tests`
 - `python -m pyflakes folio_app app.py tests`
 
+### 완료: 홈 최초 로딩 성능 1차 개선 (2026-08-23)
+
+- Streamlit Community Cloud 배포본에서 첫 진입 시 흰 화면 또는 Streamlit wrapper/footer만 보이다가, 헤더/히어로가 먼저 뜨고 갤러리가 뒤늦게 따라오는 현상을 확인했다.
+- 원인 후보는 크게 두 가지였다. 하나는 `EncryptedCookieManager.ready()` 전 `st.stop()` 때문에 공개 Home도 본문을 그리지 못하는 초기 공백이고, 다른 하나는 홈 기본 snapshot이 여러 Supabase 조회를 직렬로 수행하는 구조다.
+- 공개 Home 기본 진입에서는 쿠키 매니저가 아직 준비되지 않아도 `render_header()`와 `home.render_loading_shell()`을 먼저 렌더한다. 상세, 로그아웃, 비밀번호 재설정, 인증 code 처리 경로는 shell을 표시하지 않는다.
+- `visitor_id` 쿠키 생성은 모든 홈 첫 방문에서 하지 않고, `project_id`가 있는 상세 페이지 진입에서만 수행한다. 조회수 집계에 필요한 익명 ID는 상세에서만 필요하기 때문이다.
+- 홈 좋아요 레일은 `likes` 테이블 전체를 읽지 않고 최근 좋아요 샘플만 읽어 프로젝트별 빈도를 계산한다. MVP 홈의 목적은 정확한 전체 기간 랭킹보다 첫 화면 체감 속도다.
+- 홈의 전체 프로젝트 수와 인기 태그는 `home_tag_summary()`로 통합했다. 별도 count 쿼리를 제거하고, 공개 프로젝트 tag rows 한 번으로 count와 popular tags를 함께 계산한다.
+- 쿠키 대기 중 보이는 로딩 shell은 기존 홈 히어로와 검색 패널 톤을 맞춘 skeleton이다. 실제 데이터 로딩이 끝나면 기존 browse panel과 레일로 교체된다.
+- 쿠키가 준비된 뒤에도 홈 snapshot 조회가 끝나기 전에는 같은 skeleton을 먼저 렌더한다. Supabase 조회 실패 시에는 skeleton을 비우고 오류/재시도 UI만 남긴다.
+- 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
+
+검증:
+
+- `python -m unittest tests.test_view_count tests.test_project_queries -v`
+- `python -m unittest tests.test_project_queries -v`
+- `python -m unittest tests.test_view_count tests.test_project_queries tests.test_ui_cards -v`
+- `python -m compileall -q app.py folio_app tests`
+- `python -m pyflakes folio_app app.py tests`
+- `python -m unittest discover -s tests -v`
+
 ### 완료: Power BI 콘텐츠 허브 리팩토링 (2026-08-15)
 
 - `folio_app/pages/powerbi.py`는 Streamlit 화면 조합, hero, 카드 HTML, 페이지네이션만 담당하도록 축소했다.

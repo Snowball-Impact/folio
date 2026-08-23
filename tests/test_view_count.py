@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
-from folio_app.app import _ensure_visitor_id
+from folio_app.app import _can_render_public_home_shell, _ensure_visitor_id, _needs_visitor_id
 from folio_app.pages.project_detail import _record_project_view
 from folio_app.services.project_mutations import increment_view_count
 from folio_app.services.project_types import ViewCountResult
@@ -41,6 +41,22 @@ class VisitorIdentityTests(unittest.TestCase):
         self.assertEqual(cookies["visitor_id"], result)
         self.assertEqual(session_state["folio_visitor_id"], result)
         self.assertEqual(cookies.save_count, 1)
+
+    @patch("folio_app.app.st.query_params", {})
+    def test_plain_home_does_not_need_visitor_id(self) -> None:
+        self.assertFalse(_needs_visitor_id())
+
+    @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
+    def test_project_detail_needs_visitor_id(self) -> None:
+        self.assertTrue(_needs_visitor_id())
+
+    @patch("folio_app.app.st.query_params", {})
+    def test_public_home_shell_can_render_before_cookies_are_ready(self) -> None:
+        self.assertTrue(_can_render_public_home_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
+    def test_detail_does_not_render_public_loading_shell(self) -> None:
+        self.assertFalse(_can_render_public_home_shell())
 
 
 class ViewCountServiceTests(unittest.TestCase):

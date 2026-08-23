@@ -48,6 +48,95 @@ CSS = """
     padding: 26px 42px 24px !important;
 }
 
+.folio-home-loading-panel {
+    background: #f3f7ff;
+    border: 1px solid rgba(188, 207, 236, 0.58);
+    border-radius: 12px;
+    margin: 28px 0 0;
+    padding: 30px 42px 28px;
+    text-align: center;
+}
+
+.folio-home-loading-panel h1 {
+    color: var(--folio-navy);
+    font-size: 30px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    line-height: 1.25 !important;
+    margin: 0 0 8px !important;
+}
+
+.folio-home-loading-panel p {
+    color: var(--folio-muted);
+    font-size: 0.94rem;
+    margin: 0 0 22px;
+}
+
+.folio-home-loading-search,
+.folio-home-loading-tags span,
+.folio-home-loading-rail strong,
+.folio-home-loading-rail span {
+    animation: folio-loading-pulse 1.35s ease-in-out infinite;
+    background: linear-gradient(90deg, #e6eefb 0%, #f8fbff 48%, #e6eefb 100%);
+    background-size: 220% 100%;
+}
+
+.folio-home-loading-search {
+    border: 1px solid var(--folio-border);
+    border-radius: 10px;
+    height: 42px;
+    margin: 0 auto 16px;
+    max-width: 920px;
+}
+
+.folio-home-loading-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.folio-home-loading-tags span {
+    border-radius: 999px;
+    display: inline-flex;
+    height: 32px;
+    width: 92px;
+}
+
+.folio-home-loading-rail {
+    margin-top: 22px;
+}
+
+.folio-home-loading-rail strong {
+    border-radius: 999px;
+    display: block;
+    height: 24px;
+    margin: 0 auto 14px;
+    width: min(360px, 72%);
+}
+
+.folio-home-loading-rail div {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.folio-home-loading-rail span {
+    border: 1px solid rgba(188, 207, 236, 0.58);
+    border-radius: 8px;
+    display: block;
+    min-height: 132px;
+}
+
+@keyframes folio-loading-pulse {
+    0% {
+        background-position: 120% 0;
+    }
+    100% {
+        background-position: -120% 0;
+    }
+}
+
 .st-key-folio_browse_panel > [data-testid="stVerticalBlock"] {
     gap: 0 !important;
 }
@@ -186,6 +275,24 @@ CSS = """
     .st-key-folio_browse_panel {
         margin: 22px 0 9px !important;
         padding: 22px 18px 20px !important;
+    }
+
+    .folio-home-loading-panel {
+        margin: 22px 0 9px;
+        padding: 24px 18px 22px;
+    }
+
+    .folio-home-loading-panel h1 {
+        font-size: 18px !important;
+        line-height: 1.45 !important;
+    }
+
+    .folio-home-loading-rail div {
+        grid-template-columns: 1fr;
+    }
+
+    .folio-home-loading-rail span:nth-child(n+2) {
+        display: none;
     }
 
     .folio-search-container {

@@ -124,6 +124,21 @@ def _ensure_visitor_id(cookies: EncryptedCookieManager) -> str:
     return visitor_id
 
 
+def _needs_visitor_id() -> bool:
+    return bool(st.query_params.get("project_id"))
+
+
+def _can_render_public_home_shell() -> bool:
+    page = st.query_params.get("page") or "Home"
+    return (
+        page == "Home"
+        and not st.query_params.get("project_id")
+        and not st.query_params.get("logout")
+        and not st.query_params.get("reset")
+        and not st.query_params.get("code")
+    )
+
+
 def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     if st.query_params.get("reset") == "1":
         return
@@ -211,9 +226,14 @@ def main() -> None:
 
     cookies = _get_cookie_manager(settings)
     if not cookies.ready():
+        if _can_render_public_home_shell():
+            render_header(initial_page="Home")
+            home.render_loading_shell()
+            _render_footer()
         st.stop()
 
-    _ensure_visitor_id(cookies)
+    if _needs_visitor_id():
+        _ensure_visitor_id(cookies)
     _handle_logout_query()
     _sync_browser_auth_storage(cookies)
     _restore_auth_from_cookies(cookies)

@@ -75,6 +75,10 @@ def render() -> None:
         return
 
     _render_hero()
+    loading_placeholder = st.empty()
+    with loading_placeholder.container():
+        _render_loading_panel()
+
     search = st.query_params.get("q", "")
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
@@ -103,16 +107,45 @@ def render() -> None:
             total_project_count = len(platform_projects)
             popular_tags = _popular_tags_from_projects(platform_projects)
     except ProjectServiceError as exc:
+        loading_placeholder.empty()
         st.error(str(exc))
         if st.button("다시 시도", key="retry_public_projects"):
             clear_project_caches()
             st.rerun()
         return
+    loading_placeholder.empty()
     _render_browse_panel(total_project_count, popular_tags, selected_platforms)
     render_project_rails(
         _project_rail_specs(recent_projects, viewed_projects, liked_projects),
         home_page=_HOME_PAGE,
         extra_query_params=_current_gallery_query_params(selected_platforms),
+    )
+
+
+def render_loading_shell() -> None:
+    _render_hero()
+    _render_loading_panel()
+
+
+def _render_loading_panel() -> None:
+    st.markdown(
+        clean_html("""
+        <section class="folio-home-loading-panel" aria-label="홈 갤러리 로딩 중">
+            <h1>휴먼 인사이트 프로젝트를 불러오고 있어요.</h1>
+            <p>잠시만 기다리면 검색과 프로젝트 갤러리가 이어서 표시됩니다.</p>
+            <div class="folio-home-loading-search"></div>
+            <div class="folio-home-loading-tags">
+                <span></span><span></span><span></span><span></span><span></span>
+            </div>
+            <div class="folio-home-loading-rail" aria-hidden="true">
+                <strong></strong>
+                <div>
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </section>
+        """),
+        unsafe_allow_html=True,
     )
 
 

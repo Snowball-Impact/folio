@@ -5,7 +5,6 @@ from dataclasses import dataclass
 import logging
 from typing import Any
 
-from postgrest.types import CountMethod
 import streamlit as st
 
 from folio_app.services.comments import clear_comment_caches, comment_stats_by_project
@@ -15,6 +14,8 @@ from folio_app.services.supabase_client import get_supabase_client, recover_from
 
 
 logger = logging.getLogger(__name__)
+
+HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER = 20
 
 PUBLIC_PROJECT_LIST_COLUMNS = ",".join(
     (
@@ -51,6 +52,12 @@ class HomeProjectSnapshot:
     liked_projects: list[dict[str, Any]]
 
 
+@dataclass(frozen=True)
+class HomeTagSummary:
+    total_project_count: int
+    popular_tags: list[str]
+
+
 def list_public_projects(
     search: str = "",
     tag: str = "전체",
@@ -85,9 +92,11 @@ def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProje
         viewed_projects = [attached_by_id[project["id"]] for project in viewed_rows if project.get("id") in attached_by_id]
         liked_projects = [attached_by_id[project_id] for project_id in liked_ids if project_id in attached_by_id]
 
+        tag_summary = home_tag_summary(tag_limit)
+
         return HomeProjectSnapshot(
-            total_project_count=_fetch_public_project_count(),
-            popular_tags=list_home_popular_tags(tag_limit),
+            total_project_count=tag_summary.total_project_count,
+            popular_tags=tag_summary.popular_tags,
             recent_projects=recent_projects[:limit],
             viewed_projects=viewed_projects[:limit],
             liked_projects=liked_projects[:limit],
@@ -180,7 +189,16 @@ def _fetch_home_liked_project_ids(limit: int) -> list[str]:
     if client is None:
         raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
-    response = _execute_public_read(lambda: client.table("likes").select("project_id").execute())
+    sample_limit = max(limit * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER, limit)
+    response = _execute_public_read(
+        lambda: (
+            client.table("likes")
+            .select("project_id")
+            .order("created_at", desc=True)
+            .limit(sample_limit)
+            .execute()
+        )
+    )
     if response is None:
         raise ProjectServiceError("좋아요 통계를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
@@ -190,27 +208,6 @@ def _fetch_home_liked_project_ids(limit: int) -> list[str]:
         if project_id:
             counter[project_id] += 1
     return [project_id for project_id, _ in counter.most_common(limit)]
-
-
-@st.cache_data(ttl=30, show_spinner=False)
-def _fetch_public_project_count() -> int:
-    client = get_supabase_client()
-    if client is None:
-        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
-
-    response = _execute_public_read(
-        lambda: (
-            client.table("projects")
-            .select("id", count=CountMethod.exact)
-            .eq("is_public", True)
-            .eq("status", PROJECT_STATUS_PUBLISHED)
-            .range(0, 0)
-            .execute()
-        )
-    )
-    if response is None:
-        raise ProjectServiceError("공개 프로젝트 수를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
-    return int(getattr(response, "count", None) or len(response.data or []))
 
 
 def _filter_public_projects(
@@ -240,10 +237,23 @@ def list_popular_tags(limit: int | None = 10) -> list[str]:
 
 
 def list_home_popular_tags(limit: int = 10) -> list[str]:
+    return home_tag_summary(limit).popular_tags
+
+
+def home_tag_summary(limit: int = 10) -> HomeTagSummary:
+    return _fetch_home_tag_summary(limit)
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _fetch_home_tag_summary(limit: int) -> HomeTagSummary:
+    projects = _fetch_public_project_tags()
     counter: Counter[str] = Counter()
-    for project in _fetch_public_project_tags():
+    for project in projects:
         counter.update(project.get("tags") or [])
-    return [tag for tag, _ in counter.most_common(limit)]
+    return HomeTagSummary(
+        total_project_count=len(projects),
+        popular_tags=[tag for tag, _ in counter.most_common(limit)],
+    )
 
 
 @st.cache_data(ttl=30, show_spinner=False)
@@ -520,8 +530,8 @@ def clear_project_caches() -> None:
     _fetch_home_project_rows.clear()
     _fetch_public_projects_by_ids.clear()
     _fetch_home_liked_project_ids.clear()
-    _fetch_public_project_count.clear()
     _fetch_public_project_tags.clear()
+    _fetch_home_tag_summary.clear()
     _fetch_public_profiles.clear()
     _fetch_like_counts.clear()
     clear_comment_caches()
