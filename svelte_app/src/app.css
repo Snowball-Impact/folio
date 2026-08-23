@@ -75,6 +75,22 @@ input {
 	color: white;
 }
 
+.nav button {
+	border: 0;
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.nav-user {
+	max-width: 160px;
+	overflow: hidden;
+	color: white;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 .page-shell {
 	max-width: 1440px;
 	margin: 0 auto;
@@ -228,6 +244,113 @@ input {
 	border-radius: 8px;
 	background: var(--folio-surface);
 	color: var(--folio-muted);
+}
+
+.notice.compact {
+	margin-top: 0;
+	padding: 12px 14px;
+}
+
+.auth-shell {
+	display: grid;
+	place-items: start center;
+	min-height: calc(100vh - 190px);
+	padding-top: 42px;
+}
+
+.auth-card {
+	width: min(460px, 100%);
+	padding: 28px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+	box-shadow: var(--folio-shadow);
+}
+
+.auth-card.signup {
+	width: min(540px, 100%);
+}
+
+.auth-header h1 {
+	margin: 0;
+	font-size: 30px;
+}
+
+.auth-header p {
+	margin: 10px 0 22px;
+	color: var(--folio-muted);
+}
+
+.auth-form {
+	display: grid;
+	gap: 14px;
+}
+
+.auth-form label {
+	display: grid;
+	gap: 6px;
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.auth-form input {
+	width: 100%;
+	min-height: 42px;
+	padding: 0 12px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+	color: var(--folio-navy);
+}
+
+.auth-form input:focus {
+	border-color: var(--folio-blue);
+	outline: 2px solid rgba(20, 89, 200, 0.14);
+}
+
+.auth-form button {
+	min-height: 44px;
+	margin-top: 6px;
+	border: 1px solid var(--folio-blue);
+	border-radius: 8px;
+	background: var(--folio-blue);
+	color: white;
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.auth-form button:disabled {
+	cursor: wait;
+	opacity: 0.7;
+}
+
+.auth-message {
+	margin-bottom: 14px;
+	padding: 12px 14px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	color: var(--folio-muted);
+}
+
+.auth-message.success {
+	border-color: rgba(10, 148, 133, 0.34);
+	background: rgba(10, 148, 133, 0.08);
+	color: var(--folio-mint);
+}
+
+.auth-message.error {
+	border-color: rgba(200, 20, 56, 0.28);
+	background: rgba(200, 20, 56, 0.07);
+	color: #9c1d34;
+}
+
+.auth-links {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 14px;
+	color: var(--folio-blue);
+	font-weight: 800;
 }
 
 .section-header {

@@ -1,6 +1,6 @@
 # FOLIO Svelte Spike
 
-SvelteKit 기반 FOLIO 공개 조회 화면 스파이크입니다. 현재 범위는 홈(`/`), 프로젝트 상세(`/projects/:id`), Power BI 레퍼런스(`/references/powerbi`), Power BI 콘텐츠 허브(`/powerbi`)입니다.
+SvelteKit 기반 FOLIO 공개 조회 화면 스파이크입니다. 현재 범위는 홈(`/`), 프로젝트 상세(`/projects/:id`), Power BI 레퍼런스(`/references/powerbi`), Power BI 콘텐츠 허브(`/powerbi`), 이메일 Auth 시작점(`/login`, `/signup`)입니다.
 
 ## Setup
 
@@ -41,4 +41,5 @@ npm run build
 - Project detail calls `/api/projects/:id/powerbi-embed` for Power BI projects, renders with `powerbi-client` when an embed token is available, and falls back to the stored iframe URL.
 - Power BI references query public `projects`, apply the Streamlit platform marker rules, support latest/likes/views sorting, and reuse `ProjectCard`.
 - Power BI content hub reads curated CSV files from `docs/curation/powerbi_*` on the SvelteKit server and exposes news, learning, community, and certification views.
-- Auth, interactive likes/comments, and submit/edit are not part of this spike.
+- Login and signup use Supabase Auth from the browser. Signup sends `name` and `organization` through user metadata so the existing `handle_new_user` trigger can create `profiles`.
+- Password reset, policy consent onboarding, interactive likes/comments, and submit/edit are not part of this spike.
