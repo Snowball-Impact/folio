@@ -17,6 +17,7 @@
 | [MVP_PRD.md](MVP_PRD.md) | 제품 문제, 사용자, MVP 범위와 성공 기준을 통합한 현재 기준 PRD |
 | [FOLIO_Community_PRD.md](FOLIO_Community_PRD.md) | Power BI 사용자 커뮤니티 게시판 MVP 범위와 정책 |
 | [FOLIO_Admin_PRD.md](FOLIO_Admin_PRD.md) | FOLIO 통합 운영 Admin MVP 범위와 정책 |
+| [SVELTE_MIGRATION_PRD.md](SVELTE_MIGRATION_PRD.md) | Streamlit MVP를 Svelte로 단계 이전하기 위한 화면 우선순위, 데이터 계약, 마이그레이션 계획 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 시스템 구성, 계층, 인증·캐시·배포 구조 |
 | [USER_FLOWS.md](USER_FLOWS.md) | 회원가입, 온보딩, 프로젝트 등록·탐색·관리 사용자 여정 |
 | [DATA_MODEL.md](DATA_MODEL.md) | ERD, 관계·삭제 규칙, RLS 행렬, trigger와 RPC |
