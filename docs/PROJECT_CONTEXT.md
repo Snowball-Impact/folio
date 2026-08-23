@@ -905,8 +905,8 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `visitor_id` 쿠키 생성은 모든 홈 첫 방문에서 하지 않고, `project_id`가 있는 상세 페이지 진입에서만 수행한다. 조회수 집계에 필요한 익명 ID는 상세에서만 필요하기 때문이다.
 - 홈 좋아요 레일은 `likes` 테이블 전체를 읽지 않고 최근 좋아요 샘플만 읽어 프로젝트별 빈도를 계산한다. MVP 홈의 목적은 정확한 전체 기간 랭킹보다 첫 화면 체감 속도다.
 - 홈의 전체 프로젝트 수와 인기 태그는 `home_tag_summary()`로 통합했다. 별도 count 쿼리를 제거하고, 공개 프로젝트 tag rows 한 번으로 count와 popular tags를 함께 계산한다.
-- 쿠키 대기 중 보이는 로딩 shell은 기존 홈 히어로와 검색 패널 톤을 맞춘 skeleton이다. 실제 데이터 로딩이 끝나면 기존 browse panel과 레일로 교체된다.
-- 쿠키가 준비된 뒤에도 홈 snapshot 조회가 끝나기 전에는 같은 skeleton을 먼저 렌더한다. Supabase 조회 실패 시에는 skeleton을 비우고 오류/재시도 UI만 남긴다.
+- 쿠키 대기 중 보이는 로딩 shell은 기존 홈 히어로와 검색 패널 톤을 맞춘 skeleton이다. 쿠키가 준비되기 전의 초기 공백을 줄이는 목적이다.
+- 후속 측정에서 같은 Streamlit run 안에서 `st.empty()`로 그렸다가 바로 비우는 데이터 조회 중 skeleton은 실제 배포 DOM에 안정적으로 남지 않는 것을 확인했다. 해당 왕복 렌더는 제거하고, 좋아요 후보 조회를 홈 카드 limit 기준으로 줄여 초기 쿼리량을 더 낮췄다.
 - 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
 
 검증:

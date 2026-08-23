@@ -233,7 +233,7 @@ class ProjectReadFailureTests(unittest.TestCase):
     def test_home_snapshot_uses_limited_rail_queries(
         self,
         fetch_rows,
-        _liked_ids,
+        liked_ids,
         fetch_by_ids,
         attach_related,
         tag_summary,
@@ -254,6 +254,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         self.assertEqual([project["id"] for project in snapshot.viewed_projects], ["viewed-1"])
         self.assertEqual([project["id"] for project in snapshot.liked_projects], ["liked-1"])
         fetch_rows.assert_has_calls([call("created_at", 6), call("view_count", 6)])
+        liked_ids.assert_called_once_with(6)
         tag_summary.assert_called_once_with(10)
         fetch_all.assert_not_called()
 

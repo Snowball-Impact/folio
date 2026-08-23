@@ -83,7 +83,7 @@ def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProje
     try:
         recent_rows = _fetch_home_project_rows("created_at", limit)
         viewed_rows = _fetch_home_project_rows("view_count", limit)
-        liked_ids = _fetch_home_liked_project_ids(limit * 3)
+        liked_ids = _fetch_home_liked_project_ids(limit)
         liked_rows = _fetch_public_projects_by_ids(tuple(liked_ids))
 
         project_by_id = _attach_related_data(_unique_projects([*recent_rows, *viewed_rows, *liked_rows]))

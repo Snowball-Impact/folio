@@ -75,10 +75,6 @@ def render() -> None:
         return
 
     _render_hero()
-    loading_placeholder = st.empty()
-    with loading_placeholder.container():
-        _render_loading_panel()
-
     search = st.query_params.get("q", "")
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
@@ -107,13 +103,11 @@ def render() -> None:
             total_project_count = len(platform_projects)
             popular_tags = _popular_tags_from_projects(platform_projects)
     except ProjectServiceError as exc:
-        loading_placeholder.empty()
         st.error(str(exc))
         if st.button("다시 시도", key="retry_public_projects"):
             clear_project_caches()
             st.rerun()
         return
-    loading_placeholder.empty()
     _render_browse_panel(total_project_count, popular_tags, selected_platforms)
     render_project_rails(
         _project_rail_specs(recent_projects, viewed_projects, liked_projects),
