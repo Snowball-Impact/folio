@@ -913,9 +913,152 @@ input {
 	box-shadow: var(--folio-shadow);
 }
 
+.submit-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1.05fr) minmax(300px, 0.95fr);
+	gap: 28px;
+	align-items: center;
+	padding: 30px 42px 34px;
+	border: 1px solid var(--folio-border);
+	border-radius: 16px;
+	background: var(--folio-surface);
+	box-shadow: var(--folio-shadow);
+}
+
+.submit-hero h1 {
+	margin: 0;
+	font-size: 40px;
+	line-height: 1.18;
+	letter-spacing: 0;
+}
+
+.submit-hero p {
+	max-width: 680px;
+	margin: 16px 0 0;
+	color: var(--folio-muted);
+	font-size: 16px;
+}
+
 .detail-card-preview {
 	max-width: 470px;
 	margin-left: auto;
+}
+
+.project-form {
+	display: grid;
+	gap: 18px;
+	margin-top: 28px;
+}
+
+.project-form-section {
+	display: grid;
+	gap: 18px;
+	padding: 24px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+}
+
+.project-form-section header h2 {
+	margin: 0;
+	font-size: 22px;
+}
+
+.project-form-section header p {
+	margin: 6px 0 0;
+	color: var(--folio-muted);
+}
+
+.form-grid {
+	display: grid;
+	gap: 14px;
+}
+
+.form-grid.two {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.project-form label {
+	display: grid;
+	gap: 6px;
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.project-form input,
+.project-form select,
+.project-form textarea {
+	width: 100%;
+	min-height: 42px;
+	padding: 0 12px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+	color: var(--folio-navy);
+	font: inherit;
+}
+
+.project-form textarea {
+	min-height: 150px;
+	padding: 12px;
+	resize: vertical;
+}
+
+.project-form input:focus,
+.project-form select:focus,
+.project-form textarea:focus {
+	border-color: var(--folio-blue);
+	outline: 2px solid rgba(20, 89, 200, 0.14);
+}
+
+.inline-controls {
+	display: flex;
+	align-items: end;
+}
+
+.switch-row {
+	display: flex !important;
+	grid-template-columns: none !important;
+	flex-direction: row;
+	gap: 10px !important;
+	align-items: center;
+	min-height: 42px;
+	color: var(--folio-navy) !important;
+}
+
+.switch-row input {
+	width: 18px;
+	min-height: 18px;
+	accent-color: var(--folio-blue);
+}
+
+.thumbnail-row {
+	display: grid;
+	grid-template-columns: 220px minmax(0, 1fr);
+	gap: 14px;
+}
+
+.project-form-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 10px;
+}
+
+.project-form-actions button {
+	min-height: 38px;
+	padding: 0 15px;
+	border: 1px solid var(--folio-blue);
+	border-radius: 8px;
+	background: var(--folio-blue);
+	color: white;
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.project-form-actions button:disabled {
+	cursor: wait;
+	opacity: 0.7;
 }
 
 .visual-panel,
@@ -1254,6 +1397,7 @@ input {
 
 	.hero,
 	.detail-hero,
+	.submit-hero,
 	.reference-hero,
 	.powerbi-hero {
 		grid-template-columns: 1fr;
@@ -1262,6 +1406,7 @@ input {
 
 	.hero h1,
 	.detail-hero h1,
+	.submit-hero h1,
 	.reference-hero h1,
 	.powerbi-hero h1 {
 		font-size: 30px;
@@ -1290,6 +1435,11 @@ input {
 	}
 
 	.content-row {
+		grid-template-columns: 1fr;
+	}
+
+	.form-grid.two,
+	.thumbnail-row {
 		grid-template-columns: 1fr;
 	}
 

@@ -1,4 +1,5 @@
 import { getSupabaseClient } from '$lib/supabase';
+import { currentSession } from '$lib/auth';
 import type {
 	HomeSnapshot,
 	PlatformKey,
@@ -12,6 +13,28 @@ const HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER = 20;
 const REFERENCE_FETCH_LIMIT = 500;
 const POWERBI_URL_MARKERS = ['app.powerbi.com', 'powerbi.com'];
 const POWERBI_TAG_ALIASES = ['powerbi', 'power bi', 'pbi'];
+const PROJECT_TITLE_MAX_CHARS = 48;
+const PROJECT_ONE_LINER_MAX_CHARS = 56;
+const PROJECT_TAG_MAX_COUNT = 5;
+
+type SubmitPlatformKey = PlatformKey | 'other';
+
+export type ProjectSubmitInput = {
+	title: string;
+	one_liner: string;
+	tags: string;
+	platform: SubmitPlatformKey;
+	problem: string;
+	dataset: string;
+	process: string;
+	insights: string;
+	power_bi_url: string;
+	report_url: string;
+	github_url: string;
+	thumbnail_url: string;
+	thumbnail_mode: 'auto_cover' | 'manual_url';
+	is_public: boolean;
+};
 
 export const REFERENCE_PLATFORMS = {
 	powerbi: {
@@ -161,6 +184,52 @@ export async function recordProjectView(projectId: string, anonymousViewerId: st
 	return !error && data === true;
 }
 
+export async function createProject(input: ProjectSubmitInput) {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return { ok: false, message: '로그인 후 프로젝트를 등록할 수 있습니다.', projectId: null };
+	}
+
+	const validationError = validateProjectInput(input);
+	if (validationError) {
+		return { ok: false, message: validationError, projectId: null };
+	}
+
+	const powerBiUrl = normalizePowerBIEmbedUrl(input.power_bi_url);
+	const reportUrl = normalizeOptionalUrl(input.report_url);
+	const githubUrl = normalizeOptionalUrl(input.github_url);
+	const thumbnailUrl = input.thumbnail_mode === 'manual_url' ? normalizeOptionalUrl(input.thumbnail_url) : null;
+	const platformKey = normalizeSubmitPlatform(input.platform);
+	const payload = {
+		author_id: session.user.id,
+		title: input.title.trim(),
+		one_liner: input.one_liner.trim() || null,
+		problem: input.problem.trim(),
+		dataset: input.dataset.trim() || null,
+		process: input.process.trim() || null,
+		insights: input.insights.trim(),
+		power_bi_url: powerBiUrl,
+		report_url: reportUrl,
+		github_url: githubUrl,
+		thumbnail_url: thumbnailUrl,
+		thumbnail_mode: input.thumbnail_mode,
+		project_type: projectTypeForPlatform(input.platform),
+		platform_key: platformKey,
+		status: 'published',
+		embed_status: powerBiUrl ? 'supported' : 'external_only',
+		tags: tagsWithPlatform(input.tags, input.platform),
+		is_public: input.is_public
+	};
+
+	const { data, error } = await supabase.from('projects').insert(payload).select('id').single();
+	if (error) {
+		return { ok: false, message: '프로젝트 등록에 실패했습니다. 잠시 후 다시 시도하세요.', projectId: null };
+	}
+
+	return { ok: true, message: '프로젝트가 등록되었습니다.', projectId: String(data.id ?? '') };
+}
+
 const projectListColumns = [
 	'id',
 	'author_id',
@@ -278,6 +347,115 @@ function referencePlatformForProject(project: ProjectCard) {
 	}
 
 	return null;
+}
+
+function validateProjectInput(input: ProjectSubmitInput) {
+	if (!input.title.trim()) {
+		return '프로젝트명을 입력하세요.';
+	}
+	if (input.title.length > PROJECT_TITLE_MAX_CHARS) {
+		return `프로젝트명은 최대 ${PROJECT_TITLE_MAX_CHARS}자까지 입력할 수 있습니다.`;
+	}
+	if (input.one_liner.length > PROJECT_ONE_LINER_MAX_CHARS) {
+		return `프로젝트 한 줄 소개는 최대 ${PROJECT_ONE_LINER_MAX_CHARS}자까지 입력할 수 있습니다.`;
+	}
+	if (!input.problem.trim() && !input.dataset.trim() && !input.process.trim() && !input.insights.trim()) {
+		return '프로젝트 본문을 한 섹션 이상 입력하세요.';
+	}
+	if (!input.problem.trim()) {
+		return '문제 정의를 입력하세요.';
+	}
+	if (!input.insights.trim()) {
+		return '주요 관찰 포인트를 입력하세요.';
+	}
+	if (input.power_bi_url.trim() && !normalizePowerBIEmbedUrl(input.power_bi_url)) {
+		return 'Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다.';
+	}
+	if (input.report_url.trim() && !normalizeOptionalUrl(input.report_url)) {
+		return 'Web App URL은 http:// 또는 https://로 시작해야 합니다.';
+	}
+	if (input.github_url.trim() && !normalizeOptionalUrl(input.github_url)) {
+		return 'GitHub URL은 http:// 또는 https://로 시작해야 합니다.';
+	}
+	if (input.thumbnail_mode === 'manual_url' && !normalizeOptionalUrl(input.thumbnail_url)) {
+		return '썸네일 URL은 http:// 또는 https://로 시작해야 합니다.';
+	}
+	return '';
+}
+
+function tagsWithPlatform(tags: string, platformKey: SubmitPlatformKey) {
+	const normalizedTags = normalizeTags(tags).filter((tag) => !isPlatformTag(tag));
+	if (platformKey === 'other') {
+		return normalizedTags.slice(0, PROJECT_TAG_MAX_COUNT);
+	}
+	const platformLabel = platformLabelFor(platformKey);
+	return [platformLabel, ...normalizedTags].slice(0, PROJECT_TAG_MAX_COUNT);
+}
+
+function normalizeTags(value: string) {
+	const tags: string[] = [];
+	for (const tag of value.replaceAll('#', '').split(',')) {
+		const normalized = tag.trim();
+		if (normalized && !tags.includes(normalized)) {
+			tags.push(normalized);
+		}
+	}
+	return tags;
+}
+
+function isPlatformTag(value: string) {
+	const normalized = value.trim().toLowerCase().replaceAll(' ', '');
+	return ['powerbi', 'pbi', 'tableau', 'vizgallery', 'lookerstudio', 'datastudio', 'streamlit'].includes(normalized);
+}
+
+function platformLabelFor(platformKey: SubmitPlatformKey) {
+	const labels: Record<PlatformKey, string> = {
+		powerbi: 'Power BI',
+		tableau: 'Tableau',
+		datastudio: 'Data Studio',
+		streamlit: 'Streamlit'
+	};
+	return platformKey === 'other' ? '기타' : labels[platformKey];
+}
+
+function projectTypeForPlatform(platformKey: SubmitPlatformKey) {
+	const projectTypes: Record<SubmitPlatformKey, ProjectCard['project_type']> = {
+		powerbi: 'powerbi',
+		tableau: 'tableau',
+		datastudio: 'looker',
+		streamlit: 'streamlit',
+		other: 'other'
+	};
+	return projectTypes[platformKey];
+}
+
+function normalizeSubmitPlatform(value: SubmitPlatformKey) {
+	return value === 'other' ? null : value;
+}
+
+function normalizeOptionalUrl(value: string) {
+	const rawValue = value.trim();
+	if (!rawValue) {
+		return null;
+	}
+	try {
+		const url = new URL(rawValue);
+		return ['http:', 'https:'].includes(url.protocol) && url.hostname ? rawValue : null;
+	} catch {
+		return null;
+	}
+}
+
+function normalizePowerBIEmbedUrl(value: string) {
+	let rawValue = value.trim();
+	if (!rawValue) {
+		return null;
+	}
+	if (rawValue.toLowerCase().startsWith('<iframe')) {
+		const match = rawValue.match(/\ssrc=["']([^"']+)["']/i);
+		rawValue = match?.[1]?.trim() || rawValue;
+	}
+	return normalizeOptionalUrl(rawValue);
 }
 
 function countByProjectId(rows: unknown, key: string) {

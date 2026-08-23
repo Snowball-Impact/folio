@@ -39,6 +39,7 @@
 	<a href="/references/powerbi">레퍼런스</a>
 	<a href="/powerbi">Power BI</a>
 	{#if session}
+		<a href="/submit">프로젝트 등록</a>
 		<span class="nav-user">{profile?.name ?? session.user.email}</span>
 		<button type="button" onclick={handleSignOut}>로그아웃</button>
 	{:else}
