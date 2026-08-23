@@ -28,6 +28,7 @@ CSS = """
     align-items: center !important;
     justify-content: space-between !important;
     margin-bottom: 0 !important;
+    margin-top: 16px !important;
     min-height: 64px !important;
     padding: 0 42px !important;
     position: sticky;

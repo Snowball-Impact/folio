@@ -152,6 +152,7 @@ create index if not exists projects_created_at_idx on public.projects(created_at
 create index if not exists powerbi_reports_project_id_idx on public.powerbi_reports(project_id);
 create index if not exists powerbi_reports_import_id_idx on public.powerbi_reports(import_id);
 create index if not exists likes_user_id_idx on public.likes(user_id);
+create index if not exists likes_created_project_idx on public.likes(created_at desc, project_id);
 create index if not exists comments_project_id_idx on public.comments(project_id, created_at);
 create index if not exists comments_parent_id_idx on public.comments(parent_id);
 create index if not exists comments_author_id_idx on public.comments(author_id);
@@ -276,11 +277,13 @@ grant select, insert, update on public.content_reports to authenticated;
 grant select, insert, update on public.notifications to authenticated;
 
 drop function if exists public.home_project_snapshot(integer, integer, integer);
+drop function if exists public.home_project_snapshot(integer, integer, integer, text);
 
 create or replace function public.home_project_snapshot(
     p_limit integer default 6,
     p_tag_limit integer default 10,
-    p_like_sample_limit integer default 120
+    p_like_sample_limit integer default 120,
+    p_platform_key text default null
 )
 returns jsonb
 language sql
@@ -293,7 +296,8 @@ safe_args as (
     select
         greatest(coalesce(p_limit, 6), 0) as rail_limit,
         greatest(coalesce(p_tag_limit, 10), 0) as tag_limit,
-        greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0) as like_sample_limit
+        greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0) as like_sample_limit,
+        nullif(lower(trim(coalesce(p_platform_key, ''))), '') as platform_key
 ),
 visible_projects as (
     select
@@ -320,6 +324,27 @@ visible_projects as (
     from public.projects p
     where p.is_public = true
       and p.status = 'published'
+      and (
+          (select platform_key from safe_args) is null
+          or (
+              (select platform_key from safe_args) = 'powerbi'
+              and (
+                  exists (
+                      select 1
+                      from unnest(coalesce(p.tags, array[]::text[])) as tag
+                      where lower(trim(tag)) in ('powerbi', 'power bi', 'pbi')
+                  )
+                  or lower(coalesce(p.power_bi_url, '')) like '%app.powerbi.com%'
+                  or lower(coalesce(p.power_bi_url, '')) like '%powerbi.com%'
+                  or lower(coalesce(p.report_url, '')) like '%app.powerbi.com%'
+                  or lower(coalesce(p.report_url, '')) like '%powerbi.com%'
+                  or lower(coalesce(p.github_url, '')) like '%app.powerbi.com%'
+                  or lower(coalesce(p.github_url, '')) like '%powerbi.com%'
+                  or lower(coalesce(p.thumbnail_url, '')) like '%app.powerbi.com%'
+                  or lower(coalesce(p.thumbnail_url, '')) like '%powerbi.com%'
+              )
+          )
+      )
 ),
 recent_projects as (
     select vp.id, row_number() over (order by vp.created_at desc, vp.id desc) as rail_rank
@@ -455,8 +480,8 @@ select jsonb_build_object(
 );
 $$;
 
-revoke all on function public.home_project_snapshot(integer, integer, integer) from public;
-grant execute on function public.home_project_snapshot(integer, integer, integer) to anon, authenticated;
+revoke all on function public.home_project_snapshot(integer, integer, integer, text) from public;
+grant execute on function public.home_project_snapshot(integer, integer, integer, text) to anon, authenticated;
 
 drop function if exists public.project_detail_snapshot(uuid);
 

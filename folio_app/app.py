@@ -7,7 +7,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 from folio_app.components.analytics import render_google_analytics, track_page_view
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
-from folio_app.navigation import ROUTABLE_PAGES
+from folio_app.navigation import ROUTABLE_PAGES, current_route_page, sync_staged_route_url
 from folio_app.pages import about, gallery, home, notifications, onboarding, policy, powerbi, project_detail, protected, reference
 from folio_app.pages.auth import render_login, render_signup
 from folio_app.services.profiles import get_onboarding_status
@@ -36,7 +36,7 @@ _FOOTER_HTML = """
 
 
 def _initial_page_from_query() -> str | None:
-    page = st.query_params.get("page")
+    page = current_route_page()
     if page in ROUTABLE_PAGES:
         return page
     return None
@@ -143,7 +143,7 @@ def _needs_visitor_id() -> bool:
 
 
 def _can_render_public_home_shell() -> bool:
-    page = st.query_params.get("page") or "Home"
+    page = current_route_page()
     return (
         page == "Home"
         and not st.query_params.get("project_id")
@@ -154,10 +154,32 @@ def _can_render_public_home_shell() -> bool:
 
 
 def _can_render_public_detail_shell() -> bool:
-    page = st.query_params.get("page") or "Home"
+    page = current_route_page()
     return (
         page in {"Home", "Reference"}
         and bool(st.query_params.get("project_id"))
+        and not st.query_params.get("logout")
+        and not st.query_params.get("reset")
+        and not st.query_params.get("code")
+    )
+
+
+def _can_render_public_content_shell() -> bool:
+    page = current_route_page()
+    return (
+        page in {"About", "Power BI", "Reference", "Policy", "Login", "Sign Up"}
+        and not st.query_params.get("project_id")
+        and not st.query_params.get("logout")
+        and not st.query_params.get("reset")
+        and not st.query_params.get("code")
+    )
+
+
+def _can_render_auth_dependent_shell() -> bool:
+    page = current_route_page()
+    return (
+        page in {"Submit"}
+        and not st.query_params.get("project_id")
         and not st.query_params.get("logout")
         and not st.query_params.get("reset")
         and not st.query_params.get("code")
@@ -176,6 +198,15 @@ def _can_skip_cookie_manager_for_public_home() -> bool:
 def _can_skip_cookie_manager_for_public_detail() -> bool:
     return (
         _can_render_public_detail_shell()
+        and get_current_user() is None
+        and not st.session_state.get("folio_clear_browser_auth")
+        and not st.session_state.get("folio_logout_in_progress")
+    )
+
+
+def _can_skip_cookie_manager_for_public_content() -> bool:
+    return (
+        _can_render_public_content_shell()
         and get_current_user() is None
         and not st.session_state.get("folio_clear_browser_auth")
         and not st.session_state.get("folio_logout_in_progress")
@@ -255,6 +286,7 @@ def _handle_logout_query() -> None:
 
 def _render_routed_page() -> None:
     selected_page = render_header(initial_page=_initial_page_from_query())
+    sync_staged_route_url()
     user = get_current_user()
     if user is not None:
         onboarding_done_key = f"onboarding_done_{user['id']}"
@@ -326,6 +358,9 @@ def main() -> None:
         _ensure_session_visitor_id()
         _render_routed_page()
         return
+    if _can_skip_cookie_manager_for_public_content():
+        _render_routed_page()
+        return
 
     cookies = _get_cookie_manager(settings)
     if not cookies.ready():
@@ -336,6 +371,10 @@ def main() -> None:
         elif _can_render_public_detail_shell():
             render_header(initial_page=_initial_page_from_query())
             project_detail.render_loading_shell()
+            _render_footer()
+        elif _can_render_auth_dependent_shell():
+            render_header(initial_page=_initial_page_from_query())
+            protected.render_submit_loading_shell()
             _render_footer()
         st.stop()
 

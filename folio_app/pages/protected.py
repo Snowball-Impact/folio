@@ -32,17 +32,28 @@ def render_submit() -> None:
     user = get_current_user()
 
     if not user:
+        render_submit_intro()
+        _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
+        return
+
+    render_submit_project_form(user["id"])
+
+
+def render_submit_intro() -> None:
+    with st.container(border=False, key="submit_intro_hero"):
         render_hero(
             "Submit",
             "새 프로젝트 등록",
             "당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.",
             image_name="hero-submit.webp",
             image_alt="데이터 분석 프로젝트 등록 화면 일러스트",
+            class_name="folio-submit-page-hero",
         )
-        _render_login_required("submit", "프로젝트를 등록하려면 로그인이 필요합니다.")
-        return
 
-    render_submit_project_form(user["id"])
+
+def render_submit_loading_shell() -> None:
+    render_submit_intro()
+    st.info("프로젝트 등록 권한을 확인하고 있습니다.")
 
 
 def render_my_portfolio() -> None:

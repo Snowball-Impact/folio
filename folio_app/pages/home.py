@@ -84,9 +84,18 @@ def render() -> None:
     search = st.query_params.get("q", "")
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
+    gallery_loading_placeholder = None
+    if _uses_default_home_scope(search, selected_tag, selected_platforms):
+        gallery_loading_placeholder = st.empty()
+        with gallery_loading_placeholder.container():
+            _render_loading_panel()
     try:
         if _uses_default_home_scope(search, selected_tag, selected_platforms):
-            snapshot = list_home_project_snapshot(limit=_HOME_RAIL_PROJECT_LIMIT, tag_limit=40)
+            snapshot = list_home_project_snapshot(
+                limit=_HOME_RAIL_PROJECT_LIMIT,
+                tag_limit=40,
+                platform_key=_snapshot_platform_key(selected_platforms),
+            )
             recent_projects = snapshot.recent_projects
             viewed_projects = snapshot.viewed_projects
             liked_projects = snapshot.liked_projects
@@ -114,6 +123,8 @@ def render() -> None:
             clear_project_caches()
             st.rerun()
         return
+    if gallery_loading_placeholder is not None:
+        gallery_loading_placeholder.empty()
     _render_browse_panel(total_project_count, popular_tags, selected_platforms)
     render_project_rails(
         _project_rail_specs(recent_projects, viewed_projects, liked_projects),
@@ -153,8 +164,18 @@ def _uses_default_home_scope(search: str, selected_tag: str, selected_platforms:
     return (
         not search.strip()
         and (not selected_tag or selected_tag == "전체")
-        and (not selected_platforms or _ALL_PLATFORM_FILTER in selected_platforms)
+        and (
+            not selected_platforms
+            or _ALL_PLATFORM_FILTER in selected_platforms
+            or selected_platforms == {_HOME_DEFAULT_PLATFORM_FILTER}
+        )
     )
+
+
+def _snapshot_platform_key(selected_platforms: set[str]) -> str | None:
+    if selected_platforms == {_HOME_DEFAULT_PLATFORM_FILTER}:
+        return _HOME_DEFAULT_PLATFORM_FILTER
+    return None
 
 
 def _project_rail_specs(

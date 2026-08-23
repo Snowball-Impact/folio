@@ -3,7 +3,7 @@
 CSS = """
 /* ── Home Hero (light) ── */
 .folio-home-hero-shell {
-    margin-top: -8px;
+    margin-top: 4px;
     position: relative;
 }
 
@@ -386,7 +386,7 @@ CSS = """
     display: grid;
     gap: 18px;
     grid-template-columns: minmax(0, 1.1fr) minmax(420px, 0.72fr);
-    margin-top: -8px;
+    margin-top: 4px;
     margin-bottom: 20px;
     min-height: 220px;
     overflow: hidden;

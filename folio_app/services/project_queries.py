@@ -82,19 +82,30 @@ def list_public_projects(
     return projects[:limit]
 
 
-def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProjectSnapshot:
+def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10, platform_key: str | None = None) -> HomeProjectSnapshot:
     try:
-        snapshot = _fetch_home_project_snapshot_rpc(limit, tag_limit)
+        snapshot = _fetch_home_project_snapshot_rpc(limit, tag_limit, platform_key or "")
         if snapshot is not None:
             return snapshot
     except Exception:
         logger.warning("Home project snapshot RPC failed; falling back to table queries", exc_info=True)
 
-    return _list_home_project_snapshot_from_queries(limit=limit, tag_limit=tag_limit)
+    return _list_home_project_snapshot_from_queries(limit=limit, tag_limit=tag_limit, platform_key=platform_key)
 
 
-def _list_home_project_snapshot_from_queries(limit: int = 6, tag_limit: int = 10) -> HomeProjectSnapshot:
+def _list_home_project_snapshot_from_queries(
+    limit: int = 6,
+    tag_limit: int = 10,
+    platform_key: str | None = None,
+) -> HomeProjectSnapshot:
     try:
+        if platform_key:
+            return _list_home_platform_project_snapshot_from_queries(
+                platform_key=platform_key,
+                limit=limit,
+                tag_limit=tag_limit,
+            )
+
         recent_rows = _fetch_home_project_rows("created_at", limit)
         viewed_rows = _fetch_home_project_rows("view_count", limit)
         liked_ids = _fetch_home_liked_project_ids(limit)
@@ -122,22 +133,65 @@ def _list_home_project_snapshot_from_queries(limit: int = 6, tag_limit: int = 10
         raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
 
 
+def _list_home_platform_project_snapshot_from_queries(
+    *,
+    platform_key: str,
+    limit: int,
+    tag_limit: int,
+) -> HomeProjectSnapshot:
+    recent_rows = _fetch_home_platform_project_rows(platform_key, "created_at", limit)
+    viewed_rows = _fetch_home_platform_project_rows(platform_key, "view_count", limit)
+    liked_ids = _fetch_home_liked_project_ids(limit)
+    liked_rows = _fetch_public_projects_by_ids(tuple(liked_ids))
+
+    from folio_app.services.project_references import reference_platform_for_project
+
+    liked_rows = [
+        project
+        for project in liked_rows
+        if reference_platform_for_project(project) == platform_key
+    ]
+    project_by_id = _attach_related_data(_unique_projects([*recent_rows, *viewed_rows, *liked_rows]))
+    attached_by_id = {project["id"]: project for project in project_by_id if project.get("id")}
+    recent_projects = [attached_by_id[project["id"]] for project in recent_rows if project.get("id") in attached_by_id]
+    viewed_projects = [attached_by_id[project["id"]] for project in viewed_rows if project.get("id") in attached_by_id]
+    liked_projects = [attached_by_id[project["id"]] for project in liked_rows if project.get("id") in attached_by_id]
+    tag_summary = _fetch_home_platform_tag_summary(platform_key, tag_limit)
+
+    return HomeProjectSnapshot(
+        total_project_count=tag_summary.total_project_count,
+        popular_tags=tag_summary.popular_tags,
+        recent_projects=recent_projects[:limit],
+        viewed_projects=viewed_projects[:limit],
+        liked_projects=liked_projects[:limit],
+    )
+
+
 @st.cache_data(ttl=30, show_spinner=False)
-def _fetch_home_project_snapshot_rpc(limit: int, tag_limit: int) -> HomeProjectSnapshot | None:
+def _fetch_home_project_snapshot_rpc(limit: int, tag_limit: int, platform_key: str = "") -> HomeProjectSnapshot | None:
     client = get_supabase_client()
     if client is None:
         raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
-    response = _execute_public_read(
-        lambda: client.rpc(
-            HOME_PROJECT_SNAPSHOT_RPC,
-            {
-                "p_limit": limit,
-                "p_tag_limit": tag_limit,
-                "p_like_sample_limit": max(limit * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER, limit),
-            },
-        ).execute()
-    )
+    params = {
+        "p_limit": limit,
+        "p_tag_limit": tag_limit,
+        "p_like_sample_limit": max(limit * HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER, limit),
+    }
+    if platform_key:
+        params["p_platform_key"] = platform_key
+
+    try:
+        response = _execute_public_read(
+            lambda: client.rpc(
+                HOME_PROJECT_SNAPSHOT_RPC,
+                params,
+            ).execute()
+        )
+    except Exception as exc:
+        if platform_key and _is_missing_home_snapshot_platform_param(exc):
+            return None
+        raise
     if response is None:
         return None
     if not response.data:
@@ -197,6 +251,33 @@ def _fetch_home_project_rows(order_column: str, limit: int) -> list[dict[str, An
             .select(PUBLIC_PROJECT_LIST_COLUMNS)
             .eq("is_public", True)
             .eq("status", PROJECT_STATUS_PUBLISHED)
+            .order(order_column, desc=True)
+            .range(0, max(limit - 1, 0))
+            .execute()
+        )
+    )
+    if response is None:
+        raise ProjectServiceError("공개 프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
+    return response.data or []
+
+
+@st.cache_data(ttl=30, show_spinner=False)
+def _fetch_home_platform_project_rows(platform_key: str, order_column: str, limit: int) -> list[dict[str, Any]]:
+    client = get_supabase_client()
+    if client is None:
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
+
+    platform_filter = _platform_project_filter(platform_key)
+    if not platform_filter:
+        return []
+
+    response = _execute_public_read(
+        lambda: (
+            client.table("projects")
+            .select(PUBLIC_PROJECT_LIST_COLUMNS)
+            .eq("is_public", True)
+            .eq("status", PROJECT_STATUS_PUBLISHED)
+            .or_(platform_filter)
             .order(order_column, desc=True)
             .range(0, max(limit - 1, 0))
             .execute()
@@ -333,6 +414,56 @@ def _fetch_public_project_tags() -> list[dict[str, Any]]:
     return projects
 
 
+@st.cache_data(ttl=30, show_spinner=False)
+def _fetch_home_platform_tag_summary(platform_key: str, limit: int) -> HomeTagSummary:
+    client = get_supabase_client()
+    if client is None:
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
+
+    platform_filter = _platform_project_filter(platform_key)
+    if not platform_filter:
+        return HomeTagSummary(total_project_count=0, popular_tags=[])
+
+    response = _execute_public_read(
+        lambda: (
+            client.table("projects")
+            .select("tags")
+            .eq("is_public", True)
+            .eq("status", PROJECT_STATUS_PUBLISHED)
+            .or_(platform_filter)
+            .execute()
+        )
+    )
+    if response is None:
+        raise ProjectServiceError("인기 태그를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
+
+    projects = response.data or []
+    counter: Counter[str] = Counter()
+    for project in projects:
+        counter.update(project.get("tags") or [])
+    return HomeTagSummary(
+        total_project_count=len(projects),
+        popular_tags=[tag for tag, _ in counter.most_common(limit)],
+    )
+
+
+def _platform_project_filter(platform_key: str) -> str:
+    if platform_key != "powerbi":
+        return ""
+    return ",".join(
+        (
+            "tags.cs.{Power BI}",
+            "tags.cs.{PowerBI}",
+            "tags.cs.{powerbi}",
+            "tags.cs.{PBI}",
+            "power_bi_url.ilike.%powerbi.com%",
+            "report_url.ilike.%powerbi.com%",
+            "github_url.ilike.%powerbi.com%",
+            "thumbnail_url.ilike.%powerbi.com%",
+        )
+    )
+
+
 def _execute_public_read(operation):
     try:
         return operation()
@@ -360,6 +491,15 @@ def _is_public_read_connection_error(exc: Exception) -> bool:
             "temporary failure in name resolution",
             "nodename nor servname provided",
         )
+    )
+
+
+def _is_missing_home_snapshot_platform_param(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return (
+        "home_project_snapshot" in message
+        and "p_platform_key" in message
+        and ("could not find the function" in message or "schema cache" in message)
     )
 
 
@@ -630,10 +770,12 @@ def clear_project_caches() -> None:
     _fetch_project_detail_snapshot_rpc.clear()
     _fetch_public_projects.clear()
     _fetch_home_project_rows.clear()
+    _fetch_home_platform_project_rows.clear()
     _fetch_public_projects_by_ids.clear()
     _fetch_home_liked_project_ids.clear()
     _fetch_public_project_tags.clear()
     _fetch_home_tag_summary.clear()
+    _fetch_home_platform_tag_summary.clear()
     _fetch_public_profiles.clear()
     _fetch_like_counts.clear()
     clear_comment_caches()

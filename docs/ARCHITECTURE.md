@@ -197,4 +197,8 @@ flowchart LR
 
 ## 7. 배포 단위
 
-Streamlit Community Cloud에서 루트 `app.py`를 실행한다. 데이터베이스 스키마와 RLS는 `supabase/schema.sql`을 Supabase SQL Editor에서 적용한다. 애플리케이션 배포와 DB 정책 적용은 별도 배포 단위이므로 둘 다 확인해야 완료다.
+운영 배포는 Docker 기반 PaaS를 기준으로 전환한다. 컨테이너는 루트 `app.py`를 `streamlit run app.py --server.address=0.0.0.0 --server.port=${PORT:-8501}`로 실행한다.
+
+데이터베이스 스키마와 RLS는 `supabase/schema.sql`을 Supabase SQL Editor에서 적용한다. 애플리케이션 배포와 DB 정책 적용은 별도 배포 단위이므로 둘 다 확인해야 완료다.
+
+Streamlit Community Cloud 문서는 이전 배포 기준과 실험 기록으로 유지한다. 현재 운영 전환 기준은 `docs/PAAS_DEPLOYMENT.md`다.

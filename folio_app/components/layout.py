@@ -4,7 +4,7 @@ from typing import Callable, Optional
 import streamlit as st
 
 from folio_app.components.assets import static_image_src
-from folio_app.navigation import ROUTABLE_PAGES, navigate
+from folio_app.navigation import ROUTABLE_PAGES, current_route_page, navigate, set_route
 from folio_app.services.auth import get_current_user
 from folio_app.services.notifications import (
     count_unread_notifications,
@@ -18,7 +18,7 @@ from folio_app.services.project_references import VISIBLE_REFERENCE_PLATFORMS
 def render_header(initial_page: str | None = None) -> str:
     user = get_current_user()
     selected = initial_page if initial_page in ROUTABLE_PAGES else "Home"
-    current_page = st.query_params.get("page") or "Home"
+    current_page = current_route_page()
     logo_src = static_image_src("logo.webp")
     unread_notification_count = count_unread_notifications(user["id"]) if user else 0
     if unread_notification_count:
@@ -64,8 +64,7 @@ def render_header(initial_page: str | None = None) -> str:
                 f'<div class="folio-header-logo"><img src="{logo_src}" alt="Folio"></div>',
                 unsafe_allow_html=True,
             )
-            if st.button("홈으로 이동", key="nav_brand_home"):
-                navigate("Home")
+            st.button("홈으로 이동", key="nav_brand_home", on_click=set_route, args=("Home",))
 
         with st.container(border=False, key="folio_header_nav"):
             nav_items = _header_nav_items(user is not None)
@@ -77,13 +76,19 @@ def render_header(initial_page: str | None = None) -> str:
                     _render_notifications_popover(user["id"], unread_notification_count)
                     continue
                 is_active = option == current_page and option != "__logout__"
-                if st.button(label, key=f"nav_{option}", disabled=is_active):
-                    if option == "__logout__":
+                if option == "__logout__":
+                    if st.button(label, key=f"nav_{option}", disabled=is_active):
                         st.query_params.clear()
                         st.query_params["logout"] = "1"
                         st.rerun()
-                    else:
-                        navigate(option)
+                    continue
+                st.button(
+                    label,
+                    key=f"nav_{option}",
+                    disabled=is_active,
+                    on_click=set_route,
+                    args=(option,),
+                )
 
     return selected
 

@@ -34,6 +34,16 @@
 
 초기화 SQL은 기존 조회수와 검증 중 생성된 조회 기록을 영구 삭제한다. 마이그레이션과 동시에 실행하지 않는다.
 
+### 홈 갤러리 Power BI snapshot 패치
+
+Power BI-first 런칭 모드에서 홈 갤러리가 전체 프로젝트를 가져온 뒤 앱에서 필터링하지 않도록, 운영 DB에는 다음 패치를 적용한다.
+
+1. SQL Editor에서 `supabase/update_home_snapshot_platform_filter.sql`을 실행한다.
+2. 앱을 재시작하거나 홈 캐시 TTL이 지난 뒤 홈 갤러리 로딩 시간을 재측정한다.
+3. RPC가 적용되면 `home_project_snapshot`은 `p_platform_key='powerbi'`를 받아 DB 내부에서 Power BI 프로젝트만 집계한다.
+
+이 패치는 `likes_created_project_idx` 인덱스도 함께 추가한다. 홈의 좋아요 레일은 최근 좋아요 샘플을 먼저 읽기 때문에 `likes(created_at desc, project_id)` 인덱스가 필요하다.
+
 ### 공개 → 비공개 변경 시 42501 오류
 
 로그인한 작성자가 공개 프로젝트는 수정할 수 있지만 비공개 저장에서 `42501` 오류를 받는다면 원격 DB의 작성자 SELECT/UPDATE 정책이 오래된 상태입니다.

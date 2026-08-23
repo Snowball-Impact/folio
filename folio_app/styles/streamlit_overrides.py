@@ -18,21 +18,60 @@ footer[data-testid="stFooter"] {
    of the unstable generated class so this survives future upgrades. */
 iframe[title*="CookieManager"],
 iframe[src*="cookie_manager"] {
-    display: none !important;
+    border: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    width: 0 !important;
 }
 
 /* Hiding the iframe alone isn't enough: its wrapping element-container
    is still a top-level flex child of the main content block, so even
-   empty it still consumes one `gap` unit above/below it. When logged
-   in, the cookie manager syncs (read + write), rendering this wrapper
-   twice, which doubled the visible gap above the header. Removing the
-   wrapper itself (not just its iframe) takes it out of the flex flow
-   entirely so it stops contributing gap at all. */
+   empty it can consume one gap unit while the component initializes.
+   Keep the wrapper mounted, but remove it from normal flow. */
+.st-key-CookieManager-sync_cookies,
 div:has(> iframe[title*="CookieManager"]),
 div:has(> iframe[src*="cookie_manager"]),
-[data-testid="stElementContainer"]:has(> div > iframe[title*="CookieManager"]),
-[data-testid="stElementContainer"]:has(> div > iframe[src*="cookie_manager"]) {
-    display: none !important;
+[data-testid="stElementContainer"]:has(iframe[title*="CookieManager"]),
+[data-testid="stElementContainer"]:has(iframe[src*="cookie_manager"]) {
+    height: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    position: absolute !important;
+    visibility: hidden !important;
+    width: 0 !important;
+}
+
+/* Script-only components are rendered as zero-height iframes, but the
+   Streamlit element wrapper around them can still contribute flex gap
+   during a rerun. Keep those wrappers out of normal flow so route changes
+   do not push the sticky header and first hero down for a few frames. */
+iframe[height="0"],
+iframe[style*="height: 0px"],
+iframe[style*="height:0px"],
+iframe[title="st.iframe"]:not([src]) {
+    border: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    width: 0 !important;
+}
+
+div:has(> iframe[height="0"]),
+div:has(> iframe[style*="height: 0px"]),
+div:has(> iframe[style*="height:0px"]),
+[data-testid="stElementContainer"]:has(iframe[title="st.iframe"]:not([src])),
+[data-testid="stElementContainer"]:has(iframe[height="0"]),
+[data-testid="stElementContainer"]:has(iframe[style*="height: 0px"]),
+[data-testid="stElementContainer"]:has(iframe[style*="height:0px"]) {
+    height: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    position: absolute !important;
+    visibility: hidden !important;
+    width: 0 !important;
 }
 
 .block-container {

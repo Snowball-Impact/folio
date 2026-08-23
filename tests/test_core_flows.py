@@ -4,7 +4,8 @@ from unittest.mock import patch
 from folio_app.app import APP_VERSION, _FOOTER_HTML, _can_render_public_detail_shell
 from folio_app.components.layout import _header_nav_items
 from folio_app.components.project_form import parse_project_body
-from folio_app.navigation import navigate
+from folio_app.navigation import current_route_page, navigate, set_route
+from folio_app.pages.home import _snapshot_platform_key, _uses_default_home_scope
 from folio_app.pages.auth import (
     SignupEmailCheckError,
     _email_already_registered,
@@ -14,6 +15,7 @@ from folio_app.pages.auth import (
     _signup_missing_required_fields,
 )
 from folio_app.pages.project_detail import _track_share_open
+from folio_app.services.project_queries import _platform_project_filter
 from folio_app.services.projects import normalize_optional_url, normalize_power_bi_embed_url
 
 
@@ -52,6 +54,28 @@ class NavigationTests(unittest.TestCase):
             navigate("Home", project_id="project-1", tag=None, q="")
         self.assertEqual(query_params, {"page": "Home", "project_id": "project-1"})
 
+    @patch("folio_app.navigation.st.rerun")
+    @patch("folio_app.navigation.st.session_state", new_callable=dict)
+    @patch("folio_app.navigation.st.query_params", new_callable=dict)
+    def test_set_route_stages_page_without_query_param_rerun(self, query_params, session_state, rerun) -> None:
+        query_params["old"] = "value"
+        selected = set_route("About")
+
+        self.assertEqual(selected, "About")
+        self.assertEqual(query_params, {"old": "value"})
+        self.assertEqual(session_state["folio_route_page"], "About")
+        rerun.assert_not_called()
+
+    @patch("folio_app.navigation.st.session_state", {"folio_route_page": "About", "folio_route_source_page": "Home"})
+    @patch("folio_app.navigation.st.query_params", {"page": "Home"})
+    def test_current_route_prefers_staged_page_from_header_navigation(self) -> None:
+        self.assertEqual(current_route_page(), "About")
+
+    @patch("folio_app.navigation.st.session_state", {"folio_route_page": "About", "folio_route_source_page": "Home"})
+    @patch("folio_app.navigation.st.query_params", {"page": "Policy"})
+    def test_current_route_accepts_external_query_page_change(self) -> None:
+        self.assertEqual(current_route_page(), "Policy")
+
     @patch("folio_app.navigation.st.rerun", side_effect=RuntimeError("rerun"))
     @patch("folio_app.navigation.st.query_params", new_callable=dict)
     def test_unknown_page_falls_back_to_home(self, query_params, _rerun) -> None:
@@ -70,6 +94,24 @@ class NavigationTests(unittest.TestCase):
     @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-1", "code": "auth-code"})
     def test_public_detail_shell_is_blocked_for_auth_redirects(self) -> None:
         self.assertFalse(_can_render_public_detail_shell())
+
+
+class HomeGalleryRoutingTests(unittest.TestCase):
+    def test_default_powerbi_scope_uses_snapshot_path(self) -> None:
+        self.assertTrue(_uses_default_home_scope("", "전체", {"powerbi"}))
+        self.assertEqual(_snapshot_platform_key({"powerbi"}), "powerbi")
+
+    def test_non_default_home_filters_use_full_query_path(self) -> None:
+        self.assertFalse(_uses_default_home_scope("검색어", "전체", {"powerbi"}))
+        self.assertFalse(_uses_default_home_scope("", "DAX", {"powerbi"}))
+        self.assertIsNone(_snapshot_platform_key({"tableau"}))
+
+    def test_powerbi_fallback_filter_matches_reference_markers(self) -> None:
+        platform_filter = _platform_project_filter("powerbi")
+
+        self.assertIn("tags.cs.{PowerBI}", platform_filter)
+        self.assertIn("power_bi_url.ilike.%powerbi.com%", platform_filter)
+        self.assertEqual(_platform_project_filter("tableau"), "")
 
 
 class SignupValidationTests(unittest.TestCase):

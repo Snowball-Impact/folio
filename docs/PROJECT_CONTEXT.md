@@ -16,7 +16,7 @@
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
 - **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
-- **배포 채널**: Streamlit Community Cloud. 목적은 기존 Streamlit 앱을 유지하면서 Playwright 기반 썸네일 자동 캡처를 실험하는 것이다.
+- **배포 채널**: Docker 기반 PaaS로 전환 준비 중이다. Streamlit 앱 구조는 유지하고, 컨테이너에서 `0.0.0.0:${PORT:-8501}`로 실행한다.
 
 ### 현재 핸드오프 상태 (2026-08-23)
 
@@ -896,7 +896,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 
 ### 완료: 홈 로딩 최적화와 푸터 버전 표시 (2026-08-15)
 
-- 홈 기본 화면은 `list_home_project_snapshot(limit=6, tag_limit=40)`을 사용해 최근/조회/좋아요 레일에 필요한 프로젝트만 가져온다. 레일당 최대 카드 수는 6개다.
+- 홈 기본 화면은 `list_home_project_snapshot(limit=6, tag_limit=40, platform_key="powerbi")`를 사용해 최근/조회/좋아요 레일에 필요한 Power BI 프로젝트만 가져온다. 레일당 최대 카드 수는 6개다.
 - 공개 프로젝트 조회 컬럼은 `PUBLIC_PROJECT_LIST_COLUMNS`로 제한한다. `select("*")`는 홈 공개 목록 경로에서 피한다.
 - 댓글 통계는 `comment_stats_by_project()`로 댓글 수와 최신 댓글 시각을 한 번에 조회한다.
 - 홈 인기 태그는 스냅샷 경로와 프로젝트 기반 집계 경로 모두 `_filter_platform_tags()` / `_platform_tag_exclusions()`를 통과한다. `reference`, `references`, `레퍼런스`, `참고`는 인기 태그에서 제외한다.
@@ -920,7 +920,8 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 쿠키 대기 중 보이는 로딩 shell은 기존 홈 히어로와 검색 패널 톤을 맞춘 skeleton이다. 쿠키가 준비되기 전의 초기 공백을 줄이는 목적이다.
 - 후속 측정에서 같은 Streamlit run 안에서 `st.empty()`로 그렸다가 바로 비우는 데이터 조회 중 skeleton은 실제 배포 DOM에 안정적으로 남지 않는 것을 확인했다. 해당 왕복 렌더는 제거하고, 좋아요 후보 조회를 홈 카드 limit 기준으로 줄여 초기 쿼리량을 더 낮췄다.
 - 댓글 통계 생략은 배포 측정에서 갤러리 표시 시간을 의미 있게 줄이지 못해 되돌렸다. 원인 분석은 `python tools\profile_home_snapshot.py --warm-runs 1`로 홈 snapshot 단계별 시간을 먼저 확인한다.
-- 홈 snapshot RPC 1차 구현은 `public.home_project_snapshot(p_limit, p_tag_limit, p_like_sample_limit)`이다. 코드에는 RPC 우선/fallback 경로가 있지만, 원격 DB에 함수가 없는 상태에서 배포하면 누락된 RPC 호출이 먼저 실패해 초기 로딩이 더 느려질 수 있다. 반드시 Supabase SQL Editor에서 최신 `supabase/schema.sql`의 RPC를 적용한 뒤 앱 코드를 배포하고 계측한다.
+- 홈 snapshot RPC는 `public.home_project_snapshot(p_limit, p_tag_limit, p_like_sample_limit, p_platform_key)`이다. `p_platform_key='powerbi'`이면 태그와 Power BI URL marker 기준으로 DB 안에서 Power BI 후보만 집계한다. 원격 DB가 아직 3-파라미터 함수이면 코드가 이를 감지해 PostgREST 플랫폼 필터 fallback으로 내려가지만, 최종 성능 계측 전에는 반드시 Supabase SQL Editor에서 최신 `supabase/schema.sql` 또는 전용 패치 `supabase/update_home_snapshot_platform_filter.sql`을 적용한다.
+- 2026-08-23에 원격 DB에 `supabase/update_home_snapshot_platform_filter.sql`을 적용했다. 적용 후 서비스 측정은 cold 약 1.29초, warm 약 0.4ms다. 브라우저 첫 진입은 skeleton이 약 0.46초에 보이고 실제 갤러리는 약 2.46초에 교체된다. 반복 진입은 약 1.3초대다. 남은 cold 병목은 RPC 내부의 전체 Power BI 후보/태그 집계이며, 필요하면 별도 materialized snapshot 또는 `projects.platform_key` 정규화 컬럼으로 줄인다.
 - Streamlit Community Cloud는 공식 문서 기준 12시간 무트래픽 후 sleep 상태가 되므로 30분 반복 ping은 운영 목적 대비 과하다. `.github/workflows/keepalive.yml`의 KST 08:00 전후 wake 작업만 유지하고, 30분 간격 `keepalive-ping.yml`은 제거했다.
 - 공개 Home 기본 진입은 쿠키 복원보다 첫 렌더 속도를 우선해 CookieManager를 마운트하지 않는다. 새 브라우저 세션의 저장된 로그인 쿠키 복원은 상세/보호/인증 흐름으로 들어갈 때 수행된다. 기본 홈에서 CookieManager iframe과 ready 대기 rerun을 제거하는 목적이다.
 - 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다. 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정하며, 상단 독립 `레퍼런스` 메뉴는 숨긴다. Power BI 메뉴의 공식 레퍼런스 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
@@ -1009,3 +1010,10 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
    - 레퍼런스 정렬 버튼 클릭 시 페이지 전체 리로드 없이 카드 순서가 바뀌는지 확인한다.
    - 상세 진입/복귀 시 `sort` 상태가 유지되는지 확인한다.
    - 홈 히어로 설명 줄바꿈이 첫 줄 짧게, 아래 줄 길게 보이는지 확인한다.
+
+7. 장기적으로 SvelteKit 전환을 검토한다.
+   - 목적은 첫 로딩 속도, 상세 페이지 전환 속도, 모바일 UI, 커뮤니티/Admin 확장성을 개선하는 것이다.
+   - 우선 후보는 `SvelteKit + Cloudflare Pages + Supabase + 캡처 전용 Worker/API`다.
+   - 도메인은 가비아/후이즈/Namecheap 등에서 구매하고, 네임서버를 Cloudflare로 넘겨 DNS/SSL/보안/Pages 연결을 한곳에서 관리하는 방식을 우선한다.
+   - 공개 조회 화면부터 이전하고, Auth/댓글/신고/등록/수정/캡처는 단계적으로 옮긴다.
+   - 예상 리소스와 리스크는 `docs/PAAS_DEPLOYMENT.md`의 `TODO: SvelteKit 전환 검토`를 따른다.

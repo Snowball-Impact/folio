@@ -27,7 +27,8 @@
 | 문서 | 설명 |
 |---|---|
 | [SUPABASE_SETUP.md](SUPABASE_SETUP.md) | Supabase 스키마·Auth·RLS 설정과 검증 절차 |
-| [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | Streamlit Community Cloud 배포, Playwright 캡처 실험, 커스텀 도메인 iframe 우회 기준 |
+| [PAAS_DEPLOYMENT.md](PAAS_DEPLOYMENT.md) | Docker 기반 PaaS 배포와 운영 전환 절차 |
+| [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | 이전 Streamlit Community Cloud 배포 기준과 캡처 실험 기록 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
 | [curation/powerbi_CONTENT_OPS.md](curation/powerbi_CONTENT_OPS.md) | Power BI 업데이트·커뮤니티·학습 콘텐츠 정기 수집과 점검 절차 |

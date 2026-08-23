@@ -5,8 +5,11 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from folio_app.app import (
+    _can_render_auth_dependent_shell,
+    _can_render_public_content_shell,
     _can_render_public_detail_shell,
     _can_render_public_home_shell,
+    _can_skip_cookie_manager_for_public_content,
     _can_skip_cookie_manager_for_public_detail,
     _can_skip_cookie_manager_for_public_home,
     _ensure_session_visitor_id,
@@ -74,11 +77,53 @@ class VisitorIdentityTests(unittest.TestCase):
         self.assertFalse(_can_render_public_home_shell())
         self.assertTrue(_can_render_public_detail_shell())
 
+    @patch("folio_app.app.st.query_params", {"page": "About"})
+    def test_public_content_shell_can_render_before_cookies_are_ready(self) -> None:
+        self.assertTrue(_can_render_public_content_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Login"})
+    def test_login_shell_can_render_before_cookies_are_ready(self) -> None:
+        self.assertTrue(_can_render_public_content_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Login", "reset": "1"})
+    def test_password_reset_login_cannot_skip_cookie_flow(self) -> None:
+        self.assertFalse(_can_render_public_content_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Sign Up"})
+    def test_signup_shell_can_render_before_cookies_are_ready(self) -> None:
+        self.assertTrue(_can_render_public_content_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Submit"})
+    def test_submit_can_render_auth_dependent_loading_shell(self) -> None:
+        self.assertTrue(_can_render_auth_dependent_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Submit", "code": "auth-code"})
+    def test_submit_auth_dependent_shell_is_blocked_for_auth_redirects(self) -> None:
+        self.assertFalse(_can_render_auth_dependent_shell())
+
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st.session_state", new_callable=dict)
     @patch("folio_app.app.st.query_params", {})
     def test_plain_logged_out_home_can_skip_cookie_manager(self, _session_state, _current_user) -> None:
         self.assertTrue(_can_skip_cookie_manager_for_public_home())
+
+    @patch("folio_app.app.get_current_user", return_value=None)
+    @patch("folio_app.app.st.session_state", new_callable=dict)
+    @patch("folio_app.app.st.query_params", {"page": "About"})
+    def test_public_content_can_skip_cookie_manager(self, _session_state, _current_user) -> None:
+        self.assertTrue(_can_skip_cookie_manager_for_public_content())
+
+    @patch("folio_app.app.get_current_user", return_value=None)
+    @patch("folio_app.app.st.session_state", new_callable=dict)
+    @patch("folio_app.app.st.query_params", {"page": "Login"})
+    def test_login_can_skip_cookie_manager(self, _session_state, _current_user) -> None:
+        self.assertTrue(_can_skip_cookie_manager_for_public_content())
+
+    @patch("folio_app.app.get_current_user", return_value=None)
+    @patch("folio_app.app.st.session_state", new_callable=dict)
+    @patch("folio_app.app.st.query_params", {"page": "Submit"})
+    def test_submit_cannot_skip_cookie_manager(self, _session_state, _current_user) -> None:
+        self.assertFalse(_can_skip_cookie_manager_for_public_content())
 
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st.session_state", new_callable=dict)
@@ -182,6 +227,9 @@ class ViewCountSchemaContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.schema = (Path(__file__).parents[1] / "supabase" / "schema.sql").read_text(encoding="utf-8")
+        cls.home_snapshot_patch = (
+            Path(__file__).parents[1] / "supabase" / "update_home_snapshot_platform_filter.sql"
+        ).read_text(encoding="utf-8")
 
     def test_daily_deduplication_and_owner_exclusion_are_declared(self) -> None:
         self.assertIn("primary key (project_id, viewer_hash, viewed_on)", self.schema)
@@ -196,6 +244,21 @@ class ViewCountSchemaContractTests(unittest.TestCase):
     def test_schema_does_not_reset_existing_view_counts(self) -> None:
         normalized = " ".join(self.schema.lower().split())
         self.assertNotIn("set view_count = 0", normalized)
+
+    def test_home_snapshot_accepts_platform_filter(self) -> None:
+        self.assertIn("p_platform_key text default null", self.schema)
+        self.assertIn("lower(trim(coalesce(p_platform_key, '')))", self.schema)
+        self.assertIn("likes_created_project_idx", self.schema)
+        self.assertIn("grant execute on function public.home_project_snapshot(integer, integer, integer, text)", self.schema)
+
+    def test_home_snapshot_patch_matches_platform_filter_contract(self) -> None:
+        self.assertIn("p_platform_key text default null", self.home_snapshot_patch)
+        self.assertIn("lower(trim(coalesce(p_platform_key, '')))", self.home_snapshot_patch)
+        self.assertIn("likes_created_project_idx", self.home_snapshot_patch)
+        self.assertIn(
+            "grant execute on function public.home_project_snapshot(integer, integer, integer, text)",
+            self.home_snapshot_patch,
+        )
 
 
 if __name__ == "__main__":

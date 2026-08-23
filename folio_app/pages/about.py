@@ -63,7 +63,7 @@ def _hero_section() -> str:
     return f"""
     <section class="folio-about-hero">
         <div class="folio-about-hero-banner">
-            <img src="{gapyear_banner}" alt="경기청년 갭이어 프로그램 배너" />
+            <img src="{gapyear_banner}" alt="경기청년 갭이어 프로그램 배너" loading="eager" decoding="async" />
         </div>
         <div class="folio-about-hero-caption">
             <strong>경기청년 갭이어 2026의 지원을 받아 시작했습니다.</strong>
@@ -82,7 +82,7 @@ def _team_section() -> str:
     <section class="folio-about-section">
         <div class="folio-about-team">
             <div class="folio-about-team-image">
-                <img src="{team_image}" alt="Snowball Impact 팀 캐릭터" />
+                <img src="{team_image}" alt="Snowball Impact 팀 캐릭터" loading="lazy" decoding="async" />
             </div>
             <div class="folio-about-team-copy">
                 <div class="folio-about-eyebrow">TEAM SNOWBALL IMPACT</div>
