@@ -909,6 +909,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 후속 측정에서 같은 Streamlit run 안에서 `st.empty()`로 그렸다가 바로 비우는 데이터 조회 중 skeleton은 실제 배포 DOM에 안정적으로 남지 않는 것을 확인했다. 해당 왕복 렌더는 제거하고, 좋아요 후보 조회를 홈 카드 limit 기준으로 줄여 초기 쿼리량을 더 낮췄다.
 - 댓글 통계 생략은 배포 측정에서 갤러리 표시 시간을 의미 있게 줄이지 못해 되돌렸다. 원인 분석은 `python tools\profile_home_snapshot.py --warm-runs 1`로 홈 snapshot 단계별 시간을 먼저 확인한다.
 - 홈 snapshot RPC 1차 구현은 `public.home_project_snapshot(p_limit, p_tag_limit, p_like_sample_limit)`이다. 코드에는 RPC 우선/fallback 경로가 있지만, 원격 DB에 함수가 없는 상태에서 배포하면 누락된 RPC 호출이 먼저 실패해 초기 로딩이 더 느려질 수 있다. 반드시 Supabase SQL Editor에서 최신 `supabase/schema.sql`의 RPC를 적용한 뒤 앱 코드를 배포하고 계측한다.
+- Streamlit Community Cloud는 공식 문서 기준 12시간 무트래픽 후 sleep 상태가 되므로 30분 반복 ping은 운영 목적 대비 과하다. `.github/workflows/keepalive.yml`의 KST 08:00 전후 wake 작업만 유지하고, 30분 간격 `keepalive-ping.yml`은 제거했다.
 - 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
 
 검증:
