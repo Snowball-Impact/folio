@@ -1,14 +1,11 @@
 from folio_app.services.comment_mutations import (
-    create_community_comment,
     create_comment,
     create_comment_notification as _create_comment_notification,
     delete_comment,
 )
 from folio_app.services.comment_queries import (
     attach_comment_authors as _attach_comment_authors,
-    can_reply_to_community_comment as _can_reply_to_community_comment,
     can_reply_to_comment as _can_reply_to_comment,
-    list_community_comments,
     list_project_comments,
 )
 from folio_app.services.comment_reads import (
@@ -31,7 +28,6 @@ from folio_app.services.comment_utils import build_comment_tree, parse_timestamp
 __all__ = [
     "CommentResult",
     "_attach_comment_authors",
-    "_can_reply_to_community_comment",
     "_can_reply_to_comment",
     "_create_comment_notification",
     "_fetch_comment_counts",
@@ -42,12 +38,10 @@ __all__ = [
     "clear_comment_caches",
     "comment_stats_by_project",
     "count_comments_by_project",
-    "create_community_comment",
     "create_comment",
     "delete_comment",
     "get_unread_comment_project_ids",
     "latest_comment_at_by_project",
-    "list_community_comments",
     "list_project_comments",
     "mark_project_comments_read",
 ]

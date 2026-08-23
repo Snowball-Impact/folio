@@ -91,24 +91,9 @@ create table if not exists public.likes (
     primary key (project_id, user_id)
 );
 
-create table if not exists public.community_posts (
-    id uuid primary key default gen_random_uuid(),
-    user_id uuid not null references public.profiles(id) on delete cascade,
-    category text not null check (category in ('notice', 'question', 'tip', 'other')),
-    title text not null,
-    content text not null,
-    view_count integer not null default 0,
-    is_pinned boolean not null default false,
-    is_hidden boolean not null default false,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    deleted_at timestamptz
-);
-
 create table if not exists public.comments (
     id uuid primary key default gen_random_uuid(),
     project_id uuid not null references public.projects(id) on delete cascade,
-    community_post_id uuid references public.community_posts(id) on delete cascade,
     author_id uuid not null references public.profiles(id) on delete cascade,
     parent_id uuid references public.comments(id) on delete cascade,
     body text not null,
@@ -162,30 +147,15 @@ create table if not exists public.project_views (
     primary key (project_id, viewer_hash, viewed_on)
 );
 
-create table if not exists public.community_post_views (
-    post_id uuid not null references public.community_posts(id) on delete cascade,
-    viewer_hash text not null,
-    viewed_on date not null,
-    created_at timestamptz not null default now(),
-    primary key (post_id, viewer_hash, viewed_on)
-);
-
-alter table public.comments
-add column if not exists community_post_id uuid references public.community_posts(id) on delete cascade;
-
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
 create index if not exists powerbi_reports_project_id_idx on public.powerbi_reports(project_id);
 create index if not exists powerbi_reports_import_id_idx on public.powerbi_reports(import_id);
 create index if not exists likes_user_id_idx on public.likes(user_id);
 create index if not exists comments_project_id_idx on public.comments(project_id, created_at);
-create index if not exists comments_community_post_id_idx on public.comments(community_post_id, created_at);
 create index if not exists comments_parent_id_idx on public.comments(parent_id);
 create index if not exists comments_author_id_idx on public.comments(author_id);
 create index if not exists project_comment_reads_user_id_idx on public.project_comment_reads(user_id);
-create index if not exists community_posts_visible_idx on public.community_posts(is_pinned desc, created_at desc)
-where deleted_at is null and is_hidden = false;
-create index if not exists community_posts_user_id_idx on public.community_posts(user_id, created_at desc);
 create index if not exists content_reports_project_status_idx on public.content_reports(project_id, status, created_at desc);
 create index if not exists content_reports_reporter_id_idx on public.content_reports(reporter_id, created_at desc);
 create index if not exists notifications_user_read_created_idx on public.notifications(user_id, is_read, created_at desc);
@@ -194,7 +164,6 @@ create unique index if not exists notifications_project_comment_unique_idx
 on public.notifications(comment_id)
 where type = 'project_comment' and comment_id is not null;
 create index if not exists project_views_project_date_idx on public.project_views(project_id, viewed_on);
-create index if not exists community_post_views_post_date_idx on public.community_post_views(post_id, viewed_on);
 create index if not exists policy_versions_type_active_idx on public.policy_versions(policy_type, is_active, effective_at desc);
 create index if not exists user_policy_consents_user_id_idx on public.user_policy_consents(user_id);
 create index if not exists user_policy_consents_policy_version_id_idx on public.user_policy_consents(policy_version_id);
@@ -216,9 +185,6 @@ add column if not exists published_at timestamptz;
 
 alter table public.projects
 add column if not exists deleted_at timestamptz;
-
-alter table public.comments
-alter column project_id drop not null;
 
 create index if not exists projects_status_created_at_idx on public.projects(status, created_at desc);
 create index if not exists projects_project_type_idx on public.projects(project_type);
@@ -288,22 +254,6 @@ begin
     end if;
 end $$;
 
-do $$
-begin
-    if not exists (
-        select 1 from pg_constraint
-        where conname = 'comments_single_target_check'
-          and conrelid = 'public.comments'::regclass
-    ) then
-        alter table public.comments
-        add constraint comments_single_target_check
-        check (
-            (project_id is not null and community_post_id is null)
-            or (project_id is null and community_post_id is not null)
-        );
-    end if;
-end $$;
-
 create or replace view public.public_profiles as
 select
     id,
@@ -322,9 +272,6 @@ grant select, insert, update, delete on public.powerbi_reports to authenticated;
 grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
 grant select, insert, update on public.project_comment_reads to authenticated;
-grant select on public.community_posts to anon;
-grant select, insert, update, delete on public.community_posts to authenticated;
-grant insert on public.community_post_views to anon, authenticated;
 grant select, insert, update on public.content_reports to authenticated;
 grant select, insert, update on public.notifications to authenticated;
 
@@ -678,75 +625,6 @@ $$;
 revoke all on function public.increment_project_view_count(uuid, uuid) from public;
 grant execute on function public.increment_project_view_count(uuid, uuid) to anon, authenticated;
 
-drop function if exists public.increment_community_post_view_count(uuid);
-
-create or replace function public.increment_community_post_view_count(
-    post_id_input uuid,
-    anonymous_viewer_id_input uuid
-)
-returns boolean
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-    post_author_id uuid;
-    post_is_visible boolean;
-    viewer_source text;
-    hashed_viewer text;
-    current_view_date date;
-    inserted_rows integer;
-begin
-    select user_id, (deleted_at is null and is_hidden = false)
-    into post_author_id, post_is_visible
-    from public.community_posts
-    where id = post_id_input
-    for update;
-
-    if not found or not post_is_visible then
-        return false;
-    end if;
-
-    if auth.uid() is not null and auth.uid() = post_author_id then
-        return false;
-    end if;
-
-    if auth.uid() is not null then
-        viewer_source := 'user:' || auth.uid()::text;
-    elsif anonymous_viewer_id_input is not null then
-        viewer_source := 'anonymous:' || anonymous_viewer_id_input::text;
-    else
-        return false;
-    end if;
-
-    hashed_viewer := encode(
-        extensions.digest(convert_to(viewer_source, 'UTF8'), 'sha256'),
-        'hex'
-    );
-    current_view_date := (timezone('Asia/Seoul', now()))::date;
-
-    insert into public.community_post_views (post_id, viewer_hash, viewed_on)
-    values (post_id_input, hashed_viewer, current_view_date)
-    on conflict do nothing;
-
-    get diagnostics inserted_rows = row_count;
-    if inserted_rows = 0 then
-        return false;
-    end if;
-
-    update public.community_posts
-    set
-        view_count = view_count + 1,
-        updated_at = now()
-    where id = post_id_input;
-
-    return true;
-end;
-$$;
-
-revoke all on function public.increment_community_post_view_count(uuid, uuid) from public;
-grant execute on function public.increment_community_post_view_count(uuid, uuid) to anon, authenticated;
-
 create or replace function public.handle_new_user()
 returns trigger
 language plpgsql
@@ -785,23 +663,17 @@ set search_path = public
 as $$
 declare
     parent_project_id uuid;
-    parent_community_post_id uuid;
     parent_depth integer;
 begin
     new.body := btrim(new.body);
-
-    if (new.project_id is null and new.community_post_id is null)
-       or (new.project_id is not null and new.community_post_id is not null) then
-        raise exception 'Comment must belong to exactly one target';
-    end if;
 
     if new.parent_id is null then
         new.depth := 0;
         return new;
     end if;
 
-    select project_id, community_post_id, depth
-    into parent_project_id, parent_community_post_id, parent_depth
+    select project_id, depth
+    into parent_project_id, parent_depth
     from public.comments
     where id = new.parent_id;
 
@@ -809,10 +681,8 @@ begin
         raise exception 'Parent comment does not exist';
     end if;
 
-    if parent_depth <> 0
-       or parent_project_id is distinct from new.project_id
-       or parent_community_post_id is distinct from new.community_post_id then
-        raise exception 'Replies are allowed only one level under a comment in the same target';
+    if parent_project_id <> new.project_id or parent_depth <> 0 then
+        raise exception 'Replies are allowed only one level under a comment in the same project';
     end if;
 
     new.depth := 1;
@@ -831,8 +701,6 @@ alter table public.powerbi_reports enable row level security;
 alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.project_comment_reads enable row level security;
-alter table public.community_posts enable row level security;
-alter table public.community_post_views enable row level security;
 alter table public.content_reports enable row level security;
 alter table public.notifications enable row level security;
 alter table public.project_views enable row level security;
@@ -958,81 +826,6 @@ create policy "Users can delete own likes"
 on public.likes for delete
 using (auth.uid() = user_id);
 
-drop policy if exists "Visible community posts are readable" on public.community_posts;
-create policy "Visible community posts are readable"
-on public.community_posts for select
-using (deleted_at is null and is_hidden = false);
-
-drop policy if exists "Users can read own community posts" on public.community_posts;
-create policy "Users can read own community posts"
-on public.community_posts for select
-using (auth.uid() = user_id);
-
-drop policy if exists "Users can create own community posts" on public.community_posts;
-create policy "Users can create own community posts"
-on public.community_posts for insert
-with check (
-    auth.uid() = user_id
-    and deleted_at is null
-    and (
-        category <> 'notice'
-        or exists (
-            select 1
-            from public.profiles
-            where profiles.id = auth.uid()
-              and profiles.role = 'admin'
-        )
-    )
-);
-
-drop policy if exists "Users can update own community posts" on public.community_posts;
-create policy "Users can update own community posts"
-on public.community_posts for update
-using (
-    auth.uid() = user_id
-    or exists (
-        select 1
-        from public.profiles
-        where profiles.id = auth.uid()
-          and profiles.role = 'admin'
-    )
-)
-with check (
-    (
-        auth.uid() = user_id
-        and is_hidden = false
-        and is_pinned = false
-        and (
-            category <> 'notice'
-            or exists (
-                select 1
-                from public.profiles
-                where profiles.id = auth.uid()
-                  and profiles.role = 'admin'
-            )
-        )
-    )
-    or exists (
-        select 1
-        from public.profiles
-        where profiles.id = auth.uid()
-          and profiles.role = 'admin'
-    )
-);
-
-drop policy if exists "Users can delete own community posts" on public.community_posts;
-create policy "Users can delete own community posts"
-on public.community_posts for delete
-using (
-    auth.uid() = user_id
-    or exists (
-        select 1
-        from public.profiles
-        where profiles.id = auth.uid()
-          and profiles.role = 'admin'
-    )
-);
-
 drop policy if exists "Comments are readable by everyone" on public.comments;
 drop policy if exists "Visible project comments are readable" on public.comments;
 create policy "Visible project comments are readable"
@@ -1047,13 +840,6 @@ using (
               or auth.uid() = projects.author_id
           )
     )
-    or exists (
-        select 1
-        from public.community_posts
-        where community_posts.id = comments.community_post_id
-          and community_posts.deleted_at is null
-          and community_posts.is_hidden = false
-    )
 );
 
 drop policy if exists "Users can create own comments" on public.comments;
@@ -1061,24 +847,15 @@ create policy "Users can create own comments"
 on public.comments for insert
 with check (
     auth.uid() = author_id
-    and (
-        exists (
-            select 1
-            from public.projects
-            where projects.id = comments.project_id
-              and (
-                  (projects.is_public = true and projects.status = 'published')
-                  or auth.uid() = projects.author_id
-              )
-              and projects.status <> 'deleted'
-        )
-        or exists (
-            select 1
-            from public.community_posts
-            where community_posts.id = comments.community_post_id
-              and community_posts.deleted_at is null
-              and community_posts.is_hidden = false
-        )
+    and exists (
+        select 1
+        from public.projects
+        where projects.id = comments.project_id
+          and (
+              (projects.is_public = true and projects.status = 'published')
+              or auth.uid() = projects.author_id
+          )
+          and projects.status <> 'deleted'
     )
 );
 

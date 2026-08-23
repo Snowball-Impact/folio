@@ -94,7 +94,6 @@ def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
             ("Home", "홈 갤러리"),
             ("About", "서비스 소개"),
             ("Power BI", "Power BI"),
-            ("Community", "커뮤니티"),
             ("Submit", "프로젝트 등록"),
             ("Login", "로그인"),
         ]
@@ -102,7 +101,6 @@ def _header_nav_items(is_logged_in: bool) -> list[tuple[str, str]]:
         ("Home", "홈 갤러리"),
         ("About", "서비스 소개"),
         ("Power BI", "Power BI"),
-        ("Community", "커뮤니티"),
         ("Submit", "프로젝트 등록"),
         ("My Page", "마이 페이지"),
         ("__logout__", "로그아웃"),

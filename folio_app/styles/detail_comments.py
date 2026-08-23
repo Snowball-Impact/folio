@@ -172,8 +172,7 @@ CSS = """
     word-break: keep-all;
 }
 
-.st-key-project_comments_section,
-.st-key-community_comments_section {
+.st-key-project_comments_section {
     background: #f7faff;
     border: 1px solid rgba(20, 89, 200, 0.14);
     border-radius: 10px;
@@ -183,14 +182,12 @@ CSS = """
     padding: 14px 16px 18px;
 }
 
-.st-key-project_comments_section [data-testid="stVerticalBlockBorderWrapper"],
-.st-key-community_comments_section [data-testid="stVerticalBlockBorderWrapper"] {
+.st-key-project_comments_section [data-testid="stVerticalBlockBorderWrapper"] {
     background: transparent;
     border: 0;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_row_"],
-.st-key-community_comments_section [class*="st-key-community_comment_row_"] {
+.st-key-project_comments_section [class*="st-key-comment_row_"] {
     box-sizing: border-box;
     margin-bottom: 4px;
     max-width: 100%;
@@ -199,29 +196,24 @@ CSS = """
     width: 100%;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_row_root_"]:first-of-type,
-.st-key-community_comments_section [class*="st-key-community_comment_row_root_"]:first-of-type {
+.st-key-project_comments_section [class*="st-key-comment_row_root_"]:first-of-type {
     margin-top: 4px;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_row_reply_"],
-.st-key-community_comments_section [class*="st-key-community_comment_row_reply_"] {
+.st-key-project_comments_section [class*="st-key-comment_row_reply_"] {
     margin-top: 4px;
     margin-bottom: 4px;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_row_"] .folio-comment-card,
-.st-key-community_comments_section [class*="st-key-community_comment_row_"] .folio-comment-card {
+.st-key-project_comments_section [class*="st-key-comment_row_"] .folio-comment-card {
     margin-bottom: 0;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_row_"] .folio-comment-has-actions,
-.st-key-community_comments_section [class*="st-key-community_comment_row_"] .folio-comment-has-actions {
+.st-key-project_comments_section [class*="st-key-comment_row_"] .folio-comment-has-actions {
     margin-bottom: 0;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_actions_"][data-testid="stHorizontalBlock"],
-.st-key-community_comments_section [class*="st-key-community_comment_actions_"][data-testid="stHorizontalBlock"] {
+.st-key-project_comments_section [class*="st-key-comment_actions_"][data-testid="stHorizontalBlock"] {
     align-items: center;
     gap: 8px !important;
     justify-content: flex-end;
@@ -233,14 +225,12 @@ CSS = """
     z-index: 1;
 }
 
-.st-key-project_comments_section [class*="st-key-project_comment_actions_reply_"][data-testid="stHorizontalBlock"],
-.st-key-community_comments_section [class*="st-key-community_comment_actions_reply_"][data-testid="stHorizontalBlock"] {
+.st-key-project_comments_section [class*="st-key-comment_actions_reply_"][data-testid="stHorizontalBlock"] {
     margin-left: auto;
     width: max-content;
 }
 
-.st-key-project_comments_section [class*="st-key-project_reply_form_"],
-.st-key-community_comments_section [class*="st-key-community_reply_form_"] {
+.st-key-project_comments_section [class*="st-key-reply_form_"] {
     background: #f7faff;
     border: 1px solid rgba(20, 89, 200, 0.16);
     border-left: 3px solid rgba(20, 89, 200, 0.38);
@@ -250,8 +240,7 @@ CSS = """
     width: calc(100% - 36px);
 }
 
-.st-key-project_comments_section .folio-reply-composer-head,
-.st-key-community_comments_section .folio-reply-composer-head {
+.st-key-project_comments_section .folio-reply-composer-head {
     align-items: center;
     color: var(--folio-muted);
     display: flex;
@@ -262,14 +251,12 @@ CSS = """
     margin: 0 0 8px;
 }
 
-.st-key-project_comments_section .folio-reply-composer-head span,
-.st-key-community_comments_section .folio-reply-composer-head span {
+.st-key-project_comments_section .folio-reply-composer-head span {
     color: var(--folio-blue);
     font-weight: 800;
 }
 
-.st-key-project_comments_section .folio-reply-composer-head strong,
-.st-key-community_comments_section .folio-reply-composer-head strong {
+.st-key-project_comments_section .folio-reply-composer-head strong {
     color: var(--folio-navy);
     font-size: 12px;
     font-weight: 800;
