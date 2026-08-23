@@ -177,6 +177,18 @@ flowchart TD
 9. Streamlit `horizontal=True` 컨테이너를 쓸 때는 실제 DOM에서 key class가 `stHorizontalBlock` 자체에 붙는지 확인한다. key class가 같은 노드에 붙었다면 selector는 `.st-key-name[data-testid="stHorizontalBlock"]` 형태여야 한다.
 10. 이미지 정렬 문제는 DOM 박스 좌표와 실제 이미지 비율을 분리해 본다. `object-fit: contain`과 고정 `width`를 함께 쓰면 PNG 내부 여백이 없어도 이미지 박스 안에 시각적 여백이 생긴다. 오른쪽 기준선에 맞춰야 하는 로고는 `width: auto`, `max-width`, `max-height` 조합을 우선한다.
 
+### 로딩 성능 문제
+
+1. 먼저 사용자 증상을 단계로 나눈다. 예: Streamlit shell 표시, 내부 앱 iframe 표시, 헤더, 상세 히어로, 본문, 댓글, 외부 대시보드 iframe.
+2. 로컬 서버가 아니라 실제 배포 URL에서 최소 2회 이상 측정한다. Streamlit Community Cloud는 shell/iframe 부팅, cold start, 외부 iframe 정책이 로컬과 다르다.
+3. 홈과 상세는 milestone이 다르므로 같은 측정 스크립트를 억지로 재사용하지 않는다. 홈은 갤러리 카드, 상세는 `detailHero`, `visualPanel`, `reportContent`, `comments`, 외부 iframe placeholder를 따로 본다.
+4. 측정 도구는 `tools/measure_home_load.py`, `tools/measure_detail_load.py`처럼 재실행 가능한 스크립트로 남긴다. 긴 JSON 출력은 최종 보고에 그대로 붙이지 말고 milestone 평균과 확인한 사실만 요약한다.
+5. Streamlit 페이지의 체감 로딩은 Python 코드만의 문제가 아니다. 바깥 Streamlit Cloud shell, 내부 `streamlitApp` iframe, `components.html` iframe, 외부 Looker Studio/Power BI iframe을 분리해서 본다.
+6. CookieManager, analytics, share handler처럼 0 높이 custom component iframe도 첫 실행 순서에 영향을 줄 수 있다. 공개 페이지에서 인증 복구가 필요 없는 경우에만 건너뛸 수 있는지 검토하고, 조회수/visitor id 같은 기능 손실을 명시한다.
+7. 외부 대시보드 iframe은 페이지 주요 콘텐츠 로딩과 별도 지표로 기록한다. iframe을 지연 로드하면 첫 로딩 비용은 줄지만, 사용자가 즉시 대시보드를 보길 기대하는 화면에서는 UX 손실일 수 있다.
+8. "placeholder가 보인다"는 것은 성능 개선이 아니다. placeholder가 외부 요청을 막는지, 레이아웃 점프만 줄이는지, 단순 안내 문구인지 구분한다.
+9. 성능 변경 후에는 숫자와 제품 판단을 분리해 보고한다. 예: "상세 본문은 6.2초에 표시, 외부 대시보드 완료는 9.4초"와 "즉시 대시보드 노출을 우선해 지연 로드는 롤백"은 서로 다른 결론이다.
+
 ### 인증·RLS 문제
 
 1. `session_state` 사용자 존재 여부를 확인한다.
@@ -235,6 +247,10 @@ python -m pyflakes folio_app app.py
 - **Streamlit Cloud keepalive는 root보다 내부 앱 프레임을 친다.** `https://*.streamlit.app/`는 비브라우저 클라이언트에서 303 redirect loop를 만들 수 있다. 가벼운 HTTP ping은 `https://*.streamlit.app/~/+/`를 사용하고, sleep 해제 버튼 클릭이 필요할 때만 브라우저 기반 wake workflow를 사용한다.
 - **Git 동작은 사용자의 동사를 그대로 따른다.** "커밋해"는 로컬 커밋까지만 의미한다. 푸시, PR, 머지, 이슈 닫기는 사용자가 명시적으로 말했을 때만 수행한다.
 - **Streamlit 정렬 문제는 CSS 문제가 아니라 구조 문제인 경우가 많다.** 버튼 높이, 칩 위치, 우측 정렬이 몇 px씩 어긋날 때는 먼저 같은 컨테이너에 묶였는지, column 비율이 불필요한 빈 폭을 만들고 있는지, custom component iframe 높이가 주변 요소와 다른지 확인한다. 작은 보정값을 반복하기 전에 구조를 단순화한다.
+- **Streamlit 로딩 성능은 "앱 코드 시간"과 "Cloud shell/iframe 시간"을 나눠서 본다.** 상세페이지 개선에서 헤더/히어로는 약 6초대에 표시됐지만, 그 앞에는 Streamlit Cloud 외부 shell과 내부 앱 iframe이 있었다. Python 함수 하나를 줄였는데 체감 개선이 작다면, 먼저 어느 계층 시간이 남았는지 milestone으로 분리한다.
+- **공개 상세는 CookieManager를 항상 기다릴 필요가 없지만, visitor id 정책을 같이 봐야 한다.** 쿠키 매니저를 건너뛰고 session 기반 visitor id를 쓰면 첫 렌더는 빨라질 수 있다. 대신 하드 리로드/새 세션에서 익명 조회 중복 억제가 약해질 수 있으므로 성능과 집계 정확도의 절충을 문서화한다.
+- **외부 대시보드 iframe은 별도 제품 판단이다.** Looker Studio iframe을 클릭 로드로 바꾸면 첫 로딩 비용은 빠지지만, 사용자가 상세페이지에서 대시보드를 즉시 보길 원하면 UX상 롤백이 맞다. 성능 수치가 좋아도 제품 의도와 다르면 유지하지 않는다.
+- **로딩 placeholder의 역할을 과대해석하지 않는다.** placeholder가 외부 iframe `src`를 막으면 성능 장치이고, 단순히 iframe이 로드되는 동안 보이면 UX 장치다. "미리보기" placeholder처럼 클릭을 요구하는 패턴은 사용자의 기대와 맞는지 먼저 확인한다.
 - **문서 교훈은 체크포인트가 아니면 의미가 없다.** 이번 상세 footer 작업에서 "구조적으로 보겠다"고 말하면서도 DOM 계측 없이 selector와 column 비율을 여러 번 보정해 같은 문제를 반복했다. 다음부터 같은 UI 문제가 두 번 이상 재발하면 즉시 브라우저/Selenium으로 실제 DOM을 측정하고, selector가 실제 요소에 매치되는지 확인한 뒤 수정한다.
 - **보이는 액션 UI를 iframe에 넣지 않는다.** 상세 footer에서 조회/댓글/공개/링크복사를 custom component iframe 안에 넣자 iframe viewport clipping 때문에 조회 칩 왼쪽이 계속 잘렸다. 최종 구조는 보이는 칩과 링크 복사 버튼을 페이지 DOM에 두고, 복사 이벤트 처리 script만 0 크기 iframe으로 주입한다.
 - **Streamlit key selector는 "공백 하나"로 실패한다.** `st.container(horizontal=True, key="detail_footer_row")`는 실제 DOM에서 `.st-key-detail_footer_row`와 `[data-testid="stHorizontalBlock"]`가 같은 노드에 붙었다. `.st-key-detail_footer_row [data-testid="stHorizontalBlock"]`는 자손을 찾기 때문에 매치되지 않았고, 메타 영역 `flex: 1`이 전혀 적용되지 않았다. 실제 DOM 계측으로 `.st-key-detail_footer_row[data-testid="stHorizontalBlock"]`로 고쳐 해결했다.
