@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { createProjectComment, isCommentAuthenticated, listProjectComments } from '$lib/comments';
+	import {
+		createProjectComment,
+		createProjectReply,
+		currentCommentUserId,
+		deleteProjectComment,
+		isCommentAuthenticated,
+		listProjectComments
+	} from '$lib/comments';
 	import { formatDate } from '$lib/format';
 	import type { ProjectComment } from '$lib/types';
 
@@ -10,9 +17,15 @@
 	let comments = $state<ProjectComment[]>([]);
 	let commentCount = $state(0);
 	let body = $state('');
+	let replyBody = $state('');
+	let replyTargetId = $state<string | null>(null);
+	let deleteConfirmId = $state<string | null>(null);
+	let currentUserId = $state<string | null>(null);
 	let authenticated = $state(false);
 	let loading = $state(true);
 	let submitting = $state(false);
+	let replySubmitting = $state(false);
+	let deleting = $state(false);
 	let message = $state('');
 	let error = $state('');
 
@@ -26,6 +39,7 @@
 	onMount(async () => {
 		await refreshComments();
 		authenticated = await isCommentAuthenticated();
+		currentUserId = await currentCommentUserId();
 	});
 
 	async function refreshComments() {
@@ -49,6 +63,42 @@
 			return;
 		}
 		body = '';
+		message = result.message;
+		await refreshComments();
+	}
+
+	async function submitReply(event: SubmitEvent, parentId: string) {
+		event.preventDefault();
+		message = '';
+		error = '';
+		replySubmitting = true;
+		const result = await createProjectReply(projectId, parentId, replyBody);
+		replySubmitting = false;
+		if (!result.ok) {
+			error = result.message;
+			return;
+		}
+		replyBody = '';
+		replyTargetId = null;
+		message = result.message;
+		await refreshComments();
+	}
+
+	async function removeComment(commentId: string) {
+		message = '';
+		error = '';
+		if (deleteConfirmId !== commentId) {
+			deleteConfirmId = commentId;
+			return;
+		}
+		deleting = true;
+		const result = await deleteProjectComment(commentId);
+		deleting = false;
+		if (!result.ok) {
+			error = result.message;
+			return;
+		}
+		deleteConfirmId = null;
 		message = result.message;
 		await refreshComments();
 	}
@@ -110,8 +160,34 @@
 				<span>{formatDate(comment.created_at)}</span>
 			</div>
 			<p>{comment.is_deleted ? '삭제된 댓글입니다.' : comment.body}</p>
+			{#if authenticated && !comment.is_deleted}
+				<div class="comment-actions">
+					{#if comment.depth === 0}
+						<button type="button" onclick={() => (replyTargetId = replyTargetId === comment.id ? null : comment.id)}>
+							답글
+						</button>
+					{/if}
+					{#if currentUserId === comment.author_id}
+						<button type="button" class:danger={deleteConfirmId === comment.id} disabled={deleting} onclick={() => removeComment(comment.id)}>
+							{deleteConfirmId === comment.id ? '삭제 확인' : '삭제'}
+						</button>
+						{#if deleteConfirmId === comment.id}
+							<button type="button" onclick={() => (deleteConfirmId = null)}>취소</button>
+						{/if}
+					{/if}
+				</div>
+			{/if}
 		</div>
 	</article>
+	{#if authenticated && replyTargetId === comment.id}
+		<form class="comment-form reply-form" onsubmit={(event) => submitReply(event, comment.id)}>
+			<textarea bind:value={replyBody} maxlength="1000" placeholder="답글을 남겨보세요."></textarea>
+			<div class="reply-form-actions">
+				<button type="button" class="secondary" onclick={() => (replyTargetId = null)}>취소</button>
+				<button type="submit" disabled={replySubmitting}>{replySubmitting ? '등록 중...' : '답글 남기기'}</button>
+			</div>
+		</form>
+	{/if}
 	{#each comment.children as child, childIndex}
 		{@render CommentNode(child, `${indexLabel}-${childIndex + 1}`)}
 	{/each}

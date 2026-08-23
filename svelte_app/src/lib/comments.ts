@@ -34,6 +34,38 @@ export async function listProjectComments(projectId: string) {
 }
 
 export async function createProjectComment(projectId: string, body: string) {
+	return createComment(projectId, body, null);
+}
+
+export async function createProjectReply(projectId: string, parentId: string, body: string) {
+	return createComment(projectId, body, parentId);
+}
+
+export async function deleteProjectComment(commentId: string) {
+	const supabase = getSupabaseClient();
+	const session = await currentSession();
+	if (!supabase || !session) {
+		return { ok: false, message: '로그인 후 댓글을 삭제할 수 있습니다.' };
+	}
+
+	const { error } = await supabase.from('comments').delete().eq('id', commentId).eq('author_id', session.user.id);
+	if (error) {
+		return { ok: false, message: '댓글 삭제에 실패했습니다. 잠시 후 다시 시도하세요.' };
+	}
+
+	return { ok: true, message: '댓글이 삭제되었습니다.' };
+}
+
+export async function currentCommentUserId() {
+	const session = await currentSession();
+	return session?.user.id ?? null;
+}
+
+export async function isCommentAuthenticated() {
+	return Boolean(await currentSession());
+}
+
+async function createComment(projectId: string, body: string, parentId: string | null) {
 	const supabase = getSupabaseClient();
 	const session = await currentSession();
 	if (!supabase || !session) {
@@ -52,8 +84,8 @@ export async function createProjectComment(projectId: string, body: string) {
 		project_id: projectId,
 		author_id: session.user.id,
 		body: normalizedBody,
-		parent_id: null,
-		depth: 0
+		parent_id: parentId,
+		depth: parentId ? 1 : 0
 	});
 
 	if (error) {
@@ -61,10 +93,6 @@ export async function createProjectComment(projectId: string, body: string) {
 	}
 
 	return { ok: true, message: '댓글이 등록되었습니다.' };
-}
-
-export async function isCommentAuthenticated() {
-	return Boolean(await currentSession());
 }
 
 async function attachCommentAuthors(comments: ProjectComment[]) {

@@ -43,5 +43,5 @@ npm run build
 - Power BI content hub reads curated CSV files from `docs/curation/powerbi_*` on the SvelteKit server and exposes news, learning, community, and certification views.
 - Login and signup use Supabase Auth from the browser. Signup sends `name` and `organization` through user metadata so the existing `handle_new_user` trigger can create `profiles`.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
-- Project detail reads public comments, renders root comments with replies, and lets authenticated users create root comments.
-- Password reset, policy consent onboarding, comment replies/delete/notifications, and submit/edit are not part of this spike.
+- Project detail reads public comments, renders root comments with replies, and lets authenticated users create root comments, replies, and delete their own comments.
+- Password reset, policy consent onboarding, comment notifications/read state, and submit/edit are not part of this spike.
