@@ -43,8 +43,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 
-	const formData = await request.formData();
-	const file = formData.get('thumbnail');
+	const formData = await safeFormData(request);
+	const file = formData?.get('thumbnail');
 	if (!(file instanceof File)) {
 		return json({ error: '썸네일 파일을 선택하세요.' }, { status: 400 });
 	}
@@ -84,6 +84,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	return json({ thumbnail_url: publicUrl });
 };
+
+async function safeFormData(request: Request) {
+	try {
+		return await request.formData();
+	} catch {
+		return null;
+	}
+}
 
 function bearerToken(request: Request) {
 	const header = request.headers.get('authorization') ?? '';

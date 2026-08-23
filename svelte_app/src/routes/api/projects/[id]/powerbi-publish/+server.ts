@@ -35,8 +35,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ error: '게시할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 
-	const formData = await request.formData();
-	const file = formData.get('pbix');
+	const formData = await safeFormData(request);
+	const file = formData?.get('pbix');
 	if (!(file instanceof File)) {
 		return json({ error: 'PBIX 파일을 선택하세요.' }, { status: 400 });
 	}
@@ -51,6 +51,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ error: 'Power BI 게시 중 오류가 발생했습니다.' }, { status: 500 });
 	}
 };
+
+async function safeFormData(request: Request) {
+	try {
+		return await request.formData();
+	} catch {
+		return null;
+	}
+}
 
 function bearerToken(request: Request) {
 	const header = request.headers.get('authorization') ?? '';
