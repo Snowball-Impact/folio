@@ -316,73 +316,74 @@ def _render_browse_panel(project_count: int, popular_tags: list[str], selected_p
     initial_tag = st.query_params.get("tag", "전체")
     project_count_label = f"{project_count:,}"
 
-    with st.container(border=False, key="folio_browse_panel"), st.form("browse_filters"):
-        st.markdown(
-            f"""
-            <div class="folio-search-container">
-                <div class="folio-search-heading">
-                    <h1 class="folio-search-title">
-                        <span class="folio-search-title-count" data-folio-count-up="{project_count}">{project_count_label}</span>개의
-                        휴먼 인사이트 프로젝트가 FOLIO에 쌓이고 있어요.
-                    </h1>
+    with st.container(border=False, key="folio_browse_panel"):
+        with st.form("browse_filters"):
+            st.markdown(
+                f"""
+                <div class="folio-search-container">
+                    <div class="folio-search-heading">
+                        <h1 class="folio-search-title">
+                            <span class="folio-search-title-count" data-folio-count-up="{project_count}">{project_count_label}</span>개의
+                            휴먼 인사이트 프로젝트가 FOLIO에 쌓이고 있어요.
+                        </h1>
+                    </div>
                 </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        render_count_up_script()
-
-        search_col, submit_col = st.columns([5, 1])
-        with search_col:
-            search_input = st.text_input(
-                "프로젝트 검색",
-                value=initial_search,
-                placeholder="프로젝트명, 태그, 작성자, 소속, 등록일로 검색",
-                label_visibility="collapsed",
-                key="browse_search",
+                """,
+                unsafe_allow_html=True,
             )
-        with submit_col:
-            submitted = st.form_submit_button("검색", type="primary", use_container_width=True)
+            render_count_up_script()
 
-        option_keys = [key for key, _ in _platform_filter_options()]
-        option_labels = {key: label for key, label in _platform_filter_options()}
-        selected_platform = next(iter(selected_platforms), _ALL_PLATFORM_FILTER)
-        if selected_platform not in option_keys:
-            selected_platform = _ALL_PLATFORM_FILTER
-        with st.container(key="home_platform_filters"):
-            submitted_platform = st.radio(
-                "콘텐츠 유형",
-                option_keys,
-                index=option_keys.index(selected_platform),
-                format_func=lambda key: option_labels[key],
-                horizontal=True,
-                label_visibility="collapsed",
-                key="home_platform_filter",
-            )
+            search_col, submit_col = st.columns([5, 1])
+            with search_col:
+                search_input = st.text_input(
+                    "프로젝트 검색",
+                    value=initial_search,
+                    placeholder="프로젝트명, 태그, 작성자, 소속, 등록일로 검색",
+                    label_visibility="collapsed",
+                    key="browse_search",
+                )
+            with submit_col:
+                submitted = st.form_submit_button("검색", type="primary", use_container_width=True)
 
-        tag_options = ["전체", *popular_tags]
-        if initial_tag not in tag_options:
-            initial_tag = "전체"
-        tag_col, tag_label_col = st.columns([5, 1.1], gap="small", vertical_alignment="center")
-        with tag_col:
-            selected_tag = st.pills(
-                "태그 필터",
-                tag_options,
-                default=initial_tag,
-                label_visibility="collapsed",
-            ) or "전체"
-        with tag_label_col:
-            st.markdown('<div class="folio-popular-tag-label">인기 태그 TOP10</div>', unsafe_allow_html=True)
+            option_keys = [key for key, _ in _platform_filter_options()]
+            option_labels = {key: label for key, label in _platform_filter_options()}
+            selected_platform = next(iter(selected_platforms), _ALL_PLATFORM_FILTER)
+            if selected_platform not in option_keys:
+                selected_platform = _ALL_PLATFORM_FILTER
+            with st.container(key="home_platform_filters"):
+                submitted_platform = st.radio(
+                    "콘텐츠 유형",
+                    option_keys,
+                    index=option_keys.index(selected_platform),
+                    format_func=lambda key: option_labels[key],
+                    horizontal=True,
+                    label_visibility="collapsed",
+                    key="home_platform_filter",
+                )
 
-        if submitted:
-            if search_input.strip():
-                track_event("search", {"search_term": search_input.strip()})
-            navigate(
-                _HOME_PAGE,
-                q=search_input.strip(),
-                tag=selected_tag if selected_tag != "전체" else None,
-                platforms=_platform_query_value({submitted_platform}),
-            )
+            tag_options = ["전체", *popular_tags]
+            if initial_tag not in tag_options:
+                initial_tag = "전체"
+            tag_col, tag_label_col = st.columns([5, 1.1], gap="small", vertical_alignment="center")
+            with tag_col:
+                selected_tag = st.pills(
+                    "태그 필터",
+                    tag_options,
+                    default=initial_tag,
+                    label_visibility="collapsed",
+                ) or "전체"
+            with tag_label_col:
+                st.markdown('<div class="folio-popular-tag-label">인기 태그 TOP10</div>', unsafe_allow_html=True)
+
+            if submitted:
+                if search_input.strip():
+                    track_event("search", {"search_term": search_input.strip()})
+                navigate(
+                    _HOME_PAGE,
+                    q=search_input.strip(),
+                    tag=selected_tag if selected_tag != "전체" else None,
+                    platforms=_platform_query_value({submitted_platform}),
+                )
 
 
 def _hero_slide_html(slide: dict[str, str]) -> str:
