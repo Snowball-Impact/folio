@@ -36,6 +36,7 @@ Completed locally:
 - `svelte_app/wrangler.jsonc` defines `pages_build_output_dir=.svelte-kit/cloudflare`, `compatibility_date=2025-12-01`, and `nodejs_compat`.
 - `npm.cmd run build` creates `.svelte-kit/cloudflare`.
 - `npm.cmd run smoke:cloudflare` starts local `wrangler pages dev`, checks `/`, `/powerbi`, `/references/powerbi`, and verifies anonymous protected POST endpoints return 401.
+- Power BI curation CSV files are bundled through Vite raw imports instead of runtime filesystem reads.
 - `npm.cmd run verify` passes with Cloudflare build, Cloudflare smoke, Supabase contract smoke, and security bundle scan.
 
 Still requires staging validation:
@@ -51,7 +52,7 @@ Still requires staging validation:
 | Public routes | SvelteKit SSR/load, Supabase RPC | Likely compatible | Build with Cloudflare adapter and smoke test |
 | Supabase browser auth | `@supabase/supabase-js`, public env | Compatible | Keep `PUBLIC_SUPABASE_*` |
 | Supabase service role endpoints | `$env/dynamic/private`, fetch-based Supabase client | Likely compatible | Configure Cloudflare secrets |
-| Power BI content hub | Runtime `node:fs/promises` reads CSV from `docs/curation` | Risky | Convert CSV to bundled static data or import as raw at build time |
+| Power BI content hub | Vite raw imports bundle CSV from `docs/curation` at build time | Compatible locally | Rebuild when curation CSV files change |
 | Thumbnail upload | `await file.arrayBuffer()` then Supabase Storage upload | Works for small files; memory-sensitive | Keep 5 MB limit, verify on Workers |
 | PBIX upload | FormData file upload then Power BI Import | High risk at 100 MB due request body/account limit and 128 MB memory | Lower MVP limit for Cloudflare or stream/offload to separate service |
 | PBIX polling | Long network wait loop | Possible on Paid, risky on Free | Prefer async job/short polling, document no-go on Free |
@@ -67,7 +68,7 @@ Still requires staging validation:
 2. Done: move adapter configuration from `@sveltejs/adapter-node` to Cloudflare adapter.
 3. Done: add explicit `wrangler.jsonc` for reproducibility.
 4. Done: add Cloudflare-specific preview/deploy/smoke commands.
-5. Convert Power BI content CSV loading away from runtime filesystem access.
+5. Done: convert Power BI content CSV loading away from runtime filesystem access.
 6. Run local `npm.cmd run check` and Cloudflare build.
 
 Exit criteria:
@@ -217,8 +218,8 @@ npx wrangler deploy
 
 ## Next Implementation Steps
 
-1. Add Cloudflare adapter dependency and build config.
-2. Replace Power BI content runtime filesystem reads.
-3. Run Cloudflare build and fix adapter/runtime errors.
+1. Done: add Cloudflare adapter dependency and build config.
+2. Done: replace Power BI content runtime filesystem reads with Vite raw CSV imports.
+3. Done: run Cloudflare build and fix local runtime content loading errors.
 4. Add Cloudflare-specific deploy instructions to `svelte_app/README.md`.
 5. Decide whether first Cloudflare staging disables PBIX/capture/SMTP or implements Cloudflare-native replacements.

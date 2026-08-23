@@ -1,5 +1,10 @@
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import desktopCsv from '../../../../docs/curation/powerbi_desktop_download/all.csv?raw';
+import updatesCsv from '../../../../docs/curation/powerbi_updates/all.csv?raw';
+import changelogCsv from '../../../../docs/curation/powerbi_changelog/all.csv?raw';
+import learningCsv from '../../../../docs/curation/powerbi_learning_videos/all.csv?raw';
+import updateVideosCsv from '../../../../docs/curation/powerbi_update_videos/all.csv?raw';
+import learningProgramsCsv from '../../../../docs/curation/powerbi_learning_programs/all.csv?raw';
+import communityCsv from '../../../../docs/curation/powerbi_community_blog/all.csv?raw';
 import type {
 	PowerBIContentLink,
 	PowerBIHubContent,
@@ -8,16 +13,14 @@ import type {
 	PowerBINewsItem
 } from '$lib/types';
 
-const curationDir = resolve(process.cwd(), '..', 'docs', 'curation');
-
-const paths = {
-	desktop: resolve(curationDir, 'powerbi_desktop_download', 'all.csv'),
-	updates: resolve(curationDir, 'powerbi_updates', 'all.csv'),
-	changelog: resolve(curationDir, 'powerbi_changelog', 'all.csv'),
-	learning: resolve(curationDir, 'powerbi_learning_videos', 'all.csv'),
-	updateVideos: resolve(curationDir, 'powerbi_update_videos', 'all.csv'),
-	learningPrograms: resolve(curationDir, 'powerbi_learning_programs', 'all.csv'),
-	community: resolve(curationDir, 'powerbi_community_blog', 'all.csv')
+const csvSources = {
+	desktop: desktopCsv,
+	updates: updatesCsv,
+	changelog: changelogCsv,
+	learning: learningCsv,
+	updateVideos: updateVideosCsv,
+	learningPrograms: learningProgramsCsv,
+	community: communityCsv
 };
 
 const learningCategoryOrder = [
@@ -42,13 +45,13 @@ export function normalizePowerBIHubTopic(value: string | null): PowerBIHubTopic 
 export async function loadPowerBIHubContent(topic: PowerBIHubTopic): Promise<PowerBIHubContent> {
 	const [desktopRows, updateRows, changelogRows, learningRows, updateVideoRows, programRows, communityRows] =
 		await Promise.all([
-			readCsv(paths.desktop),
-			readCsv(paths.updates),
-			readCsv(paths.changelog),
-			readCsv(paths.learning),
-			readCsv(paths.updateVideos),
-			readCsv(paths.learningPrograms),
-			readCsv(paths.community)
+			readCsv(csvSources.desktop),
+			readCsv(csvSources.updates),
+			readCsv(csvSources.changelog),
+			readCsv(csvSources.learning),
+			readCsv(csvSources.updateVideos),
+			readCsv(csvSources.learningPrograms),
+			readCsv(csvSources.community)
 		]);
 
 	const news = buildNewsItems(updateRows, changelogRows, updateVideoRows);
@@ -74,13 +77,8 @@ export async function loadPowerBIHubContent(topic: PowerBIHubTopic): Promise<Pow
 	};
 }
 
-async function readCsv(path: string): Promise<Array<Record<string, string>>> {
-	try {
-		const text = await readFile(path, 'utf-8');
-		return parseCsv(text.replace(/^\uFEFF/, ''));
-	} catch {
-		return [];
-	}
+async function readCsv(text: string): Promise<Array<Record<string, string>>> {
+	return parseCsv(text.replace(/^\uFEFF/, ''));
 }
 
 function parseCsv(text: string) {
