@@ -10,6 +10,7 @@
 	let submitting = $state(false);
 	const verified = $derived(page.url.searchParams.get('verified') === '1');
 	const reset = $derived(page.url.searchParams.get('reset') === '1');
+	const nextPath = $derived(page.url.searchParams.get('next') || '/');
 
 	async function submitLogin(event: SubmitEvent) {
 		event.preventDefault();
@@ -20,7 +21,7 @@
 		message = result.message;
 		submitting = false;
 		if (result.ok) {
-			await goto('/');
+			await goto(nextPath);
 		}
 	}
 </script>

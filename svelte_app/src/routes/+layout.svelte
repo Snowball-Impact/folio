@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import AuthNav from '$lib/components/AuthNav.svelte';
+	import OnboardingGate from '$lib/components/OnboardingGate.svelte';
 	import favicon from '$lib/assets/favicon.svg';
 
 	let { children } = $props();
@@ -11,6 +12,7 @@
 </svelte:head>
 
 <div class="app-shell">
+	<OnboardingGate />
 	<header class="site-header">
 		<div class="site-header-inner">
 			<a class="brand" href="/">FOLIO</a>

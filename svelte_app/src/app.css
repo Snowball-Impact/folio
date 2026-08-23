@@ -347,10 +347,147 @@ input {
 
 .auth-links {
 	display: flex;
+	gap: 14px;
 	justify-content: flex-end;
 	margin-top: 14px;
 	color: var(--folio-blue);
 	font-weight: 800;
+}
+
+.onboarding-hero,
+.onboarding-card {
+	width: min(860px, 100%);
+	margin-right: auto;
+	margin-left: auto;
+}
+
+.onboarding-hero {
+	display: grid;
+	justify-items: center;
+	gap: 10px;
+	padding: 34px 28px;
+	border: 1px solid var(--folio-border);
+	border-radius: 16px;
+	background: var(--folio-surface);
+	text-align: center;
+	box-shadow: var(--folio-shadow);
+}
+
+.onboarding-hero span {
+	display: inline-flex;
+	align-items: center;
+	min-height: 30px;
+	padding: 0 12px;
+	border-radius: 999px;
+	background: rgba(20, 89, 200, 0.1);
+	color: var(--folio-blue);
+	font-size: 12px;
+	font-weight: 800;
+}
+
+.onboarding-hero h1 {
+	margin: 0;
+	font-size: 34px;
+	letter-spacing: 0;
+}
+
+.onboarding-hero p,
+.onboarding-hero em {
+	margin: 0;
+	color: var(--folio-muted);
+	font-style: normal;
+}
+
+.onboarding-card {
+	margin-top: 18px;
+	padding: 24px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+}
+
+.policy-form {
+	display: grid;
+	gap: 16px;
+}
+
+.policy-form h2 {
+	margin: 0;
+	font-size: 22px;
+}
+
+.policy-form > button {
+	min-height: 44px;
+	border: 1px solid var(--folio-blue);
+	border-radius: 8px;
+	background: var(--folio-blue);
+	color: white;
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.policy-form > button:disabled {
+	cursor: wait;
+	opacity: 0.7;
+}
+
+.policy-panel {
+	display: grid;
+	gap: 12px;
+	padding: 16px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+}
+
+.policy-panel summary {
+	cursor: pointer;
+	color: var(--folio-blue);
+	font-weight: 800;
+}
+
+.policy-panel strong {
+	display: block;
+	margin-top: 14px;
+}
+
+.policy-panel p {
+	margin: 6px 0 0;
+	color: var(--folio-muted);
+}
+
+.policy-content {
+	max-height: 260px;
+	overflow: auto;
+	margin-top: 12px;
+	padding: 14px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-subtle);
+	color: var(--folio-muted);
+	white-space: pre-wrap;
+}
+
+.policy-panel a {
+	display: inline-flex;
+	margin-top: 12px;
+	color: var(--folio-blue);
+	font-weight: 800;
+}
+
+.policy-check {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+	color: var(--folio-navy);
+	font-weight: 800;
+}
+
+.policy-check input {
+	width: 18px;
+	height: 18px;
+	margin-top: 2px;
+	accent-color: var(--folio-blue);
 }
 
 .section-header {
