@@ -140,7 +140,12 @@
 	<div class="empty-panel">아직 작성된 프로젝트 설명이 없습니다.</div>
 {/if}
 
-<ProjectComments projectId={project.id} initialCommentCount={project.comment_count} />
+<ProjectComments
+	projectId={project.id}
+	projectAuthorId={project.author_id}
+	projectTitle={project.title}
+	initialCommentCount={project.comment_count}
+/>
 
 <div class="actions" style="justify-content: flex-end; margin-top: 24px;">
 	<a class="button-link" href="/">홈 갤러리로 돌아가기</a>

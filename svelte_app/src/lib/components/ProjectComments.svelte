@@ -6,12 +6,23 @@
 		currentCommentUserId,
 		deleteProjectComment,
 		isCommentAuthenticated,
-		listProjectComments
+		listProjectComments,
+		markProjectCommentsSeen
 	} from '$lib/comments';
 	import { formatDate } from '$lib/format';
 	import type { ProjectComment } from '$lib/types';
 
-	let { projectId, initialCommentCount }: { projectId: string; initialCommentCount: number } = $props();
+	let {
+		projectId,
+		projectAuthorId,
+		projectTitle,
+		initialCommentCount
+	}: {
+		projectId: string;
+		projectAuthorId?: string | null;
+		projectTitle?: string | null;
+		initialCommentCount: number;
+	} = $props();
 
 	let initialized = $state(false);
 	let comments = $state<ProjectComment[]>([]);
@@ -40,6 +51,9 @@
 		await refreshComments();
 		authenticated = await isCommentAuthenticated();
 		currentUserId = await currentCommentUserId();
+		if (currentUserId === projectAuthorId) {
+			await markProjectCommentsSeen(projectId, projectAuthorId);
+		}
 	});
 
 	async function refreshComments() {
@@ -56,7 +70,7 @@
 		message = '';
 		error = '';
 		submitting = true;
-		const result = await createProjectComment(projectId, body);
+		const result = await createProjectComment(projectId, body, { projectAuthorId, projectTitle });
 		submitting = false;
 		if (!result.ok) {
 			error = result.message;
@@ -72,7 +86,7 @@
 		message = '';
 		error = '';
 		replySubmitting = true;
-		const result = await createProjectReply(projectId, parentId, replyBody);
+		const result = await createProjectReply(projectId, parentId, replyBody, { projectAuthorId, projectTitle });
 		replySubmitting = false;
 		if (!result.ok) {
 			error = result.message;
