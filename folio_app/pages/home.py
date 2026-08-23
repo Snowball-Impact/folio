@@ -17,12 +17,15 @@ from folio_app.services.projects import (
 )
 from folio_app.services.project_references import (
     REFERENCE_PLATFORMS,
+    DEFAULT_REFERENCE_PLATFORM_KEY,
+    VISIBLE_REFERENCE_PLATFORMS,
     reference_platform_for_project,
 )
 
 _HOME_PAGE = "Home"
 _ALL_PLATFORM_FILTER = "all"
 _OTHER_PLATFORM_FILTER = "other"
+_HOME_DEFAULT_PLATFORM_FILTER = DEFAULT_REFERENCE_PLATFORM_KEY
 _HOME_RAIL_PROJECT_LIMIT = 6
 _HOME_HERO_SLIDES = (
     {
@@ -182,7 +185,7 @@ def _filter_platform_tags(tags: list[str], limit: int = 10) -> list[str]:
 
 def _platform_tag_exclusions() -> set[str]:
     excluded = {_normalized_tag(label) for _, label in _platform_filter_options()}
-    excluded.update({_normalized_tag("All"), _normalized_tag("Other")})
+    excluded.update({_normalized_tag("전체"), _normalized_tag("All"), _normalized_tag("기타"), _normalized_tag("Other")})
     excluded.update(
         _normalized_tag(tag)
         for tag in (
@@ -204,24 +207,20 @@ def _normalized_tag(value: object) -> str:
 
 def _platform_filter_options() -> list[tuple[str, str]]:
     return [
-        (_ALL_PLATFORM_FILTER, "전체"),
-        (_OTHER_PLATFORM_FILTER, "기타"),
-        *((platform.key, platform.label) for platform in REFERENCE_PLATFORMS),
+        *((platform.key, platform.label) for platform in VISIBLE_REFERENCE_PLATFORMS),
     ]
 
 
 def _selected_platform_filters() -> set[str]:
-    raw_value = st.query_params.get("platforms", _ALL_PLATFORM_FILTER)
+    raw_value = st.query_params.get("platforms", _HOME_DEFAULT_PLATFORM_FILTER)
     requested_keys = [value.strip() for value in raw_value.split(",") if value.strip()]
     valid_keys = [key for key, _ in _platform_filter_options()]
-    selected = next((key for key in requested_keys if key in valid_keys), _ALL_PLATFORM_FILTER)
-    if selected == _ALL_PLATFORM_FILTER:
-        return {_ALL_PLATFORM_FILTER}
+    selected = next((key for key in requested_keys if key in valid_keys), _HOME_DEFAULT_PLATFORM_FILTER)
     return {selected}
 
 
 def _platform_query_value(selected_platforms: set[str]) -> str | None:
-    if not selected_platforms or _ALL_PLATFORM_FILTER in selected_platforms:
+    if not selected_platforms or _HOME_DEFAULT_PLATFORM_FILTER in selected_platforms:
         return None
     ordered_keys = [key for key, _ in _platform_filter_options() if key in selected_platforms]
     return ",".join(ordered_keys)
@@ -339,21 +338,7 @@ def _render_browse_panel(project_count: int, popular_tags: list[str], selected_p
             with submit_col:
                 submitted = st.form_submit_button("검색", type="primary", use_container_width=True)
 
-            option_keys = [key for key, _ in _platform_filter_options()]
-            option_labels = {key: label for key, label in _platform_filter_options()}
-            selected_platform = next(iter(selected_platforms), _ALL_PLATFORM_FILTER)
-            if selected_platform not in option_keys:
-                selected_platform = _ALL_PLATFORM_FILTER
-            with st.container(key="home_platform_filters"):
-                submitted_platform = st.radio(
-                    "콘텐츠 유형",
-                    option_keys,
-                    index=option_keys.index(selected_platform),
-                    format_func=lambda key: option_labels[key],
-                    horizontal=True,
-                    label_visibility="collapsed",
-                    key="home_platform_filter",
-                )
+            submitted_platform = _HOME_DEFAULT_PLATFORM_FILTER
 
             tag_options = ["전체", *popular_tags]
             if initial_tag not in tag_options:

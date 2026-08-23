@@ -44,7 +44,15 @@ REFERENCE_PLATFORMS = (
     ),
 )
 REFERENCE_PLATFORM_BY_KEY = {platform.key: platform for platform in REFERENCE_PLATFORMS}
-DEFAULT_REFERENCE_PLATFORM_KEY = "tableau"
+VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)
+VISIBLE_REFERENCE_PLATFORMS = tuple(
+    platform for platform in REFERENCE_PLATFORMS if platform.key in VISIBLE_REFERENCE_PLATFORM_KEYS
+)
+DEFAULT_REFERENCE_PLATFORM_KEY = "powerbi"
+
+
+def is_visible_reference_platform(platform_key: str) -> bool:
+    return platform_key in VISIBLE_REFERENCE_PLATFORM_KEYS
 
 
 def reference_platform_for_project(project: dict) -> str | None:

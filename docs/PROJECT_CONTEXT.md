@@ -911,6 +911,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 홈 snapshot RPC 1차 구현은 `public.home_project_snapshot(p_limit, p_tag_limit, p_like_sample_limit)`이다. 코드에는 RPC 우선/fallback 경로가 있지만, 원격 DB에 함수가 없는 상태에서 배포하면 누락된 RPC 호출이 먼저 실패해 초기 로딩이 더 느려질 수 있다. 반드시 Supabase SQL Editor에서 최신 `supabase/schema.sql`의 RPC를 적용한 뒤 앱 코드를 배포하고 계측한다.
 - Streamlit Community Cloud는 공식 문서 기준 12시간 무트래픽 후 sleep 상태가 되므로 30분 반복 ping은 운영 목적 대비 과하다. `.github/workflows/keepalive.yml`의 KST 08:00 전후 wake 작업만 유지하고, 30분 간격 `keepalive-ping.yml`은 제거했다.
 - 공개 Home 기본 진입은 쿠키 복원보다 첫 렌더 속도를 우선해 CookieManager를 마운트하지 않는다. 새 브라우저 세션의 저장된 로그인 쿠키 복원은 상세/보호/인증 흐름으로 들어갈 때 수행된다. 기본 홈에서 CookieManager iframe과 ready 대기 rerun을 제거하는 목적이다.
+- 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다. 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정하며, 상단 독립 `레퍼런스` 메뉴는 숨긴다. Power BI 메뉴의 공식 레퍼런스 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
 - 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
 
 검증:

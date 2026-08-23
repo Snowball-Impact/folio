@@ -13,7 +13,8 @@ from folio_app.pages import project_detail
 from folio_app.services.project_references import (
     DEFAULT_REFERENCE_PLATFORM_KEY,
     REFERENCE_PLATFORM_BY_KEY,
-    REFERENCE_PLATFORMS,
+    VISIBLE_REFERENCE_PLATFORMS,
+    is_visible_reference_platform,
     reference_projects_for_platform,
 )
 from folio_app.services.projects import ProjectServiceError, clear_project_caches, list_public_projects
@@ -56,7 +57,7 @@ def render() -> None:
 
 def _selected_platform_key() -> str:
     platform_key = st.query_params.get("platform") or DEFAULT_REFERENCE_PLATFORM_KEY
-    if platform_key not in REFERENCE_PLATFORM_BY_KEY:
+    if platform_key not in REFERENCE_PLATFORM_BY_KEY or not is_visible_reference_platform(platform_key):
         return DEFAULT_REFERENCE_PLATFORM_KEY
     return platform_key
 
@@ -77,7 +78,7 @@ def _render_reference_hero(platform_key: str, project_count: int) -> None:
     platform = REFERENCE_PLATFORM_BY_KEY[platform_key]
     safe_label = html.escape(platform.label)
     safe_description = html.escape(platform.description)
-    nav_html = "".join(_platform_nav_item_html(platform_item, platform_key) for platform_item in REFERENCE_PLATFORMS)
+    nav_html = "".join(_platform_nav_item_html(platform_item, platform_key) for platform_item in VISIBLE_REFERENCE_PLATFORMS)
     st.markdown(
         clean_html(f"""
         <section class="folio-reference-hero-shell">

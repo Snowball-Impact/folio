@@ -24,7 +24,6 @@ class NavigationTests(unittest.TestCase):
             [
                 ("Home", "홈 갤러리"),
                 ("About", "서비스 소개"),
-                ("Reference", "레퍼런스"),
                 ("Power BI", "Power BI"),
                 ("Submit", "프로젝트 등록"),
                 ("Login", "로그인"),
@@ -37,7 +36,6 @@ class NavigationTests(unittest.TestCase):
             [
                 ("Home", "홈 갤러리"),
                 ("About", "서비스 소개"),
-                ("Reference", "레퍼런스"),
                 ("Power BI", "Power BI"),
                 ("Submit", "프로젝트 등록"),
                 ("My Page", "마이 페이지"),

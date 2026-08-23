@@ -1,8 +1,12 @@
 import unittest
 
-from folio_app.pages.home import _filter_projects_by_platforms, _popular_tags_from_projects
-from folio_app.pages.reference import _next_visible_count
+from unittest.mock import patch
+
+from folio_app.pages.home import _filter_projects_by_platforms, _platform_filter_options, _popular_tags_from_projects
+from folio_app.pages.reference import _next_visible_count, _selected_platform_key
 from folio_app.services.project_references import (
+    DEFAULT_REFERENCE_PLATFORM_KEY,
+    VISIBLE_REFERENCE_PLATFORMS,
     non_reference_projects,
     reference_platform_for_project,
     reference_projects_for_platform,
@@ -38,6 +42,17 @@ class ProjectReferenceTests(unittest.TestCase):
             [project["id"] for project in reference_projects_for_platform(projects, "streamlit")],
             ["streamlit"],
         )
+
+    def test_launch_mode_exposes_only_powerbi_reference_platform(self) -> None:
+        self.assertEqual(DEFAULT_REFERENCE_PLATFORM_KEY, "powerbi")
+        self.assertEqual([platform.key for platform in VISIBLE_REFERENCE_PLATFORMS], ["powerbi"])
+
+    def test_home_content_type_filter_is_hidden_to_powerbi_only(self) -> None:
+        self.assertEqual(_platform_filter_options(), [("powerbi", "Power BI")])
+
+    @patch("folio_app.pages.reference.st.query_params", {"platform": "tableau"})
+    def test_hidden_reference_platform_url_falls_back_to_powerbi(self) -> None:
+        self.assertEqual(_selected_platform_key(), "powerbi")
 
     def test_home_platform_filter_supports_all_other_and_reference_platform(self) -> None:
         projects = [

@@ -16,8 +16,8 @@ _SERVICE_STEPS = (
         "01 DISCOVER",
         "좋은 시각화 사례를 발견합니다.",
         (
-            "Tableau, Power BI, Data Studio, Streamlit 레퍼런스를 한곳에서 탐색합니다.",
-            "플랫폼보다 주제와 문제의식 중심으로 프로젝트를 비교합니다.",
+            "Power BI 보고서와 학습 레퍼런스를 한곳에서 탐색합니다.",
+            "주제와 문제의식 중심으로 프로젝트를 비교합니다.",
         ),
     ),
     (
@@ -95,7 +95,7 @@ def _team_section() -> str:
                     <span class="folio-about-line">흩어진 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 구조를 실험하고 있습니다.</span>
                 </p>
                 <div class="folio-about-team-status">
-                    <span>지금은 공개 레퍼런스 갤러리와 제작자 직접 등록 흐름을 함께 검증하는 단계입니다.</span>
+                    <span>지금은 Power BI 공개 레퍼런스와 제작자 직접 등록 흐름을 함께 검증하는 단계입니다.</span>
                     <a class="folio-about-contact" href="{_CONTACT_MAILTO}">Contact Us</a>
                 </div>
             </div>
