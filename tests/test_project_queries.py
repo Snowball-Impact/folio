@@ -242,7 +242,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         snapshot = list_home_project_snapshot(limit=6, tag_limit=40)
 
         self.assertIs(snapshot, rpc_snapshot)
-        fetch_rpc.assert_called_once_with(6, 40)
+        fetch_rpc.assert_called_once_with(6, 40, "")
         fetch_rows.assert_not_called()
 
     @patch("folio_app.services.project_queries.get_supabase_client")
@@ -305,7 +305,7 @@ class ProjectReadFailureTests(unittest.TestCase):
 
         snapshot = list_home_project_snapshot(limit=6)
 
-        fetch_rpc.assert_called_once_with(6, 10)
+        fetch_rpc.assert_called_once_with(6, 10, "")
         self.assertEqual(snapshot.total_project_count, 42)
         self.assertEqual(snapshot.popular_tags, ["Power BI", "분석"])
         self.assertEqual([project["id"] for project in snapshot.recent_projects], ["recent-1"])
@@ -382,12 +382,16 @@ class ProjectReadFailureTests(unittest.TestCase):
         self.assertIn("create or replace function public.home_project_snapshot", schema_sql)
         self.assertIn("returns jsonb", schema_sql)
         self.assertIn("grant execute on function public.home_project_snapshot", schema_sql)
+        self.assertIn("platform_key text", schema_sql)
+        self.assertIn("projects_platform_public_created_idx", schema_sql)
+        self.assertIn("'platform_key', vp.platform_key", schema_sql)
 
     def test_schema_includes_project_detail_snapshot_rpc(self) -> None:
         schema_sql = Path("supabase/schema.sql").read_text(encoding="utf-8")
 
         self.assertIn("create or replace function public.project_detail_snapshot", schema_sql)
         self.assertIn("grant execute on function public.project_detail_snapshot", schema_sql)
+        self.assertIn("'platform_key', sp.platform_key", schema_sql)
         self.assertIn("'like_count'", schema_sql)
         self.assertIn("'comment_count'", schema_sql)
 

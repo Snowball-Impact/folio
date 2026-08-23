@@ -65,6 +65,7 @@ def validate_project_form(form_data: dict[str, Any]) -> tuple[dict[str, str], li
 def build_project_payload(form_data: dict[str, Any], parsed_body: dict[str, str]) -> dict:
     thumbnail_mode = form_data.get("thumbnail_mode", THUMBNAIL_MODE_AUTO_COVER)
     thumbnail_url = form_data["thumbnail_url"]
+    platform_key = form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)
     if form_data.get("delete_thumbnail") and thumbnail_mode == THUMBNAIL_MODE_CAPTURE:
         thumbnail_url = ""
     elif form_data.get("delete_thumbnail") and form_data.get("thumbnail_file") is None:
@@ -84,9 +85,10 @@ def build_project_payload(form_data: dict[str, Any], parsed_body: dict[str, str]
         "github_url": form_data["github_url"],
         "thumbnail_url": thumbnail_url,
         "thumbnail_mode": thumbnail_mode,
-        "project_type": project_type_for_platform(form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
+        "project_type": project_type_for_platform(platform_key),
+        "platform_key": platform_key if platform_key != PROJECT_PLATFORM_OTHER_KEY else None,
         "embed_status": "supported" if form_data["power_bi_url"] else "external_only",
-        "tags": tags_with_platform(form_data["tags"], form_data.get("platform", PROJECT_PLATFORM_OTHER_KEY)),
+        "tags": tags_with_platform(form_data["tags"], platform_key),
         "is_public": form_data["is_public"],
         "delete_thumbnail": bool(form_data.get("delete_thumbnail")),
     }

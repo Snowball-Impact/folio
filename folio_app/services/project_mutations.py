@@ -41,7 +41,7 @@ def create_project(
     data["author_id"] = author_id
 
     try:
-        response = client.table("projects").insert(data).execute()
+        response = _insert_project_row(client, data)
         if not response.data:
             return ProjectResult(False, "프로젝트 등록 응답을 확인할 수 없습니다.")
         project_id = response.data[0]["id"]
@@ -81,13 +81,7 @@ def update_project(
     data = clean_project_payload(payload)
 
     try:
-        response = (
-            client.table("projects")
-            .update(data, count=CountMethod.exact, returning=ReturnMethod.minimal)
-            .eq("id", project_id)
-            .eq("author_id", author_id)
-            .execute()
-        )
+        response = _update_project_row(client, project_id, author_id, data)
         if response.count == 0:
             return ProjectResult(False, "수정할 프로젝트를 찾을 수 없습니다.")
         if delete_thumbnail_file:
@@ -210,6 +204,44 @@ def _message_with_thumbnail_result(message: str, capture_result: object) -> str:
     return f"{message} 썸네일은 기본 커버로 표시됩니다."
 
 
+def _insert_project_row(client, data: dict[str, Any]):
+    try:
+        return client.table("projects").insert(data).execute()
+    except Exception as exc:
+        if _is_platform_key_schema_error(exc) and "platform_key" in data:
+            logger.warning("Retrying project create without platform_key because remote schema is missing the column")
+            return client.table("projects").insert(_without_platform_key(data)).execute()
+        raise
+
+
+def _update_project_row(client, project_id: str, author_id: str, data: dict[str, Any]):
+    try:
+        return (
+            client.table("projects")
+            .update(data, count=CountMethod.exact, returning=ReturnMethod.minimal)
+            .eq("id", project_id)
+            .eq("author_id", author_id)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_platform_key_schema_error(exc) and "platform_key" in data:
+            logger.warning("Retrying project update without platform_key because remote schema is missing the column")
+            return (
+                client.table("projects")
+                .update(_without_platform_key(data), count=CountMethod.exact, returning=ReturnMethod.minimal)
+                .eq("id", project_id)
+                .eq("author_id", author_id)
+                .execute()
+            )
+        raise
+
+
+def _without_platform_key(data: dict[str, Any]) -> dict[str, Any]:
+    next_data = dict(data)
+    next_data.pop("platform_key", None)
+    return next_data
+
+
 def _is_thumbnail_mode_schema_error(exc: Exception) -> bool:
     message = str(exc).lower()
     return "thumbnail_mode" in message and (
@@ -217,6 +249,14 @@ def _is_thumbnail_mode_schema_error(exc: Exception) -> bool:
         or "schema cache" in message
         or "check constraint" in message
         or "projects_thumbnail_mode_check" in message
+    )
+
+
+def _is_platform_key_schema_error(exc: Exception) -> bool:
+    message = str(exc).lower()
+    return "platform_key" in message and (
+        "column" in message
+        or "schema cache" in message
     )
 
 

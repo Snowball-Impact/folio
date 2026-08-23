@@ -2,7 +2,7 @@
 
 CSS = """
 .folio-about-page {
-    margin-top: -8px;
+    margin-top: 4px;
 }
 
 .folio-about-line {

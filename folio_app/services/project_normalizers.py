@@ -54,6 +54,13 @@ EMBED_STATUSES = {
     EMBED_STATUS_EXTERNAL_ONLY,
     EMBED_STATUS_FAILED,
 }
+PROJECT_PLATFORM_KEYS = {
+    "tableau",
+    "powerbi",
+    "datastudio",
+    "streamlit",
+    "other",
+}
 
 
 def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
@@ -87,6 +94,8 @@ def clean_project_payload(payload: dict[str, Any]) -> dict[str, Any]:
         data["thumbnail_mode"] = thumbnail_mode
     if "project_type" in payload:
         data["project_type"] = normalize_project_type(payload.get("project_type"))
+    if "platform_key" in payload:
+        data["platform_key"] = normalize_platform_key(payload.get("platform_key"))
     if "status" in payload:
         data["status"] = normalize_project_status(payload.get("status"))
     if "embed_status" in payload:
@@ -124,6 +133,13 @@ def normalize_project_type(value: object) -> str:
     if project_type in PROJECT_TYPES:
         return project_type
     return PROJECT_TYPE_OTHER
+
+
+def normalize_platform_key(value: object) -> str | None:
+    platform_key = str(value or "").strip().lower()
+    if platform_key in PROJECT_PLATFORM_KEYS and platform_key != "other":
+        return platform_key
+    return None
 
 
 def normalize_project_status(value: object) -> str:

@@ -1,7 +1,78 @@
 -- Apply this once in Supabase SQL Editor to let the Home gallery snapshot
 -- filter projects by platform inside PostgreSQL.
 
+alter table public.projects add column if not exists platform_key text;
+alter table public.projects drop constraint if exists projects_platform_key_check;
+alter table public.projects add constraint projects_platform_key_check
+    check (platform_key is null or platform_key in ('powerbi', 'tableau', 'datastudio', 'streamlit'));
+
+update public.projects
+set platform_key = case
+    when project_type = 'powerbi'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('powerbi', 'power bi', 'pbi')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%powerbi.com%'
+      or lower(coalesce(report_url, '')) like '%powerbi.com%'
+      or lower(coalesce(github_url, '')) like '%powerbi.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%powerbi.com%'
+      then 'powerbi'
+    when project_type = 'tableau'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('tableau', 'viz gallery')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%tableau.com%'
+      or lower(coalesce(report_url, '')) like '%tableau.com%'
+      or lower(coalesce(github_url, '')) like '%tableau.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%tableau.com%'
+      then 'tableau'
+    when project_type = 'looker'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('looker studio', 'data studio', 'data studio gallery')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(power_bi_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(report_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(report_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(github_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(github_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%lookerstudio.google.com%'
+      then 'datastudio'
+    when project_type = 'streamlit'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) = 'streamlit'
+      )
+      or lower(coalesce(power_bi_url, '')) like '%streamlit.app%'
+      or lower(coalesce(power_bi_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(power_bi_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(report_url, '')) like '%streamlit.app%'
+      or lower(coalesce(report_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(report_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(github_url, '')) like '%streamlit.app%'
+      or lower(coalesce(github_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(github_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(thumbnail_url, '')) like '%streamlit.app%'
+      or lower(coalesce(thumbnail_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(thumbnail_url, '')) like '%share.streamlit.io%'
+      then 'streamlit'
+    else platform_key
+end
+where platform_key is null;
+
 create index if not exists likes_created_project_idx on public.likes(created_at desc, project_id);
+create index if not exists projects_platform_public_created_idx on public.projects(platform_key, created_at desc)
+    where is_public = true and status = 'published';
+create index if not exists projects_platform_public_view_idx on public.projects(platform_key, view_count desc, created_at desc)
+    where is_public = true and status = 'published';
 
 drop function if exists public.home_project_snapshot(integer, integer, integer);
 drop function if exists public.home_project_snapshot(integer, integer, integer, text);
@@ -41,6 +112,7 @@ visible_projects as (
         p.power_bi_url,
         p.report_url,
         p.github_url,
+        p.platform_key,
         p.project_type,
         p.status,
         p.embed_status,
@@ -56,7 +128,8 @@ visible_projects as (
           or (
               (select platform_key from safe_args) = 'powerbi'
               and (
-                  exists (
+                  p.platform_key = 'powerbi'
+                  or exists (
                       select 1
                       from unnest(coalesce(p.tags, array[]::text[])) as tag
                       where lower(trim(tag)) in ('powerbi', 'power bi', 'pbi')
@@ -140,6 +213,7 @@ project_cards as (
             'power_bi_url', vp.power_bi_url,
             'report_url', vp.report_url,
             'github_url', vp.github_url,
+            'platform_key', vp.platform_key,
             'project_type', vp.project_type,
             'status', vp.status,
             'embed_status', vp.embed_status,

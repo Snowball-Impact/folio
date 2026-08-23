@@ -56,6 +56,10 @@ def is_visible_reference_platform(platform_key: str) -> bool:
 
 
 def reference_platform_for_project(project: dict) -> str | None:
+    platform_key = str(project.get("platform_key") or "").strip().lower()
+    if platform_key in REFERENCE_PLATFORM_BY_KEY:
+        return platform_key
+
     tags = _normalized_values(project.get("tags") or [])
     url_text = " ".join(
         str(project.get(key) or "").lower()

@@ -56,15 +56,17 @@ def _render_hero(desktop_row: dict[str, str] | None, *, topic: str) -> None:
     st.markdown(
         f"""
         <section class="folio-powerbi-hero-shell">
-            <div class="folio-powerbi-hero">
+            <div class="folio-powerbi-hero folio-powerbi-news-hero">
                 <div>
                     <div class="folio-powerbi-eyebrow">Power BI News</div>
-                    <h1>Power BI 소식</h1>
+                    <div class="folio-powerbi-news-title-row">
+                        <h1>Power BI 소식</h1>
+                        {cta_html}
+                    </div>
                     <p>
                         Power BI 분석가에게 필요한 Desktop 다운로드, 월간 기능 업데이트,<br>
                         변경 로그를 원문 링크와 함께 모아 번역 및 요약합니다.
                     </p>
-                    {cta_html}
                 </div>
                 <div class="folio-powerbi-hero-visual" aria-label="Power BI">
                     <img src="{logo_src}" alt="Power BI" />

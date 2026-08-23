@@ -2,19 +2,21 @@
 
 CSS = """
 .folio-powerbi-hero-shell {
-    margin-top: -8px;
+    margin-top: 4px;
 }
 
 .folio-powerbi-hero {
     background: linear-gradient(135deg, #fff8dc 0%, #ffffff 48%, #eaf7f4 100%);
     border: 1px solid rgba(214, 176, 50, 0.32);
     border-radius: 8px;
+    box-sizing: border-box;
     display: grid;
     gap: 20px;
     grid-template-columns: minmax(0, 1fr) auto;
     min-height: 230px;
     margin: 0 0 18px;
     padding: 30px 34px;
+    position: relative;
 }
 
 .folio-powerbi-eyebrow {
@@ -66,6 +68,20 @@ CSS = """
     border-color: #0f49a8;
     color: #ffffff !important;
     text-decoration: none !important;
+}
+
+.folio-powerbi-news-title-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+}
+
+.folio-powerbi-news-title-row .folio-powerbi-hero-cta {
+    flex: 0 0 auto;
+    margin-top: 0;
+    min-height: 36px;
+    padding: 0 14px;
 }
 
 .folio-powerbi-hero-visual {
@@ -745,6 +761,15 @@ CSS = """
     .folio-powerbi-hero {
         grid-template-columns: 1fr;
         padding: 24px 20px;
+    }
+
+    .folio-powerbi-news-title-row {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .folio-powerbi-news-title-row .folio-powerbi-hero-cta {
+        margin-top: 0;
     }
 
     .folio-powerbi-hero-visual {

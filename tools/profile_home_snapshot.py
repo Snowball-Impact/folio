@@ -20,6 +20,7 @@ PROFILE_TARGETS = (
     "get_supabase_client",
     "_fetch_home_project_snapshot_rpc",
     "_fetch_home_project_rows",
+    "_fetch_home_platform_project_rows",
     "_fetch_home_liked_project_ids",
     "_fetch_public_projects_by_ids",
     "_attach_related_data",
@@ -28,6 +29,7 @@ PROFILE_TARGETS = (
     "comment_stats_by_project",
     "home_tag_summary",
     "_fetch_home_tag_summary",
+    "_fetch_home_platform_tag_summary",
     "_fetch_public_project_tags",
 )
 
@@ -88,15 +90,16 @@ def timed_functions() -> Iterator[list[dict[str, Any]]]:
             setattr(project_queries, name, original)
 
 
-def run_once(label: str, limit: int, tag_limit: int, clear: bool) -> dict[str, Any]:
+def run_once(label: str, limit: int, tag_limit: int, platform_key: str | None, clear: bool) -> dict[str, Any]:
     if clear:
         clear_project_caches()
     with timed_functions() as timings:
         started = time.perf_counter()
-        snapshot = list_home_project_snapshot(limit=limit, tag_limit=tag_limit)
+        snapshot = list_home_project_snapshot(limit=limit, tag_limit=tag_limit, platform_key=platform_key)
         total_ms = round((time.perf_counter() - started) * 1000, 1)
     return {
         "label": label,
+        "platform_key": platform_key or "",
         "total_ms": total_ms,
         "counts": {
             "recent": len(snapshot.recent_projects),
@@ -113,6 +116,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=6)
     parser.add_argument("--tag-limit", type=int, default=40)
+    parser.add_argument("--platform-key", default="powerbi")
     parser.add_argument("--warm-runs", type=int, default=1)
     parser.add_argument("--prime-client", action="store_true")
     args = parser.parse_args()
@@ -127,9 +131,10 @@ def main() -> None:
             )
         )
 
-    runs = [run_once("cold", args.limit, args.tag_limit, clear=True)]
+    platform_key = args.platform_key.strip() or None
+    runs = [run_once("cold", args.limit, args.tag_limit, platform_key, clear=True)]
     for index in range(args.warm_runs):
-        runs.append(run_once(f"warm-{index + 1}", args.limit, args.tag_limit, clear=False))
+        runs.append(run_once(f"warm-{index + 1}", args.limit, args.tag_limit, platform_key, clear=False))
 
     print(json.dumps(runs, ensure_ascii=False, indent=2))
 

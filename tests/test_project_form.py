@@ -105,6 +105,7 @@ class ProjectFormTests(unittest.TestCase):
         )
 
         self.assertEqual(payload["tags"], ["Data Studio", "고객 분석"])
+        self.assertEqual(payload["platform_key"], "datastudio")
         self.assertEqual(reference_platform_for_project(payload), "datastudio")
 
     def test_tags_with_platform_limits_saved_tags_to_five(self) -> None:

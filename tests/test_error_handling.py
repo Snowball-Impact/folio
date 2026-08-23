@@ -71,6 +71,24 @@ class SafeMutationMessageTests(unittest.TestCase):
         self.assertIn("projects.thumbnail_mode", result.message)
 
     @patch("folio_app.services.project_mutations.get_supabase_client")
+    def test_create_retries_without_platform_key_when_schema_is_missing(self, get_client) -> None:
+        first_builder = MagicMock()
+        first_builder.insert.return_value = first_builder
+        first_builder.execute.side_effect = RuntimeError("column projects.platform_key does not exist")
+        second_builder = MagicMock()
+        second_builder.insert.return_value = second_builder
+        second_builder.execute.return_value = MagicMock(data=[{"id": "project-id"}])
+        client = MagicMock()
+        client.table.side_effect = [first_builder, second_builder]
+        get_client.return_value = client
+
+        result = create_project("author-id", {"title": "test", "platform_key": "powerbi", "skip_thumbnail_capture": True})
+
+        self.assertTrue(result.ok)
+        first_builder.insert.assert_called_once()
+        second_builder.insert.assert_called_once_with({"title": "test", "author_id": "author-id"})
+
+    @patch("folio_app.services.project_mutations.get_supabase_client")
     def test_delete_error_does_not_expose_provider_detail(self, get_client) -> None:
         builder = MagicMock()
         builder.delete.return_value = builder

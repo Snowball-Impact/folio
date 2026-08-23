@@ -245,6 +245,9 @@ python -m pyflakes folio_app app.py
 - **로컬 개발 서버는 사용자가 직접 기동·재시작한다.** 검증을 위해 서버를 임시로 띄웠다면 확인 후 즉시 종료한다. 양쪽이 각자 `streamlit run app.py`를 띄우면 포트 충돌·중복 프로세스로 "재시작해도 반영이 안 되는" 혼란이 생긴다.
 - **서버 검증이 10초 이상 애매하면 중단하고 포트부터 본다.** `localhost:8501` 확인 전에 `netstat -ano | Select-String ':8501'`로 리스너가 하나인지 확인한다. 여러 리스너가 있거나 캡처가 코드와 맞지 않으면 추가 서버를 띄우지 말고, 기존 서버를 신뢰할 수 없는 상태로 보고 사용자가 재시작한 단일 서버에서 다시 검증한다.
 - **Streamlit Cloud keepalive는 root보다 내부 앱 프레임을 친다.** `https://*.streamlit.app/`는 비브라우저 클라이언트에서 303 redirect loop를 만들 수 있다. 가벼운 HTTP ping은 `https://*.streamlit.app/~/+/`를 사용하고, sleep 해제 버튼 클릭이 필요할 때만 브라우저 기반 wake workflow를 사용한다.
+- **Streamlit Cloud 실서비스 측정도 root와 내부 앱 프레임을 구분한다.** 사용자가 보는 URL은 `https://folio-gapyear.streamlit.app`이지만, headless Playwright나 `urllib` 같은 비브라우저 클라이언트는 root에서 303 loop 또는 shell-only 상태를 볼 수 있다. 빈 body를 봤다고 장애로 단정하지 말고, 실제 브라우저 확인과 `https://folio-gapyear.streamlit.app/~/+/` 측정을 함께 본다.
+- **실서비스 로딩 측정은 계층별로 끊어서 한다.** 홈은 Supabase RPC cold/warm, 내부 앱 프레임 DOM milestone(header, hero, gallery cards, footer version), 메뉴 전환 시 header/hero top 좌표를 따로 남긴다. 상세는 hero, visual panel, report content, comments, 외부 iframe 완료를 분리한다.
+- **DB 패치가 바뀌면 사용자가 한 번 적용했어도 다시 적용 여부를 확인한다.** Supabase 함수 인자나 index가 중간에 추가되면 이전 적용분으로는 최종 성능을 판단할 수 없다. 재측정 전 `supabase/schema.sql` 또는 전용 patch 파일의 최신 내용을 기준으로 원격 DB가 맞는지 확인한다.
 - **Git 동작은 사용자의 동사를 그대로 따른다.** "커밋해"는 로컬 커밋까지만 의미한다. 푸시, PR, 머지, 이슈 닫기는 사용자가 명시적으로 말했을 때만 수행한다.
 - **Streamlit 정렬 문제는 CSS 문제가 아니라 구조 문제인 경우가 많다.** 버튼 높이, 칩 위치, 우측 정렬이 몇 px씩 어긋날 때는 먼저 같은 컨테이너에 묶였는지, column 비율이 불필요한 빈 폭을 만들고 있는지, custom component iframe 높이가 주변 요소와 다른지 확인한다. 작은 보정값을 반복하기 전에 구조를 단순화한다.
 - **Streamlit 로딩 성능은 "앱 코드 시간"과 "Cloud shell/iframe 시간"을 나눠서 본다.** 상세페이지 개선에서 헤더/히어로는 약 6초대에 표시됐지만, 그 앞에는 Streamlit Cloud 외부 shell과 내부 앱 iframe이 있었다. Python 함수 하나를 줄였는데 체감 개선이 작다면, 먼저 어느 계층 시간이 남았는지 milestone으로 분리한다.
@@ -263,6 +266,7 @@ python -m pyflakes folio_app app.py
 - **히어로 양식 통일은 텍스트 값만 맞추는 일이 아니다.** 홈 히어로와 맞춘다고 할 때는 shell의 `display`, grid columns, gap, padding, radius, min-height와 title의 실제 element type, global heading cascade까지 computed style로 비교한다.
 - **로고 여백은 에셋 내부 여백, 부모 컬럼, object-fit 박스 여백을 분리해서 본다.** Power BI 로고처럼 내부 여백이 없는 이미지도 고정 width 박스 안에서 `object-fit: contain`이 적용되면 실제 그림이 오른쪽 기준선에서 떠 보일 수 있다.
 - **플랫폼 분류값과 태그는 중복되지 않게 관리한다.** 별도 `platform` 컬럼이 없을 때는 등록 폼의 플랫폼 선택값을 공식 플랫폼 태그로 저장하되, 사용자가 직접 입력한 `PowerBI`, `Looker Studio` 같은 플랫폼성 태그는 정규화 과정에서 제거해 중복과 오분류를 막는다.
+- **Power BI-first 기본 필터도 최적화 경로로 태워야 한다.** 홈 콘텐츠 유형 필터를 숨기고 기본값을 Power BI로 고정하면 `selected_platforms={"powerbi"}` 상태가 된다. 이를 "사용자 필터 적용"으로 오해하면 snapshot RPC 대신 전체 공개 프로젝트 fallback을 타서 갤러리가 다시 느려진다. 기본 Power BI scope는 기본 홈 scope로 취급하고, 플랫폼 필터는 DB/RPC 내부에서 처리한다.
 
 ## 15. GitHub 이슈 기반 작업 관리
 

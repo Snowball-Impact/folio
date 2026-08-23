@@ -84,11 +84,6 @@ def render() -> None:
     search = st.query_params.get("q", "")
     selected_tag = st.query_params.get("tag", "전체")
     selected_platforms = _selected_platform_filters()
-    gallery_loading_placeholder = None
-    if _uses_default_home_scope(search, selected_tag, selected_platforms):
-        gallery_loading_placeholder = st.empty()
-        with gallery_loading_placeholder.container():
-            _render_loading_panel()
     try:
         if _uses_default_home_scope(search, selected_tag, selected_platforms):
             snapshot = list_home_project_snapshot(
@@ -123,8 +118,6 @@ def render() -> None:
             clear_project_caches()
             st.rerun()
         return
-    if gallery_loading_placeholder is not None:
-        gallery_loading_placeholder.empty()
     _render_browse_panel(total_project_count, popular_tags, selected_platforms)
     render_project_rails(
         _project_rail_specs(recent_projects, viewed_projects, liked_projects),

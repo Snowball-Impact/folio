@@ -55,6 +55,7 @@ create table if not exists public.projects (
     thumbnail_url text,
     thumbnail_mode text not null default 'auto_cover' check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture', 'upload')),
     project_type text not null default 'other' check (project_type in ('powerbi', 'tableau', 'looker', 'streamlit', 'notebook', 'html_report', 'markdown_report', 'web', 'other')),
+    platform_key text check (platform_key in ('powerbi', 'tableau', 'datastudio', 'streamlit')),
     status text not null default 'published' check (status in ('processing', 'published', 'failed', 'deleted')),
     embed_status text not null default 'external_only' check (embed_status in ('supported', 'external_only', 'failed')),
     ai_summary text,
@@ -66,6 +67,73 @@ create table if not exists public.projects (
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
+
+alter table public.projects add column if not exists platform_key text;
+alter table public.projects drop constraint if exists projects_platform_key_check;
+alter table public.projects add constraint projects_platform_key_check
+    check (platform_key is null or platform_key in ('powerbi', 'tableau', 'datastudio', 'streamlit'));
+
+update public.projects
+set platform_key = case
+    when project_type = 'powerbi'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('powerbi', 'power bi', 'pbi')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%powerbi.com%'
+      or lower(coalesce(report_url, '')) like '%powerbi.com%'
+      or lower(coalesce(github_url, '')) like '%powerbi.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%powerbi.com%'
+      then 'powerbi'
+    when project_type = 'tableau'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('tableau', 'viz gallery')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%tableau.com%'
+      or lower(coalesce(report_url, '')) like '%tableau.com%'
+      or lower(coalesce(github_url, '')) like '%tableau.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%tableau.com%'
+      then 'tableau'
+    when project_type = 'looker'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) in ('looker studio', 'data studio', 'data studio gallery')
+      )
+      or lower(coalesce(power_bi_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(power_bi_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(report_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(report_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(github_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(github_url, '')) like '%lookerstudio.google.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%datastudio.google.com%'
+      or lower(coalesce(thumbnail_url, '')) like '%lookerstudio.google.com%'
+      then 'datastudio'
+    when project_type = 'streamlit'
+      or exists (
+          select 1
+          from unnest(coalesce(tags, array[]::text[])) as tag
+          where lower(trim(tag)) = 'streamlit'
+      )
+      or lower(coalesce(power_bi_url, '')) like '%streamlit.app%'
+      or lower(coalesce(power_bi_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(power_bi_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(report_url, '')) like '%streamlit.app%'
+      or lower(coalesce(report_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(report_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(github_url, '')) like '%streamlit.app%'
+      or lower(coalesce(github_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(github_url, '')) like '%share.streamlit.io%'
+      or lower(coalesce(thumbnail_url, '')) like '%streamlit.app%'
+      or lower(coalesce(thumbnail_url, '')) like '%streamlit.io/gallery%'
+      or lower(coalesce(thumbnail_url, '')) like '%share.streamlit.io%'
+      then 'streamlit'
+    else platform_key
+end
+where platform_key is null;
 
 create table if not exists public.powerbi_reports (
     id uuid primary key default gen_random_uuid(),
@@ -149,6 +217,10 @@ create table if not exists public.project_views (
 
 create index if not exists projects_author_id_idx on public.projects(author_id);
 create index if not exists projects_created_at_idx on public.projects(created_at desc);
+create index if not exists projects_platform_public_created_idx on public.projects(platform_key, created_at desc)
+    where is_public = true and status = 'published';
+create index if not exists projects_platform_public_view_idx on public.projects(platform_key, view_count desc, created_at desc)
+    where is_public = true and status = 'published';
 create index if not exists powerbi_reports_project_id_idx on public.powerbi_reports(project_id);
 create index if not exists powerbi_reports_import_id_idx on public.powerbi_reports(import_id);
 create index if not exists likes_user_id_idx on public.likes(user_id);
@@ -314,6 +386,7 @@ visible_projects as (
         p.power_bi_url,
         p.report_url,
         p.github_url,
+        p.platform_key,
         p.project_type,
         p.status,
         p.embed_status,
@@ -329,7 +402,8 @@ visible_projects as (
           or (
               (select platform_key from safe_args) = 'powerbi'
               and (
-                  exists (
+                  p.platform_key = 'powerbi'
+                  or exists (
                       select 1
                       from unnest(coalesce(p.tags, array[]::text[])) as tag
                       where lower(trim(tag)) in ('powerbi', 'power bi', 'pbi')
@@ -413,6 +487,7 @@ project_cards as (
             'power_bi_url', vp.power_bi_url,
             'report_url', vp.report_url,
             'github_url', vp.github_url,
+            'platform_key', vp.platform_key,
             'project_type', vp.project_type,
             'status', vp.status,
             'embed_status', vp.embed_status,
@@ -510,6 +585,7 @@ selected_project as (
         p.power_bi_url,
         p.report_url,
         p.github_url,
+        p.platform_key,
         p.project_type,
         p.status,
         p.embed_status,
@@ -552,6 +628,7 @@ select
             'power_bi_url', sp.power_bi_url,
             'report_url', sp.report_url,
             'github_url', sp.github_url,
+            'platform_key', sp.platform_key,
             'project_type', sp.project_type,
             'status', sp.status,
             'embed_status', sp.embed_status,

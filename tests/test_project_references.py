@@ -29,6 +29,18 @@ class ProjectReferenceTests(unittest.TestCase):
         self.assertEqual(reference_platform_for_project({"tags": ["Looker Studio"]}), "datastudio")
         self.assertEqual(reference_platform_for_project({"tags": ["Streamlit"]}), "streamlit")
 
+    def test_stored_platform_key_takes_precedence(self) -> None:
+        self.assertEqual(
+            reference_platform_for_project(
+                {
+                    "platform_key": "powerbi",
+                    "tags": ["Tableau"],
+                    "report_url": "https://public.tableau.com/views/demo",
+                }
+            ),
+            "powerbi",
+        )
+
     def test_detects_platform_from_urls(self) -> None:
         self.assertEqual(
             reference_platform_for_project({"power_bi_url": "https://datastudio.google.com/embed/reporting/abc"}),
