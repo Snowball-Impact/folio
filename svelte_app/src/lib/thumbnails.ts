@@ -33,3 +33,34 @@ export async function uploadProjectThumbnail(projectId: string, file: File) {
 		thumbnailUrl: payload.thumbnail_url
 	};
 }
+
+export async function captureProjectThumbnail(projectId: string) {
+	const session = await currentSession();
+	if (!session) {
+		return { ok: false, message: '로그인 후 썸네일을 캡처할 수 있습니다.', thumbnailUrl: null };
+	}
+
+	const response = await fetch(`/api/projects/${projectId}/thumbnail-capture`, {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${session.access_token}`
+		}
+	});
+	const payload = (await response.json().catch(() => ({}))) as {
+		error?: string;
+		thumbnail_url?: string;
+	};
+	if (!response.ok || !payload.thumbnail_url) {
+		return {
+			ok: false,
+			message: payload.error || '썸네일 캡처에 실패했습니다.',
+			thumbnailUrl: null
+		};
+	}
+
+	return {
+		ok: true,
+		message: '썸네일이 캡처되었습니다.',
+		thumbnailUrl: payload.thumbnail_url
+	};
+}

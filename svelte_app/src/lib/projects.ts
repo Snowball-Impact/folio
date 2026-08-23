@@ -32,7 +32,7 @@ export type ProjectSubmitInput = {
 	report_url: string;
 	github_url: string;
 	thumbnail_url: string;
-	thumbnail_mode: 'auto_cover' | 'manual_url' | 'upload';
+	thumbnail_mode: 'auto_cover' | 'manual_url' | 'upload' | 'capture';
 	is_public: boolean;
 };
 
@@ -337,6 +337,7 @@ const projectListColumns = [
 	'insights',
 	'tags',
 	'thumbnail_url',
+	'thumbnail_mode',
 	'power_bi_url',
 	'report_url',
 	'github_url',
@@ -625,6 +626,7 @@ function normalizeProject(value: unknown): ProjectDetail {
 		insights: nullableString(payload.insights),
 		tags: asStringArray(payload.tags),
 		thumbnail_url: nullableString(payload.thumbnail_url),
+		thumbnail_mode: normalizeThumbnailMode(payload.thumbnail_mode),
 		power_bi_url: nullableString(payload.power_bi_url),
 		report_url: nullableString(payload.report_url),
 		github_url: nullableString(payload.github_url),
@@ -653,6 +655,14 @@ function normalizePlatformKey(value: unknown) {
 		return platformKey as PlatformKey;
 	}
 	return null;
+}
+
+function normalizeThumbnailMode(value: unknown) {
+	const thumbnailMode = String(value ?? '').trim();
+	if (['auto_cover', 'manual_url', 'capture', 'upload'].includes(thumbnailMode)) {
+		return thumbnailMode as ProjectCard['thumbnail_mode'];
+	}
+	return 'auto_cover';
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

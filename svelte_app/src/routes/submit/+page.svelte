@@ -5,7 +5,7 @@
 	import { currentSession } from '$lib/auth';
 	import { publishProjectPbix } from '$lib/powerbi-publish';
 	import { createProject, type ProjectSubmitInput } from '$lib/projects';
-	import { uploadProjectThumbnail } from '$lib/thumbnails';
+	import { captureProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
 	import type { ProjectCard as ProjectCardType } from '$lib/types';
 
 	const platformOptions = [
@@ -55,6 +55,7 @@
 				: input.thumbnail_mode === 'upload'
 					? thumbnailPreviewUrl
 					: null,
+		thumbnail_mode: input.thumbnail_mode,
 		power_bi_url: input.power_bi_url.trim() || null,
 		report_url: input.report_url.trim() || null,
 		github_url: input.github_url.trim() || null,
@@ -90,6 +91,10 @@
 			error = 'Power BI 프로젝트는 Embed Code 또는 PBIX 파일 중 하나를 입력하세요.';
 			return;
 		}
+		if (input.thumbnail_mode === 'capture' && !input.power_bi_url.trim() && !input.report_url.trim() && !pbixFile) {
+			error = '자동 캡처를 사용하려면 Embed Code, Web App URL, 또는 PBIX 파일이 필요합니다.';
+			return;
+		}
 		submitting = true;
 		const result = await createProject(input);
 		if (!result.ok || !result.projectId) {
@@ -111,6 +116,15 @@
 			if (!publishResult.ok) {
 				submitting = false;
 				error = `${publishResult.message} 프로젝트는 등록되었습니다.`;
+				await goto(`/projects/${result.projectId}`);
+				return;
+			}
+		}
+		if (input.thumbnail_mode === 'capture') {
+			const captureResult = await captureProjectThumbnail(result.projectId);
+			if (!captureResult.ok) {
+				submitting = false;
+				error = `${captureResult.message} 프로젝트는 등록되었습니다.`;
 				await goto(`/projects/${result.projectId}`);
 				return;
 			}
@@ -237,6 +251,7 @@
 				<span>썸네일 설정</span>
 				<select bind:value={input.thumbnail_mode}>
 					<option value="auto_cover">기본 커버</option>
+					<option value="capture">자동 캡처</option>
 					<option value="upload">이미지 업로드</option>
 					<option value="manual_url">URL 입력</option>
 				</select>

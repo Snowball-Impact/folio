@@ -35,6 +35,7 @@ export type ProjectCard = {
 	insights: string | null;
 	tags: string[];
 	thumbnail_url: string | null;
+	thumbnail_mode: ThumbnailMode;
 	power_bi_url: string | null;
 	report_url: string | null;
 	github_url: string | null;

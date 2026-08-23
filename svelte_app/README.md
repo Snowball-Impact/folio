@@ -25,6 +25,7 @@ PBIX_MAX_UPLOAD_MB=100
 POWERBI_IMPORT_POLL_SECONDS=100
 POWERBI_CAPTURE_READY_WAIT_SECONDS=10
 THUMBNAIL_STORAGE_BUCKET=project-thumbnails
+CHROME_BINARY_PATH=
 SMTP_HOST=
 SMTP_PORT=587
 SMTP_USERNAME=
@@ -58,17 +59,16 @@ npm run build
 - Login and signup use Supabase Auth from the browser. Signup sends `name` and `organization` through user metadata so the existing `handle_new_user` trigger can create `profiles`.
 - Password reset uses Supabase recovery links at `/reset-password` and accepts `code`, `token_hash`, or access/refresh token recovery callbacks before updating the password.
 - Policy consent onboarding reads active `policy_versions`, checks `user_policy_consents`, gates authenticated public routes, and stores missing required consents before returning users to their requested page.
-- Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract, can upload JPG/PNG/WebP thumbnails through a server endpoint backed by `SUPABASE_SERVICE_ROLE_KEY`, and can publish Power BI `.pbix` files through a server-only Power BI Import endpoint.
+- Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract, can upload JPG/PNG/WebP thumbnails through a server endpoint backed by `SUPABASE_SERVICE_ROLE_KEY`, can capture thumbnails through a server Playwright runtime when available, and can publish Power BI `.pbix` files through a server-only Power BI Import endpoint.
 - My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, edits `profiles.name/organization/bio`, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
-- Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit, replace uploaded thumbnails, and publish a replacement `.pbix` for Power BI projects.
+- Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit, replace uploaded/captured thumbnails, and publish a replacement `.pbix` for Power BI projects.
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, requests best-effort SMTP email notifications through a server endpoint, and marks project comment notifications/read state when the author opens the detail page.
-- Automatic thumbnail capture is not part of this spike.
+- Automatic thumbnail capture requires Playwright and Chromium in the server runtime; without them the endpoint returns a safe setup error.
 
 ## Server Boundary Backlog
 
 The remaining Streamlit parity features require server-only secrets or server-side browser automation:
 
-- Automatic thumbnail capture: server runtime must provide Chromium/Playwright, render the external report or generated Power BI embed document, capture an image, upload it, and update `projects.thumbnail_url`.
 - Deployment adapter: `@sveltejs/adapter-auto` builds locally but emits a warning until the final host is chosen. Pick the adapter for the target platform before production cutover.
