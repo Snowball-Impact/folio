@@ -30,6 +30,7 @@ Overview
 ├── 커뮤니티 관리
 ├── 댓글 관리
 ├── 신고 관리
+├── 콘텐츠 관리
 └── 사용자 관리
 ```
 
@@ -51,6 +52,7 @@ Admin은 사용자용 FOLIO와 분리된 운영 화면으로 구성한다.
 │ 프로젝트      │                                     │
 │ 커뮤니티      │                                     │
 │ 댓글          │                                     │
+│ 콘텐츠        │                                     │
 │ 사용자        │                                     │
 │               │                                     │
 │ ← FOLIO       │                                     │
@@ -83,6 +85,7 @@ Admin은 사용자용 FOLIO와 분리된 운영 화면으로 구성한다.
 프로젝트
 커뮤니티 게시글
 댓글
+콘텐츠 업데이트 상태
 ```
 
 각 항목은 전체 수량만 표시한다.
@@ -92,6 +95,7 @@ Admin은 사용자용 FOLIO와 분리된 운영 화면으로 구성한다.
 - 최근 등록 프로젝트
 - 최근 커뮤니티 게시글
 - 최근 가입 사용자
+- 최근 Power BI 콘텐츠 수집 결과
 
 각 영역에는 최근 데이터 일부만 표시하고 필요하면 해당 관리 화면으로 이동한다.
 
@@ -451,6 +455,161 @@ RLS 기준:
 
 ---
 
+## 9-1. 콘텐츠 관리
+
+### 목적
+
+Power BI 메뉴에 노출되는 외부 큐레이션 콘텐츠를 관리자가 직접 최신 상태로 갱신할 수 있게 한다.
+
+콘텐츠 관리는 사용자가 작성한 프로젝트를 수정하는 기능이 아니다.
+
+> **관리자 실행 → GitHub Actions 수집 → CSV/썸네일 커밋 → Streamlit Cloud 자동 반영**
+
+### 대상
+
+MVP의 1차 대상은 Power BI 콘텐츠 허브다.
+
+- 업데이트 소식
+- 커뮤니티 소식
+- 학습 콘텐츠
+- Power BI Desktop 다운로드 메타데이터
+- 정적 YouTube 썸네일
+
+현재 Power BI 콘텐츠는 DB가 아니라 저장소의 CSV와 정적 썸네일 파일로 운영한다.
+
+따라서 Admin 런타임에서 직접 파일을 영구 수정하지 않는다.
+
+### 기본 기능
+
+- 마지막 수집 상태 확인
+- 마지막 수집 커밋 확인
+- 수집 결과 요약 확인
+- GitHub Actions 기반 수집 및 배포 실행
+- 실행 중 상태와 실패 메시지 확인
+- GitHub Actions 실행 링크 열기
+
+### 화면 정보
+
+```text
+콘텐츠 관리
+
+Power BI 콘텐츠 업데이트
+
+현재 반영 상태
+────────────────────────────────
+마지막 실행       성공
+마지막 실행 시각  2026.08.23 21:19
+마지막 커밋       d418b5f
+Desktop 버전      2.157.879.0
+
+수집 결과
+────────────────────────────────
+업데이트 소식      201건
+패치 로그           58건
+업데이트 영상       13건
+커뮤니티 소식       20건
+학습 영상           20건
+학습 프로그램        7건
+
+[상태 새로고침] [수집 및 배포 실행]
+```
+
+### 실행 흐름
+
+```text
+관리자 클릭
+  ↓
+Admin 권한 확인
+  ↓
+GitHub Actions workflow_dispatch 호출
+  ↓
+tools/collect_powerbi_all.py 실행
+  ↓
+compileall / Power BI 콘텐츠 테스트 실행
+  ↓
+변경 파일이 있으면 CSV와 썸네일 커밋
+  ↓
+main push
+  ↓
+Streamlit Community Cloud 자동 반영
+```
+
+### GitHub Actions
+
+Power BI 콘텐츠 업데이트는 별도 workflow로 관리한다.
+
+개념적 파일:
+
+```text
+.github/workflows/update-powerbi-content.yml
+```
+
+workflow는 수동 실행과 Admin 트리거를 모두 지원한다.
+
+필수 단계:
+
+- 저장소 checkout
+- Python 환경 준비
+- 의존성 설치
+- `python tools/collect_powerbi_all.py`
+- `python -m compileall -q folio_app\pages\powerbi.py folio_app\services\powerbi_content.py folio_app\services\powerbi_i18n.py tools\collect_powerbi_all.py`
+- `python -m unittest tests.test_powerbi_content`
+- 변경사항이 있으면 `docs/curation/powerbi_*`와 `folio_app/static/powerbi_learning_thumbs` 커밋
+- `main`에 push
+
+변경사항이 없으면 커밋하지 않고 성공으로 종료한다.
+
+### Admin 설정
+
+Admin에서 workflow를 실행하려면 Streamlit secrets에 최소 설정을 둔다.
+
+```toml
+GITHUB_REPO = "Snowball-Impact/folio"
+POWERBI_CONTENT_WORKFLOW = "update-powerbi-content.yml"
+GITHUB_ADMIN_TOKEN = "..."
+```
+
+`GITHUB_ADMIN_TOKEN`은 서버 전용 secret이며 클라이언트와 DB에 저장하지 않는다.
+
+토큰 권한은 최소 범위로 제한한다.
+
+```text
+Actions: write
+Contents: write
+```
+
+### 보안 정책
+
+- 관리자만 실행할 수 있다.
+- 실행 전 서버 측 관리자 권한을 다시 확인한다.
+- GitHub token은 화면, 로그, DB row에 출력하지 않는다.
+- Admin 화면에는 workflow 실행 URL과 요약 상태만 보여준다.
+- 실패 로그는 민감값을 제거한 요약만 표시한다.
+
+### 상태
+
+```text
+idle
+running
+success
+failed
+```
+
+실행 중에는 중복 실행 버튼을 비활성화한다.
+
+### MVP 제외
+
+- CSV 직접 편집 UI
+- 특정 콘텐츠 승인/반려
+- 수집 결과 diff 리뷰 화면
+- 수집 스케줄 설정 UI
+- Supabase DB로 콘텐츠 저장 구조 변경
+- 실패 시 자동 롤백
+- 여러 플랫폼 콘텐츠 일괄 수집
+- 번역문 수동 보정 UI
+
+---
+
 ## 10. 관리자 접근 권한
 
 Admin 경로:
@@ -749,6 +908,23 @@ Supabase 권한에서도 동일하게 차단되어야 한다.
 
 일반 사용자와 프로젝트 소유자는 Admin 신고 목록과 신고 메모에 접근할 수 없어야 한다.
 
+### 콘텐츠 관리
+
+관리자는 Power BI 콘텐츠 업데이트 workflow를 실행하고 결과를 확인할 수 있어야 한다.
+
+```text
+Admin 콘텐츠 관리 진입
+→ 마지막 수집 상태와 수집 건수 확인
+→ 수집 및 배포 실행
+→ GitHub Actions 실행 상태 확인
+→ 성공 시 새 커밋이 main에 반영
+→ Streamlit Cloud에서 최신 CSV/썸네일 기반 콘텐츠 노출
+```
+
+실행 중에는 중복 실행을 막아야 한다.
+
+일반 사용자는 workflow 실행 기능과 GitHub token 설정에 접근할 수 없어야 한다.
+
 ### 사용자 관리
 
 사용자를 검색하고 다음 정보를 확인할 수 있어야 한다.
@@ -779,6 +955,9 @@ Overview
 │
 ├── 신고 관리
 │    └── 조회 / 상태 변경 / 프로젝트 원문 확인
+│
+├── 콘텐츠 관리
+│    └── Power BI 콘텐츠 수집 / 배포 실행 / 상태 확인
 │
 └── 사용자 관리
      └── 조회

@@ -28,6 +28,7 @@
   - `docs/FOLIO_Community_PRD.md`: 하나의 `커뮤니티` 게시판으로 공지/질문/팁·노하우/기타를 다룬다. 별도 Q&A/자유게시판/공지사항 화면을 만들지 않는다. MVP 댓글은 기존 프로젝트 댓글 UI/기능을 확장해 재사용하는 방향이다.
   - `docs/FOLIO_Admin_PRD.md`: `/admin` 통합 운영 화면이다. 승인·심사 시스템이 아니라 프로젝트/커뮤니티/댓글/신고/사용자를 조회하고 필요 시 숨김/공개/삭제 또는 신고 상태 변경을 하는 사후 관리 도구다.
 - 상세페이지 신고 기능은 운영자에게 접수하는 흐름으로 둔다. 프로젝트 소유자에게 신고 row나 신고 메모를 직접 노출하지 않는다. 신고 조회와 `open/reviewing/resolved/dismissed` 상태 변경은 추후 Admin 신고 관리 화면에서 구현한다.
+- Admin 콘텐츠 관리는 Power BI 외부 큐레이션 콘텐츠 업데이트를 GitHub Actions로 트리거하는 방식으로 기획한다. Admin 런타임에서 CSV/썸네일을 직접 영구 수정하지 않고, `tools/collect_powerbi_all.py` 실행, 검증, 커밋, `main` push, Streamlit Cloud 자동 반영 흐름을 따른다.
 - 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다.
 - 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정한다. 상단 독립 `레퍼런스` 메뉴는 숨기며, Power BI 메뉴 안의 `레퍼런스` 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
 - 레퍼런스 페이지는 히어로에서 "공식" 문구를 제거했다. 정렬 옵션은 `최신`, `좋아요`, `조회수`이며 홈 갤러리 정렬 값(`최신순`, `좋아요순`, `조회수순`)을 재사용한다.
