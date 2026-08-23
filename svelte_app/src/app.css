@@ -94,6 +94,18 @@ input {
 	box-shadow: var(--folio-shadow);
 }
 
+.reference-hero {
+	display: grid;
+	grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.75fr);
+	gap: 28px;
+	align-items: center;
+	padding: 30px 42px 34px;
+	border: 1px solid var(--folio-border);
+	border-radius: 16px;
+	background: var(--folio-surface);
+	box-shadow: var(--folio-shadow);
+}
+
 .eyebrow {
 	margin-bottom: 12px;
 	color: var(--folio-blue);
@@ -103,7 +115,8 @@ input {
 }
 
 .hero h1,
-.detail-hero h1 {
+.detail-hero h1,
+.reference-hero h1 {
 	margin: 0;
 	font-size: 40px;
 	line-height: 1.18;
@@ -111,11 +124,46 @@ input {
 }
 
 .hero p,
-.detail-hero p {
+.detail-hero p,
+.reference-hero p {
 	max-width: 680px;
 	margin: 16px 0 0;
 	color: var(--folio-muted);
 	font-size: 16px;
+}
+
+.reference-hero h1 span {
+	color: var(--folio-blue);
+}
+
+.reference-visual {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 10px;
+	padding: 20px;
+	border: 1px solid var(--folio-border);
+	border-radius: 12px;
+	background:
+		linear-gradient(135deg, rgba(20, 89, 200, 0.12), rgba(10, 148, 133, 0.16)),
+		white;
+}
+
+.reference-visual img {
+	grid-column: 1 / -1;
+	display: block;
+	width: min(220px, 74%);
+	margin: 6px auto 14px;
+}
+
+.reference-visual span {
+	display: flex;
+	align-items: center;
+	min-height: 58px;
+	padding: 14px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+	font-weight: 800;
 }
 
 .hero-panel {
@@ -174,6 +222,51 @@ input {
 	display: grid;
 	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: 18px;
+}
+
+.reference-grid {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 18px;
+	margin-top: 18px;
+}
+
+.reference-toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	margin-top: 22px;
+	padding: 14px 16px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: var(--folio-surface);
+	color: var(--folio-muted);
+}
+
+.reference-toolbar nav {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.reference-toolbar a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 34px;
+	padding: 0 13px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+	color: var(--folio-muted);
+	font-weight: 800;
+}
+
+.reference-toolbar a.active {
+	border-color: var(--folio-blue);
+	background: var(--folio-blue);
+	color: white;
 }
 
 .project-card {
@@ -383,6 +476,31 @@ input {
 	color: white;
 }
 
+.load-more {
+	display: grid;
+	justify-items: center;
+	gap: 10px;
+	margin-top: 24px;
+	color: var(--folio-muted);
+}
+
+.load-more button {
+	min-height: 42px;
+	padding: 0 18px;
+	border: 1px solid var(--folio-blue);
+	border-radius: 8px;
+	background: var(--folio-blue);
+	color: white;
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.reference-end {
+	margin-top: 24px;
+	color: var(--folio-muted);
+	text-align: center;
+}
+
 .site-footer {
 	max-width: 1440px;
 	margin: 0 auto;
@@ -400,13 +518,15 @@ input {
 	}
 
 	.hero,
-	.detail-hero {
+	.detail-hero,
+	.reference-hero {
 		grid-template-columns: 1fr;
 		padding: 26px 22px;
 	}
 
 	.hero h1,
-	.detail-hero h1 {
+	.detail-hero h1,
+	.reference-hero h1 {
 		font-size: 30px;
 	}
 
@@ -416,6 +536,15 @@ input {
 
 	.rail {
 		grid-template-columns: 1fr;
+	}
+
+	.reference-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.reference-toolbar {
+		align-items: start;
+		flex-direction: column;
 	}
 
 	.section-header {

@@ -15,6 +15,7 @@
 			<a class="brand" href="/">FOLIO</a>
 			<nav class="nav" aria-label="주요 메뉴">
 				<a href="/">홈 갤러리</a>
+				<a href="/references/powerbi">레퍼런스</a>
 			</nav>
 		</div>
 	</header>

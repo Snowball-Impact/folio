@@ -62,6 +62,21 @@ export type HomeSnapshot = {
 
 export type ProjectDetail = ProjectCard;
 
+export type ReferenceSort = 'latest' | 'likes' | 'views';
+
+export type ReferencePlatform = {
+	key: PlatformKey;
+	label: string;
+	description: string;
+};
+
+export type ReferenceProjectsResult = {
+	platform: ReferencePlatform;
+	sort: ReferenceSort;
+	projects: ProjectCard[];
+	error: string;
+};
+
 export type PowerBIEmbedConfig = {
 	report_id: string;
 	dataset_id: string;
