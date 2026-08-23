@@ -907,6 +907,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 홈의 전체 프로젝트 수와 인기 태그는 `home_tag_summary()`로 통합했다. 별도 count 쿼리를 제거하고, 공개 프로젝트 tag rows 한 번으로 count와 popular tags를 함께 계산한다.
 - 쿠키 대기 중 보이는 로딩 shell은 기존 홈 히어로와 검색 패널 톤을 맞춘 skeleton이다. 쿠키가 준비되기 전의 초기 공백을 줄이는 목적이다.
 - 후속 측정에서 같은 Streamlit run 안에서 `st.empty()`로 그렸다가 바로 비우는 데이터 조회 중 skeleton은 실제 배포 DOM에 안정적으로 남지 않는 것을 확인했다. 해당 왕복 렌더는 제거하고, 좋아요 후보 조회를 홈 카드 limit 기준으로 줄여 초기 쿼리량을 더 낮췄다.
+- 홈 기본 갤러리 snapshot은 첫 렌더 속도를 우선해 댓글 통계 조회를 생략한다. 댓글 수와 최근 댓글 배지는 상세/필터 검색 흐름보다 우선순위가 낮고, 기본 홈 레일에서는 작성자·좋아요·조회수만 붙인다.
 - 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
 
 검증:

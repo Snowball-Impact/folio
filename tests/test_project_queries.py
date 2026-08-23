@@ -226,6 +226,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         "folio_app.services.project_queries.home_tag_summary",
         return_value=HomeTagSummary(total_project_count=42, popular_tags=["Power BI", "분석"]),
     )
+    @patch("folio_app.services.project_queries.comment_stats_by_project")
     @patch("folio_app.services.project_queries._attach_related_data")
     @patch("folio_app.services.project_queries._fetch_public_projects_by_ids")
     @patch("folio_app.services.project_queries._fetch_home_liked_project_ids", return_value=["liked-1"])
@@ -236,6 +237,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         liked_ids,
         fetch_by_ids,
         attach_related,
+        comment_stats,
         tag_summary,
         fetch_all,
     ) -> None:
@@ -244,7 +246,7 @@ class ProjectReadFailureTests(unittest.TestCase):
         liked = [{"id": "liked-1", "author_id": "author-1"}]
         fetch_rows.side_effect = [recent, viewed]
         fetch_by_ids.return_value = liked
-        attach_related.side_effect = lambda projects: projects
+        attach_related.side_effect = lambda projects, **_kwargs: projects
 
         snapshot = list_home_project_snapshot(limit=6)
 
@@ -255,6 +257,8 @@ class ProjectReadFailureTests(unittest.TestCase):
         self.assertEqual([project["id"] for project in snapshot.liked_projects], ["liked-1"])
         fetch_rows.assert_has_calls([call("created_at", 6), call("view_count", 6)])
         liked_ids.assert_called_once_with(6)
+        attach_related.assert_called_once_with([*recent, *viewed, *liked], include_comments=False)
+        comment_stats.assert_not_called()
         tag_summary.assert_called_once_with(10)
         fetch_all.assert_not_called()
 

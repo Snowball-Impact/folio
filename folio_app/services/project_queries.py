@@ -86,7 +86,10 @@ def list_home_project_snapshot(limit: int = 6, tag_limit: int = 10) -> HomeProje
         liked_ids = _fetch_home_liked_project_ids(limit)
         liked_rows = _fetch_public_projects_by_ids(tuple(liked_ids))
 
-        project_by_id = _attach_related_data(_unique_projects([*recent_rows, *viewed_rows, *liked_rows]))
+        project_by_id = _attach_related_data(
+            _unique_projects([*recent_rows, *viewed_rows, *liked_rows]),
+            include_comments=False,
+        )
         attached_by_id = {project["id"]: project for project in project_by_id if project.get("id")}
         recent_projects = [attached_by_id[project["id"]] for project in recent_rows if project.get("id") in attached_by_id]
         viewed_projects = [attached_by_id[project["id"]] for project in viewed_rows if project.get("id") in attached_by_id]
@@ -427,7 +430,12 @@ def _project_matches_search(project: dict[str, Any], search: str) -> bool:
     return any(term in str(field).lower() for field in fields)
 
 
-def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순") -> list[dict[str, Any]]:
+def _attach_related_data(
+    projects: list[dict[str, Any]],
+    sort: str = "최신순",
+    *,
+    include_comments: bool = True,
+) -> list[dict[str, Any]]:
     if not projects:
         return []
 
@@ -445,7 +453,10 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
 
     project_ids = [project["id"] for project in projects if project.get("id")]
     like_counts = _count_likes_by_project(project_ids)
-    comment_counts, latest_comment_times = comment_stats_by_project(project_ids)
+    comment_counts: dict[str, int] = {}
+    latest_comment_times: dict[str, str | None] = {}
+    if include_comments:
+        comment_counts, latest_comment_times = comment_stats_by_project(project_ids)
     for project in projects:
         project["author"] = profiles_by_id.get(project.get("author_id"), {})
         project["like_count"] = like_counts.get(project["id"], 0)
