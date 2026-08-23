@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import ProjectComments from '$lib/components/ProjectComments.svelte';
 	import ProjectLikeButton from '$lib/components/ProjectLikeButton.svelte';
 	import PowerBIReport from '$lib/components/PowerBIReport.svelte';
 	import { formatCount, formatDate, plainTextFromHtml } from '$lib/format';
@@ -138,6 +139,8 @@
 {:else}
 	<div class="empty-panel">아직 작성된 프로젝트 설명이 없습니다.</div>
 {/if}
+
+<ProjectComments projectId={project.id} initialCommentCount={project.comment_count} />
 
 <div class="actions" style="justify-content: flex-end; margin-top: 24px;">
 	<a class="button-link" href="/">홈 갤러리로 돌아가기</a>

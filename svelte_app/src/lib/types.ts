@@ -121,3 +121,21 @@ export type PowerBIEmbedConfig = {
 	embed_token: string;
 	token_expiration: string | null;
 };
+
+export type ProjectCommentAuthor = {
+	id?: string;
+	name?: string;
+};
+
+export type ProjectComment = {
+	id: string;
+	project_id: string;
+	author_id: string;
+	parent_id: string | null;
+	body: string;
+	depth: 0 | 1;
+	is_deleted: boolean;
+	created_at: string;
+	author: ProjectCommentAuthor;
+	children: ProjectComment[];
+};
