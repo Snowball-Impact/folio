@@ -30,6 +30,31 @@ from folio_app.services.projects import (
 _HOME_PAGE = "Home"
 
 
+def render_loading_shell() -> None:
+    render_hero(
+        "프로젝트 상세",
+        "프로젝트를 불러오고 있어요.",
+        "곧 시각화와 프로젝트 설명이 이어서 표시됩니다.",
+        image_html=_detail_loading_card_html(),
+        class_name="folio-project-detail-hero folio-project-detail-loading-hero",
+    )
+    st.markdown(
+        clean_html(
+            """
+            <section class="folio-detail-loading-content" aria-label="프로젝트 상세 로딩 중">
+                <div class="folio-detail-loading-visual"></div>
+                <div class="folio-detail-loading-panel">
+                    <span class="folio-detail-loading-line folio-detail-loading-line-wide"></span>
+                    <span class="folio-detail-loading-line"></span>
+                    <span class="folio-detail-loading-line folio-detail-loading-line-short"></span>
+                </div>
+            </section>
+            """
+        ),
+        unsafe_allow_html=True,
+    )
+
+
 def render(
     project_id: str,
     *,
@@ -41,8 +66,6 @@ def render(
     notice = st.session_state.pop("project_notice", None)
     if notice:
         st.success(notice)
-
-    _record_project_view(project_id)
 
     try:
         project = get_project(project_id)
@@ -100,10 +123,29 @@ def render(
     render_comments_section(project_id, user, project.get("author_id"))
 
     _render_back_to_gallery_action(back_page, back_label, back_params)
+    _record_project_view(project_id)
 
 
 def _detail_hero_card_html(project: dict) -> str:
     return render_project_card_html(project)
+
+
+def _detail_loading_card_html() -> str:
+    return clean_html(
+        """
+        <div class="folio-detail-loading-card" aria-hidden="true">
+            <span class="folio-detail-loading-chip"></span>
+            <span class="folio-detail-loading-title"></span>
+            <span class="folio-detail-loading-line"></span>
+            <span class="folio-detail-loading-line folio-detail-loading-line-short"></span>
+            <div class="folio-detail-loading-metrics">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+        """
+    )
 
 
 def _render_hero_footer_actions(

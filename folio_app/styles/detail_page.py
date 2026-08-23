@@ -180,6 +180,99 @@ CSS = """
     padding: 0;
 }
 
+/* Detail loading shell */
+.folio-detail-loading-card,
+.folio-detail-loading-content {
+    background: #ffffff;
+    border: 1px solid var(--folio-border);
+}
+
+.folio-detail-loading-card {
+    border-radius: 12px;
+    box-shadow: 0 14px 28px rgba(11, 31, 63, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    min-height: 250px;
+    padding: 22px;
+}
+
+.folio-detail-loading-chip,
+.folio-detail-loading-title,
+.folio-detail-loading-line,
+.folio-detail-loading-metrics span,
+.folio-detail-loading-visual {
+    animation: folioDetailLoadingPulse 1.35s ease-in-out infinite;
+    background: linear-gradient(90deg, #eef3fb 0%, #f8fbff 48%, #e7eef9 100%);
+    background-size: 220% 100%;
+    border-radius: 999px;
+    display: block;
+}
+
+.folio-detail-loading-chip {
+    height: 24px;
+    width: 88px;
+}
+
+.folio-detail-loading-title {
+    border-radius: 8px;
+    height: 64px;
+    margin-top: 12px;
+    width: 78%;
+}
+
+.folio-detail-loading-line {
+    height: 14px;
+    width: 100%;
+}
+
+.folio-detail-loading-line-wide {
+    height: 18px;
+    width: 86%;
+}
+
+.folio-detail-loading-line-short {
+    width: 56%;
+}
+
+.folio-detail-loading-metrics {
+    display: flex;
+    gap: 10px;
+    margin-top: auto;
+}
+
+.folio-detail-loading-metrics span {
+    height: 30px;
+    width: 82px;
+}
+
+.folio-detail-loading-content {
+    border-radius: 14px;
+    display: grid;
+    gap: 18px;
+    margin-top: 20px;
+    padding: 20px;
+}
+
+.folio-detail-loading-visual {
+    border-radius: 12px;
+    min-height: 340px;
+}
+
+.folio-detail-loading-panel {
+    display: grid;
+    gap: 12px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 900px;
+    width: 100%;
+}
+
+@keyframes folioDetailLoadingPulse {
+    0% { background-position: 120% 0; }
+    100% { background-position: -120% 0; }
+}
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
     .folio-detail-content-card { padding: 2px 22px; }
@@ -191,6 +284,10 @@ CSS = """
 
 @media (max-width: 768px) {
     .folio-detail-content-card { padding: 0 16px; }
+    .folio-detail-loading-card { min-height: 220px; padding: 18px; }
+    .folio-detail-loading-content { padding: 16px; }
+    .folio-detail-loading-title { height: 52px; width: 88%; }
+    .folio-detail-loading-visual { min-height: 260px; }
     .folio-detail-section { padding: 16px 0 17px; }
     .folio-detail-content-heading { padding: 17px 0 13px; }
 

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 from folio_app.app import (
+    _can_render_public_detail_shell,
     _can_render_public_home_shell,
     _can_skip_cookie_manager_for_public_home,
     _ensure_visitor_id,
@@ -60,8 +61,9 @@ class VisitorIdentityTests(unittest.TestCase):
         self.assertTrue(_can_render_public_home_shell())
 
     @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
-    def test_detail_does_not_render_public_loading_shell(self) -> None:
+    def test_detail_does_not_render_public_home_shell(self) -> None:
         self.assertFalse(_can_render_public_home_shell())
+        self.assertTrue(_can_render_public_detail_shell())
 
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st.session_state", new_callable=dict)

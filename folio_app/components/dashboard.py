@@ -61,7 +61,9 @@ def embedded_dashboard_html(url: str) -> str:
             flex: 0 1 100%;
             height: {min_height}px;
             max-width: 100%;
+            opacity: 0;
             position: relative;
+            transition: opacity 0.18s ease;
             width: 100%;
             z-index: 2;
         }}
@@ -76,7 +78,7 @@ def embedded_dashboard_html(url: str) -> str:
             frameborder="0"
             allowFullScreen="true"
             class="folio-dashboard-iframe"
-            onload="var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
+            onload="this.style.opacity='1'; var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
         </iframe>
     </div>
     """

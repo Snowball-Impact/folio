@@ -25,6 +25,13 @@ class DashboardComponentTests(unittest.TestCase):
         self.assertIn("https://example.com/report?title=&quot;x&quot;&amp;q=&lt;tag&gt;", rendered)
         self.assertNotIn('src="https://example.com/report?title="x"&q=<tag>"', rendered)
 
+    def test_dashboard_embed_keeps_placeholder_visible_until_iframe_loads(self) -> None:
+        rendered = embedded_dashboard_html("https://example.com/report")
+
+        self.assertIn("opacity: 0", rendered)
+        self.assertIn("this.style.opacity='1'", rendered)
+        self.assertIn("대시보드 불러오는 중", rendered)
+
     def test_powerbi_report_uses_js_sdk_embed_config(self) -> None:
         rendered = powerbi_report_html("report-id", "https://app.powerbi.com/reportEmbed", "embed-token")
 

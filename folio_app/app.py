@@ -8,7 +8,7 @@ from folio_app.components.analytics import render_google_analytics, track_page_v
 from folio_app.components.layout import render_header
 from folio_app.config import get_settings
 from folio_app.navigation import ROUTABLE_PAGES
-from folio_app.pages import about, gallery, home, notifications, onboarding, policy, powerbi, protected, reference
+from folio_app.pages import about, gallery, home, notifications, onboarding, policy, powerbi, project_detail, protected, reference
 from folio_app.pages.auth import render_login, render_signup
 from folio_app.services.profiles import get_onboarding_status
 from folio_app.services.auth import (
@@ -19,7 +19,7 @@ from folio_app.services.auth import (
 )
 from folio_app.styles import apply_global_styles
 
-APP_VERSION = "v2026.08.23.10"
+APP_VERSION = "v2026.08.23.11"
 
 _FOOTER_HTML = """
 <footer class="folio-footer">
@@ -133,6 +133,17 @@ def _can_render_public_home_shell() -> bool:
     return (
         page == "Home"
         and not st.query_params.get("project_id")
+        and not st.query_params.get("logout")
+        and not st.query_params.get("reset")
+        and not st.query_params.get("code")
+    )
+
+
+def _can_render_public_detail_shell() -> bool:
+    page = st.query_params.get("page") or "Home"
+    return (
+        page in {"Home", "Reference"}
+        and bool(st.query_params.get("project_id"))
         and not st.query_params.get("logout")
         and not st.query_params.get("reset")
         and not st.query_params.get("code")
@@ -294,6 +305,10 @@ def main() -> None:
         if _can_render_public_home_shell():
             render_header(initial_page="Home")
             home.render_loading_shell()
+            _render_footer()
+        elif _can_render_public_detail_shell():
+            render_header(initial_page=_initial_page_from_query())
+            project_detail.render_loading_shell()
             _render_footer()
         st.stop()
 

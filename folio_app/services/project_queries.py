@@ -7,7 +7,7 @@ from typing import Any
 
 import streamlit as st
 
-from folio_app.services.comments import clear_comment_caches, comment_stats_by_project
+from folio_app.services.comments import clear_comment_caches, comment_stats_by_project, count_comments_by_project
 from folio_app.services.project_normalizers import PROJECT_STATUS_DELETED, PROJECT_STATUS_PUBLISHED
 from folio_app.services.project_types import ProjectServiceError
 from folio_app.services.supabase_client import get_supabase_client, recover_from_expired_jwt
@@ -42,6 +42,7 @@ PUBLIC_PROJECT_LIST_COLUMNS = ",".join(
         "updated_at",
     )
 )
+PROJECT_DETAIL_COLUMNS = PUBLIC_PROJECT_LIST_COLUMNS
 
 
 @dataclass(frozen=True)
@@ -396,7 +397,7 @@ def get_project(project_id: str) -> dict[str, Any] | None:
 
     try:
         response = _execute_public_read(
-            lambda: client.table("projects").select("*").eq("id", project_id).maybe_single().execute()
+            lambda: client.table("projects").select(PROJECT_DETAIL_COLUMNS).eq("id", project_id).maybe_single().execute()
         )
     except Exception as exc:
         logger.exception("Failed to load project detail")
@@ -405,7 +406,7 @@ def get_project(project_id: str) -> dict[str, Any] | None:
         raise ProjectServiceError("프로젝트를 불러오지 못했습니다. 잠시 후 다시 시도하세요.")
 
     try:
-        projects = _attach_related_data([response.data] if response.data else [])
+        projects = _attach_project_detail_data([response.data] if response.data else [])
     except Exception as exc:
         logger.exception("Failed to attach project detail metadata")
         raise ProjectServiceError("프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
@@ -499,6 +500,33 @@ def _attach_related_data(projects: list[dict[str, Any]], sort: str = "최신순"
 
     if sort == "좋아요순":
         projects.sort(key=lambda project: project.get("like_count", 0), reverse=True)
+
+    return projects
+
+
+def _attach_project_detail_data(projects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if not projects:
+        return []
+
+    client = get_supabase_client()
+    if client is None:
+        return projects
+
+    author_ids = sorted({project["author_id"] for project in projects if project.get("author_id")})
+    profiles_by_id: dict[str, dict[str, Any]] = {}
+    if author_ids:
+        profiles_by_id = {
+            profile["id"]: profile
+            for profile in _fetch_public_profiles(tuple(author_ids))
+        }
+
+    project_ids = [project["id"] for project in projects if project.get("id")]
+    like_counts = _count_likes_by_project(project_ids)
+    comment_counts = count_comments_by_project(project_ids)
+    for project in projects:
+        project["author"] = profiles_by_id.get(project.get("author_id"), {})
+        project["like_count"] = like_counts.get(project["id"], 0)
+        project["comment_count"] = comment_counts.get(project["id"], 0)
 
     return projects
 

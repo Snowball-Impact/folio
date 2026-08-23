@@ -9,6 +9,7 @@ from folio_app.services.auth import AuthResult
 from folio_app.services.project_mutations import delete_project, update_project
 from folio_app.services.project_queries import (
     HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER,
+    PROJECT_DETAIL_COLUMNS,
     PUBLIC_PROJECT_LIST_COLUMNS,
     HomeProjectSnapshot,
     HomeTagSummary,
@@ -18,6 +19,7 @@ from folio_app.services.project_queries import (
     _fetch_public_projects,
     _filter_public_projects,
     home_tag_summary,
+    get_project,
     list_home_project_snapshot,
     list_public_projects,
 )
@@ -394,6 +396,32 @@ class ProjectReadFailureTests(unittest.TestCase):
 
         with self.assertRaisesRegex(ProjectServiceError, "공개 프로젝트를 불러오지 못했습니다"):
             list_public_projects()
+
+    @patch("folio_app.services.project_queries._attach_related_data")
+    @patch("folio_app.services.project_queries._attach_project_detail_data")
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_get_project_uses_detail_metadata_path(self, get_client, attach_detail, attach_related) -> None:
+        builder = MagicMock()
+        builder.select.return_value = builder
+        builder.eq.return_value = builder
+        builder.maybe_single.return_value = builder
+        builder.execute.return_value = SimpleNamespace(
+            data={"id": "project-1", "author_id": "author-1", "status": "published"}
+        )
+        client = MagicMock()
+        client.table.return_value = builder
+        get_client.return_value = client
+        attach_detail.return_value = [{"id": "project-1", "status": "published"}]
+
+        result = get_project("project-1")
+
+        self.assertEqual(result, {"id": "project-1", "status": "published"})
+        builder.select.assert_called_once_with(PROJECT_DETAIL_COLUMNS)
+        self.assertNotIn("*", PROJECT_DETAIL_COLUMNS)
+        attach_detail.assert_called_once_with(
+            [{"id": "project-1", "author_id": "author-1", "status": "published"}]
+        )
+        attach_related.assert_not_called()
 
 
 if __name__ == "__main__":

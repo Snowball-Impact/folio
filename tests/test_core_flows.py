@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from folio_app.app import APP_VERSION, _FOOTER_HTML
+from folio_app.app import APP_VERSION, _FOOTER_HTML, _can_render_public_detail_shell
 from folio_app.components.layout import _header_nav_items
 from folio_app.components.project_form import parse_project_body
 from folio_app.navigation import navigate
@@ -58,6 +58,18 @@ class NavigationTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "rerun"):
             navigate("Unknown")
         self.assertEqual(query_params, {"page": "Home"})
+
+    @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-1"})
+    def test_public_detail_shell_is_allowed_for_home_detail(self) -> None:
+        self.assertTrue(_can_render_public_detail_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Reference", "project_id": "project-1"})
+    def test_public_detail_shell_is_allowed_for_reference_detail(self) -> None:
+        self.assertTrue(_can_render_public_detail_shell())
+
+    @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-1", "code": "auth-code"})
+    def test_public_detail_shell_is_blocked_for_auth_redirects(self) -> None:
+        self.assertFalse(_can_render_public_detail_shell())
 
 
 class SignupValidationTests(unittest.TestCase):
