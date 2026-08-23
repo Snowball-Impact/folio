@@ -230,6 +230,9 @@ class ViewCountSchemaContractTests(unittest.TestCase):
         cls.home_snapshot_patch = (
             Path(__file__).parents[1] / "supabase" / "update_home_snapshot_platform_filter.sql"
         ).read_text(encoding="utf-8")
+        cls.detail_snapshot_patch = (
+            Path(__file__).parents[1] / "supabase" / "update_project_detail_snapshot_platform_key.sql"
+        ).read_text(encoding="utf-8")
 
     def test_daily_deduplication_and_owner_exclusion_are_declared(self) -> None:
         self.assertIn("primary key (project_id, viewer_hash, viewed_on)", self.schema)
@@ -259,6 +262,12 @@ class ViewCountSchemaContractTests(unittest.TestCase):
             "grant execute on function public.home_project_snapshot(integer, integer, integer, text)",
             self.home_snapshot_patch,
         )
+
+    def test_detail_snapshot_patch_matches_platform_key_contract(self) -> None:
+        self.assertIn("create or replace function public.project_detail_snapshot", self.detail_snapshot_patch)
+        self.assertIn("p.platform_key", self.detail_snapshot_patch)
+        self.assertIn("'platform_key', sp.platform_key", self.detail_snapshot_patch)
+        self.assertIn("grant execute on function public.project_detail_snapshot(uuid)", self.detail_snapshot_patch)
 
 
 if __name__ == "__main__":

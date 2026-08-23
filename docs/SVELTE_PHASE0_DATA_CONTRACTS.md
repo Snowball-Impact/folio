@@ -27,6 +27,7 @@ Phase 0은 구현 스파이크가 아니라 계약 고정 단계다.
 - 홈 payload는 `recent=6`, `viewed=6`, `liked=1`, `popular_tags=40` 형태로 내려왔다.
 - 공개 프로젝트 하나(`dd1ed00c-1458-4f8e-92cb-4f31e319625d`)로 상세 RPC를 확인했다.
 - 원격 `project_detail_snapshot` 응답에는 로컬 `schema.sql`과 달리 `platform_key`가 빠져 있었다. Svelte P0 전에 원격 RPC 재적용 또는 클라이언트 fallback 처리가 필요하다.
+- 전용 패치 파일은 `supabase/update_project_detail_snapshot_platform_key.sql`이다.
 
 ---
 
@@ -217,6 +218,7 @@ type ProjectDetail = ProjectCard & {
 - Power BI Embedded Viewer는 상세 렌더 중 별도 서비스 `get_powerbi_embed_config(project["id"])`로 처리한다.
 - Svelte에서는 상세 데이터와 Power BI embed token을 분리해야 한다.
 - 로컬 `schema.sql` 기준 상세 RPC는 `platform_key`를 포함하지만, 2026-08-24 원격 확인에서는 상세 응답에 `platform_key`가 없었다. Svelte P0 구현 전 원격 스키마 적용 여부를 확인한다.
+- 이 갭은 `supabase/update_project_detail_snapshot_platform_key.sql`로 원격 DB에 적용한다.
 - 레거시 프로젝트는 `project_type='other'`여도 `power_bi_url`이 있으면 Power BI 결과물로 표시될 수 있다. Svelte 상세는 `project_type`만 믿지 말고 `power_bi_url`/URL marker도 함께 본다.
 
 ---

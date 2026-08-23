@@ -44,6 +44,14 @@ Power BI-first 런칭 모드에서 홈 갤러리가 전체 프로젝트를 가�
 
 이 패치는 `likes_created_project_idx` 인덱스도 함께 추가한다. 홈의 좋아요 레일은 최근 좋아요 샘플을 먼저 읽기 때문에 `likes(created_at desc, project_id)` 인덱스가 필요하다.
 
+### 상세 snapshot platform_key 패치
+
+Svelte 공개 상세 전환 전에는 상세 RPC 응답이 로컬 `schema.sql`과 같은지 확인한다. 원격 `project_detail_snapshot` 응답에 `platform_key`가 없다면 다음 패치를 적용한다.
+
+1. SQL Editor에서 `supabase/update_project_detail_snapshot_platform_key.sql`을 실행한다.
+2. 공개 프로젝트 하나로 `project_detail_snapshot`을 호출해 응답에 `platform_key`가 포함되는지 확인한다.
+3. Svelte 상세 구현에서는 `platform_key`가 없던 레거시 응답도 임시 fallback할 수 있지만, 기본 계약은 `platform_key` 포함이다.
+
 ### 공개 → 비공개 변경 시 42501 오류
 
 로그인한 작성자가 공개 프로젝트는 수정할 수 있지만 비공개 저장에서 `42501` 오류를 받는다면 원격 DB의 작성자 SELECT/UPDATE 정책이 오래된 상태입니다.
