@@ -9,15 +9,29 @@ npm install
 Copy-Item .env.example .env
 ```
 
-`.env`에는 공개 Supabase 값과, Power BI 토큰 API를 켤 때만 서버 전용 Power BI 값을 넣습니다.
+`.env`에는 공개 Supabase 값과, 서버 전용 기능을 켤 때만 private 값을 넣습니다.
 
 ```text
 PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+SUPABASE_SERVICE_ROLE_KEY=
+APP_URL=http://localhost:5173
 POWERBI_TENANT_ID=your-tenant-id
 POWERBI_CLIENT_ID=your-client-id
 POWERBI_CLIENT_SECRET=your-client-secret
+POWERBI_WORKSPACE_ID=your-workspace-id
 POWERBI_API_BASE_URL=https://api.powerbi.com/v1.0/myorg
+PBIX_MAX_UPLOAD_MB=100
+POWERBI_IMPORT_POLL_SECONDS=100
+POWERBI_CAPTURE_READY_WAIT_SECONDS=10
+THUMBNAIL_STORAGE_BUCKET=project-thumbnails
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=
+SMTP_FROM_NAME=FOLIO
+SMTP_USE_TLS=true
 ```
 
 ## Development
@@ -51,3 +65,13 @@ npm run build
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, and marks project comment notifications/read state when the author opens the detail page.
 - SMTP email notification dispatch and PBIX/thumbnail upload automation are not part of this spike.
+
+## Server Boundary Backlog
+
+The remaining Streamlit parity features require server-only secrets or server-side browser automation:
+
+- PBIX publishing: authenticated route action or endpoint must verify the Supabase user, accept a `.pbix`, enforce `PBIX_MAX_UPLOAD_MB`, call Power BI Import APIs with `POWERBI_WORKSPACE_ID`, poll import status, upsert `powerbi_reports`, and update the project status/embed URL.
+- Thumbnail upload: authenticated server endpoint or direct Storage policy must validate image type/size, write to `THUMBNAIL_STORAGE_BUCKET`, update `projects.thumbnail_url`, and clean old thumbnail objects.
+- Automatic thumbnail capture: server runtime must provide Chromium/Playwright, render the external report or generated Power BI embed document, capture an image, upload it, and update `projects.thumbnail_url`.
+- SMTP email notification dispatch: comment creation currently creates in-app `notifications`; email delivery needs a server-side worker/endpoint with `SUPABASE_SERVICE_ROLE_KEY` and SMTP settings.
+- Deployment adapter: `@sveltejs/adapter-auto` builds locally but emits a warning until the final host is chosen. Pick the adapter for the target platform before production cutover.
