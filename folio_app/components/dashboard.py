@@ -108,7 +108,7 @@ def embedded_dashboard_html(url: str) -> str:
             frameborder="0"
             allowFullScreen="true"
             class="folio-dashboard-iframe"
-            onload="this.style.opacity='1'; var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
+            onload="if (!this.getAttribute('src')) return; this.style.opacity='1'; var placeholder=document.getElementById('folio-dashboard-placeholder'); if (placeholder) placeholder.style.display='none';">
         </iframe>
     </div>
     <script>

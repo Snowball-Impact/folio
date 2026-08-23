@@ -33,6 +33,7 @@ class DashboardComponentTests(unittest.TestCase):
         self.assertNotIn('\n            src="https://example.com/report"', rendered)
         self.assertIn("folio-dashboard-load-button", rendered)
         self.assertIn("iframe.setAttribute(\"src\"", rendered)
+        self.assertIn("if (!this.getAttribute('src')) return", rendered)
         self.assertIn("opacity: 0", rendered)
         self.assertIn("this.style.opacity='1'", rendered)
         self.assertIn("대시보드 미리보기", rendered)
