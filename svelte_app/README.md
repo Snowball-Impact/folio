@@ -42,4 +42,5 @@ npm run build
 - Power BI references query public `projects`, apply the Streamlit platform marker rules, support latest/likes/views sorting, and reuse `ProjectCard`.
 - Power BI content hub reads curated CSV files from `docs/curation/powerbi_*` on the SvelteKit server and exposes news, learning, community, and certification views.
 - Login and signup use Supabase Auth from the browser. Signup sends `name` and `organization` through user metadata so the existing `handle_new_user` trigger can create `profiles`.
-- Password reset, policy consent onboarding, interactive likes/comments, and submit/edit are not part of this spike.
+- Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
+- Password reset, policy consent onboarding, comments, and submit/edit are not part of this spike.

@@ -704,6 +704,56 @@ input {
 	font-size: 12px;
 }
 
+.detail-actions {
+	margin-top: 18px;
+}
+
+.like-control {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	align-items: center;
+}
+
+.like-control button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 40px;
+	padding: 0 15px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: white;
+	color: var(--folio-blue);
+	cursor: pointer;
+	font-weight: 800;
+}
+
+.like-control button.liked {
+	border-color: var(--folio-blue);
+	background: var(--folio-blue);
+	color: white;
+}
+
+.like-control button:disabled {
+	cursor: wait;
+	opacity: 0.72;
+}
+
+.like-message,
+.like-error {
+	margin: 0;
+	font-size: 12px;
+}
+
+.like-message {
+	color: var(--folio-muted);
+}
+
+.like-error {
+	color: #9c1d34;
+}
+
 .pill {
 	display: inline-flex;
 	align-items: center;

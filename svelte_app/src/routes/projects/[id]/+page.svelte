@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import ProjectLikeButton from '$lib/components/ProjectLikeButton.svelte';
 	import PowerBIReport from '$lib/components/PowerBIReport.svelte';
 	import { formatCount, formatDate, plainTextFromHtml } from '$lib/format';
 	import { recordProjectView } from '$lib/projects';
@@ -78,7 +79,11 @@
 			{/if}
 			<span class="pill">등록일 {formatDate(project.created_at)}</span>
 			<span class="pill">조회 {formatCount(project.view_count)}</span>
+			<span class="pill">좋아요 {formatCount(project.like_count)}</span>
 			<span class="pill">댓글 {formatCount(project.comment_count)}</span>
+		</div>
+		<div class="detail-actions">
+			<ProjectLikeButton projectId={project.id} initialLikeCount={project.like_count} />
 		</div>
 	</div>
 	<div class="detail-card-preview">
