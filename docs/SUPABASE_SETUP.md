@@ -18,9 +18,23 @@
    - `projects`
    - `powerbi_reports`
    - `likes`
+   - `comments`
+   - `community_posts`
+   - `community_post_views`
 5. Database Triggers에서 `on_auth_user_created` 트리거가 생성되었는지 확인합니다.
 
 기존 프로젝트도 인증/RLS 정책이 변경되면 최신 `supabase/schema.sql`을 다시 실행합니다. 스키마는 `if not exists`, `drop policy if exists` 구문을 사용하므로 정책 갱신에도 같은 파일을 사용합니다.
+
+### 커뮤니티 게시판 스키마 적용 확인
+
+커뮤니티 게시판 배포 전에는 최신 `supabase/schema.sql`을 SQL Editor에서 다시 실행한 뒤 다음을 확인합니다.
+
+1. `community_posts`와 `community_post_views` 테이블이 존재한다.
+2. `comments` 테이블에 `community_post_id` 컬럼이 존재한다.
+3. `comments.project_id`가 nullable이고, `comments_single_target_check` 제약이 존재한다.
+4. `increment_community_post_view_count(uuid, uuid)` RPC가 존재한다.
+5. 일반 계정은 `notice` 카테고리 게시글을 작성할 수 없고, 관리자는 공지와 고정을 사용할 수 있다.
+6. 비회원은 커뮤니티 목록/상세/댓글 조회가 가능하고, 댓글 작성과 글쓰기는 로그인 후 가능하다.
 
 ### 일간 순조회수 마이그레이션
 

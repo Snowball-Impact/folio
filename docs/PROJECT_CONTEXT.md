@@ -999,11 +999,13 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
    - 데이터 보정: 이미 수집된 CSV의 `title_ko`, `summary_ko`, `feature_description_ko`를 선별 보정.
    - 운영 가능 구조: 용어집/문장 패턴을 CSV 또는 JSON으로 분리해 반복 수정 가능하게 만든다.
 
-5. 새 PRD 기반 커뮤니티/Admin 구현은 번역 작업 이후 별도 컨텍스트에서 다룬다.
+5. 커뮤니티 자유게시판 1차 구현을 진행했다.
    - 커뮤니티는 하나의 게시판으로 공지/질문/팁·노하우/기타를 처리한다.
-   - Admin은 승인 시스템이 아니라 사후 관리 도구다.
-   - 신고 관리는 운영자 전용이다. 상세페이지에서 신고 접수만 받고, 신고 목록 조회와 상태 변경은 Admin의 `신고 관리`에서 구현한다.
-   - 두 기능 모두 기존 프로젝트/댓글/조회수/권한 구조를 먼저 분석한 뒤 최소 변경 계획을 세운다.
+   - 목록, 카테고리 필터, 글쓰기, 상세, 수정/삭제, 조회수, URL linkify를 구현했다.
+   - 기존 댓글 컴포넌트를 공통화해 프로젝트 댓글과 커뮤니티 댓글이 같은 UI/서비스 패턴을 사용한다.
+   - Supabase에는 `community_posts`, `community_post_views`, `comments.community_post_id`, `comments_single_target_check`, `increment_community_post_view_count()`가 추가됐다.
+   - 원격 적용 전에는 최신 `supabase/schema.sql`을 SQL Editor에서 실행하고 실제 계정으로 비회원 조회, 일반 글쓰기, 댓글, 관리자 공지/고정을 확인해야 한다.
+   - Admin은 승인 시스템이 아니라 사후 관리 도구다. 신고 관리는 운영자 전용이며, 상세페이지에서 신고 접수만 받고 신고 목록 조회와 상태 변경은 Admin의 `신고 관리`에서 구현한다.
 
 6. 홈/레퍼런스 UI 변경을 배포한다면 배포 후 직접 확인한다.
    - 레퍼런스 정렬 버튼 클릭 시 페이지 전체 리로드 없이 카드 순서가 바뀌는지 확인한다.
