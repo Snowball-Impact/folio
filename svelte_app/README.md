@@ -88,4 +88,4 @@ The spike now uses `@sveltejs/adapter-node` because project submission, PBIX pub
 
 Automatic thumbnail capture still depends on Playwright and Chromium being available in the runtime. If the managed Playwright browser is not installed, set `CHROME_BINARY_PATH` to a system Chrome/Chromium binary.
 
-Use [../DOCS/SVELTE_E2E_READINESS.md](../DOCS/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist.
+Use [../docs/SVELTE_E2E_READINESS.md](../docs/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/SVELTE_STAGING_QA_RUNBOOK.md](../docs/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.
