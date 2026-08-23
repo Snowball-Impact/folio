@@ -10,10 +10,11 @@ Validate that the SvelteKit app can replace the Streamlit public/user flows for 
 
 - [ ] `npm.cmd install` completes in `svelte_app/`.
 - [ ] `npm.cmd run check` returns 0 Svelte/TypeScript errors.
-- [ ] `npm.cmd run verify` passes the local build, Node route smoke, and Supabase contract smoke checks.
+- [ ] `npm.cmd run verify` passes the local build, Node route smoke, Supabase contract smoke, and security smoke checks.
 - [ ] `npm.cmd run build` completes with `@sveltejs/adapter-node`.
 - [ ] `npm.cmd run smoke` passes against the Node build server.
 - [ ] `npm.cmd run smoke:supabase` passes or is intentionally skipped when Supabase env vars are unavailable.
+- [ ] `npm.cmd run smoke:security` passes against the Node build server.
 - [ ] The generated app starts with `node build`.
 - [ ] The host exposes private env vars only to server code.
 
@@ -120,11 +121,11 @@ Thumbnail capture:
 
 ## Security Checks
 
-- [ ] Service role key is not included in client bundle or public env.
-- [ ] Power BI client secret is not included in client bundle.
+- [ ] Service role key is not included in client bundle or public env; client bundle scan covered by `npm.cmd run smoke:security`.
+- [ ] Power BI client secret is not included in client bundle; client bundle scan covered by `npm.cmd run smoke:security`.
 - [ ] Embed tokens are returned only from server endpoints.
 - [ ] Project mutation endpoints verify bearer token and project ownership.
-- [ ] Thumbnail and PBIX endpoints reject anonymous requests.
+- [ ] Thumbnail and PBIX endpoints reject anonymous requests; covered by `npm.cmd run smoke:security`.
 - [ ] Comment email endpoint only accepts requests from the comment author.
 
 ## Go/No-Go

@@ -54,6 +54,7 @@ npm run check
 npm run build
 npm run smoke
 npm run smoke:supabase
+npm run smoke:security
 ```
 
 ## Production Start
