@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER = 20
 HOME_PROJECT_SNAPSHOT_RPC = "home_project_snapshot"
+PROJECT_DETAIL_SNAPSHOT_RPC = "project_detail_snapshot"
 
 PUBLIC_PROJECT_LIST_COLUMNS = ",".join(
     (
@@ -396,6 +397,13 @@ def get_project(project_id: str) -> dict[str, Any] | None:
         raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
 
     try:
+        project = _fetch_project_detail_snapshot_rpc(project_id)
+        if project is not None:
+            return None if _project_status(project) == PROJECT_STATUS_DELETED else project
+    except Exception:
+        logger.warning("Project detail snapshot RPC failed; falling back to table queries", exc_info=True)
+
+    try:
         response = _execute_public_read(
             lambda: client.table("projects").select(PROJECT_DETAIL_COLUMNS).eq("id", project_id).maybe_single().execute()
         )
@@ -412,6 +420,25 @@ def get_project(project_id: str) -> dict[str, Any] | None:
         raise ProjectServiceError("프로젝트 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.") from exc
     projects = [project for project in projects if _project_status(project) != PROJECT_STATUS_DELETED]
     return projects[0] if projects else None
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _fetch_project_detail_snapshot_rpc(project_id: str) -> dict[str, Any] | None:
+    client = get_supabase_client()
+    if client is None:
+        raise ProjectServiceError("Supabase 연결 설정을 확인하세요.")
+
+    response = _execute_public_read(
+        lambda: client.rpc(
+            PROJECT_DETAIL_SNAPSHOT_RPC,
+            {"p_project_id": project_id},
+        ).execute()
+    )
+    if response is None:
+        return None
+    if not response.data:
+        return None
+    return dict(response.data)
 
 
 def _project_status(project: dict[str, Any]) -> str:
@@ -600,6 +627,7 @@ def _fetch_like_counts(project_ids: tuple[str, ...]) -> dict[str, int]:
 
 def clear_project_caches() -> None:
     _fetch_home_project_snapshot_rpc.clear()
+    _fetch_project_detail_snapshot_rpc.clear()
     _fetch_public_projects.clear()
     _fetch_home_project_rows.clear()
     _fetch_public_projects_by_ids.clear()

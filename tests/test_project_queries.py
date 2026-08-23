@@ -14,6 +14,7 @@ from folio_app.services.project_queries import (
     HomeProjectSnapshot,
     HomeTagSummary,
     _fetch_home_project_snapshot_rpc,
+    _fetch_project_detail_snapshot_rpc,
     _fetch_home_tag_summary,
     _fetch_home_liked_project_ids,
     _fetch_public_projects,
@@ -382,6 +383,14 @@ class ProjectReadFailureTests(unittest.TestCase):
         self.assertIn("returns jsonb", schema_sql)
         self.assertIn("grant execute on function public.home_project_snapshot", schema_sql)
 
+    def test_schema_includes_project_detail_snapshot_rpc(self) -> None:
+        schema_sql = Path("supabase/schema.sql").read_text(encoding="utf-8")
+
+        self.assertIn("create or replace function public.project_detail_snapshot", schema_sql)
+        self.assertIn("grant execute on function public.project_detail_snapshot", schema_sql)
+        self.assertIn("'like_count'", schema_sql)
+        self.assertIn("'comment_count'", schema_sql)
+
     @patch("folio_app.services.project_queries._fetch_public_projects")
     def test_configuration_failure_is_not_reported_as_empty_data(self, fetch_projects) -> None:
         fetch_projects.side_effect = ProjectServiceError("Supabase 연결 설정을 확인하세요.")
@@ -399,8 +408,15 @@ class ProjectReadFailureTests(unittest.TestCase):
 
     @patch("folio_app.services.project_queries._attach_related_data")
     @patch("folio_app.services.project_queries._attach_project_detail_data")
+    @patch("folio_app.services.project_queries._fetch_project_detail_snapshot_rpc", return_value=None)
     @patch("folio_app.services.project_queries.get_supabase_client")
-    def test_get_project_uses_detail_metadata_path(self, get_client, attach_detail, attach_related) -> None:
+    def test_get_project_falls_back_to_detail_metadata_path(
+        self,
+        get_client,
+        _fetch_rpc,
+        attach_detail,
+        attach_related,
+    ) -> None:
         builder = MagicMock()
         builder.select.return_value = builder
         builder.eq.return_value = builder
@@ -422,6 +438,52 @@ class ProjectReadFailureTests(unittest.TestCase):
             [{"id": "project-1", "author_id": "author-1", "status": "published"}]
         )
         attach_related.assert_not_called()
+
+    @patch("folio_app.services.project_queries._fetch_project_detail_snapshot_rpc")
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_get_project_uses_detail_snapshot_rpc_when_available(self, get_client, fetch_rpc) -> None:
+        client = MagicMock()
+        get_client.return_value = client
+        fetch_rpc.return_value = {
+            "id": "project-1",
+            "status": "published",
+            "author": {"name": "작성자"},
+            "like_count": 3,
+            "comment_count": 2,
+        }
+
+        result = get_project("project-1")
+
+        self.assertEqual(result["id"], "project-1")
+        self.assertEqual(result["like_count"], 3)
+        fetch_rpc.assert_called_once_with("project-1")
+        client.table.assert_not_called()
+
+    @patch("folio_app.services.project_queries.get_supabase_client")
+    def test_project_detail_snapshot_rpc_maps_payload(self, get_client) -> None:
+        _fetch_project_detail_snapshot_rpc.clear()
+        rpc_builder = MagicMock()
+        rpc_builder.execute.return_value = SimpleNamespace(
+            data={
+                "id": "project-1",
+                "title": "상세",
+                "author": {"name": "작성자"},
+                "like_count": 1,
+                "comment_count": 0,
+            }
+        )
+        client = MagicMock()
+        client.rpc.return_value = rpc_builder
+        get_client.return_value = client
+
+        result = _fetch_project_detail_snapshot_rpc("project-1")
+
+        self.assertEqual(result["id"], "project-1")
+        self.assertEqual(result["author"], {"name": "작성자"})
+        client.rpc.assert_called_once_with(
+            "project_detail_snapshot",
+            {"p_project_id": "project-1"},
+        )
 
 
 if __name__ == "__main__":
