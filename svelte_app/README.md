@@ -44,6 +44,12 @@ npm run dev -- --host 127.0.0.1 --port 5173
 ## Validation
 
 ```powershell
+npm run verify
+```
+
+Equivalent expanded commands:
+
+```powershell
 npm run check
 npm run build
 npm run smoke

@@ -1,4 +1,7 @@
 import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+
+loadDotEnv();
 
 const host = process.env.SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.PORT || process.env.SMOKE_PORT || 4173);
@@ -85,4 +88,29 @@ function optionalProjectRoutes() {
 
 function sleep(milliseconds) {
 	return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function loadDotEnv() {
+	if (!existsSync('.env')) {
+		return;
+	}
+	const lines = readFileSync('.env', 'utf8').split(/\r?\n/);
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#')) {
+			continue;
+		}
+		const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+		if (!match || process.env[match[1]] !== undefined) {
+			continue;
+		}
+		process.env[match[1]] = unquoteEnvValue(match[2].trim());
+	}
+}
+
+function unquoteEnvValue(value) {
+	if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+		return value.slice(1, -1);
+	}
+	return value;
 }

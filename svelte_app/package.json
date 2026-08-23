@@ -11,7 +11,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"smoke": "node scripts/smoke-node.mjs",
-		"smoke:supabase": "node scripts/smoke-supabase.mjs"
+		"smoke:supabase": "node scripts/smoke-supabase.mjs",
+		"verify": "npm.cmd run check && npm.cmd run build && npm.cmd run smoke && npm.cmd run smoke:supabase"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.5.7",

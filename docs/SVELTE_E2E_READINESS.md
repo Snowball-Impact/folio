@@ -10,6 +10,7 @@ Validate that the SvelteKit app can replace the Streamlit public/user flows for 
 
 - [ ] `npm.cmd install` completes in `svelte_app/`.
 - [ ] `npm.cmd run check` returns 0 Svelte/TypeScript errors.
+- [ ] `npm.cmd run verify` passes the local build, Node route smoke, and Supabase contract smoke checks.
 - [ ] `npm.cmd run build` completes with `@sveltejs/adapter-node`.
 - [ ] `npm.cmd run smoke` passes against the Node build server.
 - [ ] `npm.cmd run smoke:supabase` passes or is intentionally skipped when Supabase env vars are unavailable.
