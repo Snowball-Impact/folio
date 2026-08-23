@@ -32,6 +32,7 @@
 | [PAAS_DEPLOYMENT.md](PAAS_DEPLOYMENT.md) | Docker 기반 PaaS 배포와 운영 전환 절차 |
 | [STREAMLIT_CLOUD_DEPLOYMENT.md](STREAMLIT_CLOUD_DEPLOYMENT.md) | 이전 Streamlit Community Cloud 배포 기준과 캡처 실험 기록 |
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
+| [SVELTE_E2E_READINESS.md](SVELTE_E2E_READINESS.md) | SvelteKit 전환 전 운영 환경·E2E go/no-go 체크리스트 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
 | [curation/powerbi_CONTENT_OPS.md](curation/powerbi_CONTENT_OPS.md) | Power BI 업데이트·커뮤니티·학습 콘텐츠 정기 수집과 점검 절차 |
 

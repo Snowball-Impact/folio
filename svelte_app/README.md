@@ -78,3 +78,5 @@ node build
 The spike now uses `@sveltejs/adapter-node` because project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints require a Node SSR runtime. Deploy to a host that can run the generated `build` server and provide private environment variables to server code.
 
 Automatic thumbnail capture still depends on Playwright and Chromium being available in the runtime. If the managed Playwright browser is not installed, set `CHROME_BINARY_PATH` to a system Chrome/Chromium binary.
+
+Use [../DOCS/SVELTE_E2E_READINESS.md](../DOCS/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist.
