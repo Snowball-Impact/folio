@@ -10,9 +10,28 @@ import type {
 } from '$lib/types';
 
 const HOME_LIKED_PROJECT_SAMPLE_MULTIPLIER = 20;
+const HOME_FILTER_FETCH_LIMIT = 500;
+const HOME_RAIL_PROJECT_LIMIT = 6;
+const HOME_TAG_LIMIT = 10;
 const REFERENCE_FETCH_LIMIT = 500;
-const POWERBI_URL_MARKERS = ['app.powerbi.com', 'powerbi.com'];
-const POWERBI_TAG_ALIASES = ['powerbi', 'power bi', 'pbi'];
+const REFERENCE_PLATFORM_RULES: Record<PlatformKey, { aliases: string[]; urlMarkers: string[] }> = {
+	powerbi: {
+		aliases: ['powerbi', 'power bi', 'pbi'],
+		urlMarkers: ['app.powerbi.com', 'powerbi.com']
+	},
+	tableau: {
+		aliases: ['tableau', 'viz gallery'],
+		urlMarkers: ['tableau.com', 'public.tableau.com']
+	},
+	datastudio: {
+		aliases: ['looker studio', 'data studio', 'data studio gallery', 'lookerstudio'],
+		urlMarkers: ['datastudio.google.com', 'lookerstudio.google.com']
+	},
+	streamlit: {
+		aliases: ['streamlit'],
+		urlMarkers: ['streamlit.app', 'streamlit.io/gallery', 'share.streamlit.io']
+	}
+};
 const PROJECT_TITLE_MAX_CHARS = 48;
 const PROJECT_ONE_LINER_MAX_CHARS = 56;
 const PROJECT_TAG_MAX_COUNT = 5;
@@ -37,12 +56,27 @@ export type ProjectSubmitInput = {
 };
 
 export const REFERENCE_PLATFORMS = {
+	tableau: {
+		key: 'tableau',
+		label: 'Tableau',
+		description: 'Tableau Public과 Viz Gallery에서 수집한 인터랙티브 시각화 레퍼런스입니다.'
+	},
 	powerbi: {
 		key: 'powerbi',
 		label: 'Power BI',
 		description: 'Power BI 공개 보고서와 대시보드 레퍼런스입니다.'
+	},
+	datastudio: {
+		key: 'datastudio',
+		label: 'Data Studio',
+		description: 'Looker Studio/Data Studio Gallery에서 수집한 보고서 레퍼런스입니다.'
+	},
+	streamlit: {
+		key: 'streamlit',
+		label: 'Streamlit',
+		description: 'Streamlit 공식 갤러리에서 수집한 앱 레퍼런스입니다.'
 	}
-} as const;
+} satisfies Record<PlatformKey, { key: PlatformKey; label: string; description: string }>;
 
 const emptyHomeSnapshot: HomeSnapshot = {
 	total_project_count: 0,
@@ -52,7 +86,10 @@ const emptyHomeSnapshot: HomeSnapshot = {
 	liked_projects: []
 };
 
-export async function loadHomeSnapshot(platformKey: PlatformKey | null = 'powerbi') {
+export async function loadHomeSnapshot(
+	platformKey: PlatformKey | null = 'powerbi',
+	filters: { search?: string; tag?: string } = {}
+) {
 	const supabase = getSupabaseClient();
 	if (!supabase) {
 		return {
@@ -61,7 +98,13 @@ export async function loadHomeSnapshot(platformKey: PlatformKey | null = 'powerb
 		};
 	}
 
-	const limit = 6;
+	const search = filters.search?.trim() ?? '';
+	const selectedTag = normalizeHomeTag(filters.tag);
+	if (search || selectedTag) {
+		return await loadFilteredHomeSnapshot(platformKey, search, selectedTag);
+	}
+
+	const limit = HOME_RAIL_PROJECT_LIMIT;
 	const { data, error } = await supabase.rpc('home_project_snapshot', {
 		p_limit: limit,
 		p_tag_limit: 40,
@@ -78,6 +121,56 @@ export async function loadHomeSnapshot(platformKey: PlatformKey | null = 'powerb
 
 	return {
 		snapshot: normalizeHomeSnapshot(data),
+		error: ''
+	};
+}
+
+async function loadFilteredHomeSnapshot(platformKey: PlatformKey | null, search: string, selectedTag: string) {
+	const supabase = getSupabaseClient();
+	if (!supabase) {
+		return {
+			snapshot: emptyHomeSnapshot,
+			error: 'Supabase 환경 변수가 설정되지 않았습니다.'
+		};
+	}
+
+	const { data, error } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('is_public', true)
+		.eq('status', 'published')
+		.order('created_at', { ascending: false })
+		.limit(HOME_FILTER_FETCH_LIMIT);
+
+	if (error) {
+		return {
+			snapshot: emptyHomeSnapshot,
+			error: '홈 프로젝트를 불러오지 못했습니다.'
+		};
+	}
+
+	const platformProjects = (Array.isArray(data) ? data : [])
+		.map(normalizeProject)
+		.filter((project) => !platformKey || referencePlatformForProject(project) === platformKey);
+	const projects = await attachPublicProjectMetadata(platformProjects);
+	const filteredProjects = projects.filter(
+		(project) => projectMatchesSearch(project, search) && projectMatchesTag(project, selectedTag)
+	);
+	const viewedProjects = [...filteredProjects].sort(
+		(first, second) => second.view_count - first.view_count || compareDateDesc(first, second)
+	);
+	const likedProjects = [...filteredProjects].sort(
+		(first, second) => second.like_count - first.like_count || compareDateDesc(first, second)
+	);
+
+	return {
+		snapshot: {
+			total_project_count: projects.length,
+			popular_tags: popularTagsFromProjects(projects),
+			recent_projects: filteredProjects.slice(0, HOME_RAIL_PROJECT_LIMIT),
+			viewed_projects: viewedProjects.slice(0, HOME_RAIL_PROJECT_LIMIT),
+			liked_projects: likedProjects.slice(0, HOME_RAIL_PROJECT_LIMIT)
+		},
 		error: ''
 	};
 }
@@ -121,7 +214,7 @@ export async function loadReferenceProjects(
 	sort: ReferenceSort = 'latest'
 ): Promise<ReferenceProjectsResult> {
 	const supabase = getSupabaseClient();
-	const platform = REFERENCE_PLATFORMS.powerbi;
+	const platform = REFERENCE_PLATFORMS[platformKey] ?? REFERENCE_PLATFORMS.powerbi;
 	if (!supabase) {
 		return {
 			platform,
@@ -130,15 +223,6 @@ export async function loadReferenceProjects(
 			error: 'Supabase 환경 변수가 설정되지 않았습니다.'
 		};
 	}
-	if (platformKey !== 'powerbi') {
-		return {
-			platform,
-			sort,
-			projects: [],
-			error: '아직 공개된 레퍼런스 플랫폼이 아닙니다.'
-		};
-	}
-
 	const { data, error } = await supabase
 		.from('projects')
 		.select(projectListColumns)
@@ -355,7 +439,7 @@ function normalizeHomeSnapshot(value: unknown): HomeSnapshot {
 	const payload = asRecord(value);
 	return {
 		total_project_count: Number(payload.total_project_count ?? 0),
-		popular_tags: asStringArray(payload.popular_tags),
+		popular_tags: normalizeHomePopularTags(asStringArray(payload.popular_tags)),
 		recent_projects: asProjectArray(payload.recent_projects),
 		viewed_projects: asProjectArray(payload.viewed_projects),
 		liked_projects: asProjectArray(payload.liked_projects)
@@ -410,6 +494,60 @@ async function attachPublicProjectMetadata(projects: ProjectCard[]) {
 	});
 }
 
+function normalizeHomeTag(value: string | undefined) {
+	const tag = String(value ?? '').trim();
+	return tag && tag !== '전체' ? tag : '';
+}
+
+function projectMatchesTag(project: ProjectCard, selectedTag: string) {
+	return !selectedTag || project.tags.includes(selectedTag);
+}
+
+function projectMatchesSearch(project: ProjectCard, search: string) {
+	const term = search.trim().toLowerCase();
+	if (!term) {
+		return true;
+	}
+	const author = project.author ?? {};
+	const fields = [
+		project.title,
+		project.one_liner,
+		project.problem,
+		project.dataset,
+		project.process,
+		project.insights,
+		project.tags.join(' '),
+		author.name,
+		author.organization,
+		project.created_at
+	];
+	return fields.some((field) => String(field ?? '').toLowerCase().includes(term));
+}
+
+function popularTagsFromProjects(projects: ProjectCard[], limit = HOME_TAG_LIMIT) {
+	const counts = new Map<string, number>();
+	for (const project of projects) {
+		for (const tag of project.tags) {
+			if (isExcludedHomeTag(tag)) {
+				continue;
+			}
+			counts.set(tag, (counts.get(tag) ?? 0) + 1);
+		}
+	}
+	return [...counts.entries()]
+		.sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0], 'ko-KR'))
+		.slice(0, limit)
+		.map(([tag]) => tag);
+}
+
+function normalizeHomePopularTags(tags: string[], limit = HOME_TAG_LIMIT) {
+	return tags.filter((tag) => !isExcludedHomeTag(tag)).slice(0, limit);
+}
+
+function isExcludedHomeTag(tag: string) {
+	const normalized = tag.trim().toLowerCase().replaceAll(' ', '');
+	return ['powerbi', 'pbi', 'reference', 'references', '레퍼런스', '참고', '전체', 'all'].includes(normalized);
+}
 function sortReferenceProjects(projects: ProjectCard[], sort: ReferenceSort) {
 	if (sort === 'likes') {
 		projects.sort((first, second) => second.like_count - first.like_count || compareDateDesc(first, second));
@@ -426,21 +564,24 @@ function compareDateDesc(first: ProjectCard, second: ProjectCard) {
 	return Date.parse(second.created_at || '') - Date.parse(first.created_at || '');
 }
 
-function referencePlatformForProject(project: ProjectCard) {
-	if (project.platform_key === 'powerbi') {
-		return 'powerbi';
+function referencePlatformForProject(project: ProjectCard): PlatformKey | null {
+	if (project.platform_key && project.platform_key in REFERENCE_PLATFORM_RULES) {
+		return project.platform_key;
 	}
 
 	const tags = new Set(project.tags.map((tag) => tag.trim().toLowerCase()).filter(Boolean));
-	if (POWERBI_TAG_ALIASES.some((alias) => tags.has(alias))) {
-		return 'powerbi';
-	}
-
 	const urlText = [project.power_bi_url, project.report_url, project.github_url, project.thumbnail_url]
 		.map((value) => value?.toLowerCase() ?? '')
 		.join(' ');
-	if (POWERBI_URL_MARKERS.some((marker) => urlText.includes(marker))) {
-		return 'powerbi';
+
+	for (const platformKey of Object.keys(REFERENCE_PLATFORM_RULES) as PlatformKey[]) {
+		const rules = REFERENCE_PLATFORM_RULES[platformKey];
+		if (rules.aliases.some((alias) => tags.has(alias))) {
+			return platformKey;
+		}
+		if (rules.urlMarkers.some((marker) => urlText.includes(marker))) {
+			return platformKey;
+		}
 	}
 
 	return null;

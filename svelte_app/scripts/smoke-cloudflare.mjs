@@ -10,7 +10,21 @@ const requestTimeoutMs = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 10000);
 const projectId = process.env.SMOKE_PROJECT_ID?.trim() || '00000000-0000-0000-0000-000000000000';
 const commentId = process.env.SMOKE_COMMENT_ID?.trim() || '00000000-0000-0000-0000-000000000000';
 
-const publicRoutes = ['/', '/powerbi', '/references/powerbi', ...optionalProjectRoutes()];
+const publicRoutes = [
+	'/',
+	'/?page=Home',
+	'/?page=About',
+	'/?page=Policy&type=privacy',
+	'/?page=Power%20BI&topic=cert',
+	'/about',
+	'/policy/privacy',
+	'/policy/terms',
+	'/policy?type=privacy',
+	'/powerbi',
+	'/powerbi?topic=cert',
+	'/references/powerbi',
+	...optionalProjectRoutes()
+];
 const anonymousPostChecks = [
 	`/api/projects/${encodeURIComponent(projectId)}/thumbnail`,
 	`/api/projects/${encodeURIComponent(projectId)}/thumbnail-capture`,
@@ -148,7 +162,16 @@ async function fetchWithTimeout(url, options, timeoutMs) {
 
 function optionalProjectRoutes() {
 	const id = process.env.SMOKE_PROJECT_ID?.trim();
-	return id ? [`/projects/${encodeURIComponent(id)}`] : [];
+	if (!id) {
+		return [];
+	}
+	const encoded = encodeURIComponent(id);
+	return [
+		`/projects/${encoded}`,
+		`/?page=Home&project_id=${encoded}`,
+		`/?page=Reference&project_id=${encoded}&platform=powerbi`,
+		`/?page=My%20Page&edit_project=${encoded}`
+	];
 }
 
 function sleep(milliseconds) {

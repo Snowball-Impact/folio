@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
-	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import { currentSession } from '$lib/auth';
 	import { publishProjectPbix } from '$lib/powerbi-publish';
 	import { createProject, type ProjectSubmitInput } from '$lib/projects';
 	import { captureProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
-	import type { ProjectCard as ProjectCardType } from '$lib/types';
 
 	const platformOptions = [
 		{ key: 'other', label: '기타' },
@@ -38,49 +36,21 @@
 	let thumbnailFile = $state<File | null>(null);
 	let thumbnailPreviewUrl = $state<string | null>(null);
 	let pbixFile = $state<File | null>(null);
-
-	const previewProject = $derived<ProjectCardType>({
-		id: 'submit-preview',
-		author_id: '',
-		title: input.title.trim() || '프로젝트명이 여기에 표시됩니다.',
-		one_liner: input.one_liner.trim() || '프로젝트 한 줄 소개가 표시됩니다.',
-		problem: input.problem,
-		dataset: input.dataset,
-		process: input.process,
-		insights: input.insights,
-		tags: previewTags(input.tags, input.platform),
-		thumbnail_url:
-			input.thumbnail_mode === 'manual_url'
-				? input.thumbnail_url.trim() || null
-				: input.thumbnail_mode === 'upload'
-					? thumbnailPreviewUrl
-					: null,
-		thumbnail_mode: input.thumbnail_mode,
-		power_bi_url: input.power_bi_url.trim() || null,
-		report_url: input.report_url.trim() || null,
-		github_url: input.github_url.trim() || null,
-		platform_key: input.platform === 'other' ? null : input.platform,
-		project_type: input.platform === 'datastudio' ? 'looker' : input.platform === 'other' ? 'other' : input.platform,
-		status: 'published',
-		embed_status: input.power_bi_url.trim() ? 'supported' : 'external_only',
-		is_public: input.is_public,
-		view_count: 0,
-		created_at: new Date().toISOString(),
-		updated_at: new Date().toISOString(),
-		author: { name: '작성자' },
-		like_count: 0,
-		comment_count: 0
-	});
+	let authChecked = $state(false);
+	let isAuthenticated = $state(false);
 
 	onMount(async () => {
 		const session = await currentSession();
-		if (!session) {
-			await goto('/login?next=/submit');
-		}
+		isAuthenticated = Boolean(session);
+		authChecked = true;
 	});
 
 	async function submitProject(event: SubmitEvent) {
 		event.preventDefault();
+		if (!isAuthenticated) {
+			await goto('/login?next=/submit');
+			return;
+		}
 		message = '';
 		error = '';
 		if (input.thumbnail_mode === 'upload' && !thumbnailFile) {
@@ -147,19 +117,6 @@
 		pbixFile = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 	}
 
-	function previewTags(tags: string, platform: ProjectSubmitInput['platform']) {
-		const rawTags = tags
-			.replaceAll('#', '')
-			.split(',')
-			.map((tag) => tag.trim())
-			.filter(Boolean);
-		const uniqueTags = [...new Set(rawTags)];
-		if (platform === 'other') {
-			return uniqueTags.slice(0, 5);
-		}
-		const platformLabel = platformOptions.find((option) => option.key === platform)?.label ?? '';
-		return [platformLabel, ...uniqueTags.filter((tag) => tag.toLowerCase() !== platformLabel.toLowerCase())].slice(0, 5);
-	}
 </script>
 
 <svelte:head>
@@ -167,17 +124,24 @@
 	<meta name="description" content="FOLIO에 데이터 분석 프로젝트를 등록합니다." />
 </svelte:head>
 
-<section class="submit-hero">
-	<div>
-		<div class="eyebrow">Submit</div>
+<section class="submit-hero page-image-hero">
+	<div class="page-image-hero-copy">
+		<div class="page-image-hero-eyebrow">Submit</div>
 		<h1>새 프로젝트 등록</h1>
-		<p>데이터 분석 과정과 결과물을 포트폴리오로 공개하세요.</p>
+		<p>당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.</p>
 	</div>
-	<div class="detail-card-preview">
-		<ProjectCard project={previewProject} />
+	<div class="page-image-hero-visual">
+		<img src="/hero-submit.webp" alt="데이터 분석 프로젝트 등록 화면 일러스트" />
 	</div>
 </section>
 
+{#if authChecked && !isAuthenticated}
+	<section class="login-required-panel" aria-label="로그인 필요">
+		<p>프로젝트를 등록하려면 로그인이 필요합니다.</p>
+		<a class="primary" href="/login?next=/submit">로그인하기</a>
+		<a href="/">홈으로</a>
+	</section>
+{:else if authChecked}
 <form class="project-form" onsubmit={submitProject}>
 	{#if message}
 		<div class="auth-message success">{message}</div>
@@ -301,3 +265,4 @@
 		<button type="submit" disabled={submitting}>{submitting ? '등록 중...' : '프로젝트 등록하기'}</button>
 	</div>
 </form>
+{/if}

@@ -110,12 +110,18 @@
 	<meta name="description" content="FOLIO 프로필과 내 프로젝트를 관리합니다." />
 </svelte:head>
 
-<section class="my-hero">
-	<div>
-		<div class="eyebrow">My Page</div>
+<section class="my-hero page-image-hero">
+	<div class="page-image-hero-copy">
+		<div class="page-image-hero-eyebrow">My Page</div>
 		<h1>마이 페이지</h1>
 		<p>프로필과 포트폴리오를 한곳에서 관리하세요.</p>
 	</div>
+	<div class="page-image-hero-visual">
+		<img src="/hero-my-page-v2.webp" alt="프로필 카드와 포트폴리오 통계를 표현한 일러스트" />
+	</div>
+</section>
+
+<section class="profile-overview">
 	<div class="profile-summary">
 		<strong>{profile?.name ?? '사용자'}</strong>
 		<span>{profile?.email}</span>
@@ -124,6 +130,24 @@
 		{/if}
 		<p class:empty={!profile?.bio}>{profile?.bio || '아직 자기소개가 없습니다.'}</p>
 		<button type="button" onclick={startProfileEdit}>프로필 편집</button>
+	</div>
+	<div class="stats-grid" aria-label="내 프로젝트 통계">
+		<div>
+			<span>프로젝트</span>
+			<strong>{formatCount(stats.projectCount)}</strong>
+		</div>
+		<div>
+			<span>조회</span>
+			<strong>{formatCount(stats.viewCount)}</strong>
+		</div>
+		<div>
+			<span>좋아요</span>
+			<strong>{formatCount(stats.likeCount)}</strong>
+		</div>
+		<div>
+			<span>댓글</span>
+			<strong>{formatCount(stats.commentCount)}</strong>
+		</div>
 	</div>
 </section>
 
@@ -156,26 +180,7 @@
 		</form>
 	</section>
 {/if}
-
-<section class="stats-grid" aria-label="내 프로젝트 통계">
-	<div>
-		<span>프로젝트</span>
-		<strong>{formatCount(stats.projectCount)}</strong>
-	</div>
-	<div>
-		<span>조회</span>
-		<strong>{formatCount(stats.viewCount)}</strong>
-	</div>
-	<div>
-		<span>좋아요</span>
-		<strong>{formatCount(stats.likeCount)}</strong>
-	</div>
-	<div>
-		<span>댓글</span>
-		<strong>{formatCount(stats.commentCount)}</strong>
-	</div>
-</section>
-
+`r`n
 <section class="portfolio-section">
 	<div class="section-header">
 		<div>

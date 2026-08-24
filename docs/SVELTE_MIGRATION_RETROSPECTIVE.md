@@ -127,6 +127,36 @@ Streamlit은 화면 선언, 서버 상태, 렌더링, 사용자 이벤트를 한
 
 코드량 증가는 실패가 아니라 경계가 명시화된 비용이다. 다만 UI 컴포넌트 중복이 늘어날 때는 공통화 기준을 다시 봐야 한다.
 
+### 11. 라우트 구현과 메뉴 노출은 별개로 검증한다
+
+이번 UI parity 점검에서 Svelte에는 회원가입 메뉴, 독립 레퍼런스 메뉴, 홈 카드 상단 플랫폼 뱃지처럼 원본 Streamlit 헤더/카드에는 없던 요소가 남아 있었다. 반대로 프로젝트 등록 메뉴와 알림 `N` 배지처럼 원본에 보이던 요소는 노출 조건이 달라져 있었다.
+
+원인은 기능 단위로 route와 컴포넌트 존재 여부를 확인하면서, 원본 캡처의 헤더 노출 조건과 카드 내부 정보 밀도를 별도 계약으로 닫지 않은 것이다. 앞으로 parity 작업은 다음을 분리해서 확인한다.
+
+- route가 존재하는지
+- 메뉴에 노출되는지
+- 비로그인/로그인 상태별 노출 조건이 원본과 같은지
+- 홈 필터/태그처럼 RPC 응답과 클라이언트 fallback이 같은 제외 규칙을 쓰는지
+- 카드 위계에서 원본에 없던 badge, eyebrow, metadata가 추가되지 않았는지
+
+### 12. 작은 UI 수정은 먼저 selector 계약을 닫고 편집한다
+
+이번 nav font/underline/card footer 같은 작은 수정이 예상보다 오래 걸렸다. 원인은 구현 난이도보다 작업 순서와 편집 환경에 있었다.
+
+- `app.css`가 이미 큰 누적 diff를 가진 상태라 전체 diff가 노이즈가 컸고, 이번 변경만 빠르게 읽기 어려웠다.
+- `apply_patch`가 Windows sandbox helper 오류로 실패해 PowerShell 문자열 치환으로 우회했다.
+- PowerShell here-string, quote, LF/CRLF 차이 때문에 첫 치환 패턴이 빗나갔다.
+- 처음부터 정확한 selector와 DOM 블록을 짧게 캡처한 뒤 바꾸지 않아, “수정 -> 확인 -> 재수정” 루프가 늘어났다.
+- nav에는 `a`와 `button`이 섞여 있었는데, 처음에는 hover underline을 `a` 중심으로 생각해 button parity를 마지막에 다시 잡았다.
+
+다음부터 사소한 UI 수정은 바로 코드를 쓰기 전에 3분 안에 아래 계약을 닫는다.
+
+1. 바꿀 DOM 블록 1개와 CSS selector 1개를 짧게 확인한다.
+2. link/button처럼 같은 시각 역할을 하는 요소 타입을 모두 열거한다.
+3. LF/CRLF가 섞인 파일은 here-string 치환보다 좁은 수동 편집 또는 AST/formatter 친화적 변경을 우선한다.
+4. 전체 diff 대신 `rg`와 작은 `Get-Content -Skip/-First`로 변경 범위만 검증한다.
+5. 마지막에는 `npm.cmd run check`와 해당 파일 `git diff --check`만 우선 돌리고, 빌드는 범위가 커질 때 추가한다.
+
 ## 다음 작업자를 위한 체크리스트
 
 1. 새 Svelte 화면을 만들기 전에 route별 데이터 계약을 먼저 문서화한다.
@@ -136,6 +166,8 @@ Streamlit은 화면 선언, 서버 상태, 렌더링, 사용자 이벤트를 한
 5. `npm.cmd run verify`를 마지막 gate로 사용한다.
 6. 인증·업로드·PBIX·SMTP·캡처는 자동 smoke와 별개로 실제 계정 staging QA를 남긴다.
 7. Windows에서 JSON/Markdown을 편집하면 BOM, backtick, CRLF 경고를 확인한다.
+8. UI parity에서는 route 존재, 메뉴 노출, 인증 상태별 노출 조건, 카드 metadata 밀도를 각각 원본 캡처와 대조한다.
+9. 작은 UI 수정은 DOM/selector/요소 타입 계약을 먼저 닫고, 큰 누적 diff 대신 변경 범위만 짧게 검증한다.
 
 ## 남은 리스크
 
@@ -154,3 +186,20 @@ Streamlit은 화면 선언, 서버 상태, 렌더링, 사용자 이벤트를 한
 - 실제 장애 또는 no-go 항목
 - Streamlit에서 Svelte로 traffic을 넘기는 기준
 - 남겨둘 Streamlit fallback 범위
+
+## 원본 클로닝 회고: 파악 순서
+
+이번 전환에서 가장 큰 교훈은 “코드베이스 전수 조사”와 “원본 UI 클로닝 조사”가 다르다는 점이다. 코드와 문서만 보면 route, 데이터, 컴포넌트는 파악할 수 있지만, 사용자가 보는 원본의 기본 상태와 상호작용 상태는 놓치기 쉽다.
+
+다음 작업자는 원본 클로닝을 할 때 이 순서를 따른다.
+
+1. 원본 Streamlit과 Svelte를 동시에 localhost로 띄운다.
+2. 같은 viewport, 같은 인증 상태, 같은 query param으로 캡처한다.
+3. screenshot만 보지 말고 DOM 수치를 저장한다. 최소 `x/y/w/h`, card count, row height, tab count, link count, scrollHeight를 남긴다.
+4. closed/open/hover/click/pagination 상태를 각각 따로 캡처한다.
+5. 원본에 없던 메뉴, badge, label, helper text가 Svelte에 추가되지 않았는지 확인한다.
+6. 원본에 있던 CTA, 알림 badge, 프로젝트 등록, 영상 카드, 한글 요약, footer label이 빠지지 않았는지 확인한다.
+7. 원본과 의도적으로 다르게 가는 부분은 “미완료”가 아니라 “제품 결정”으로 문서에 남긴다.
+8. 마지막에 `npm.cmd run check`, `git diff --check`, screenshot/contact sheet/report artifact를 함께 남긴다.
+
+특히 Streamlit의 `st.tabs`, `st.expander`, popover, custom HTML은 Svelte의 단순 card/list로 바꾸는 순간 정보 밀도와 사용 감각이 크게 달라진다. Power BI 업데이트 화면에서 접힌 row와 YouTube 영상 card를 늦게 잡은 것이 대표 사례다. 앞으로는 기능 구현보다 먼저 기본 UI 상태 계약을 정의한다.

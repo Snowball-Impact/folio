@@ -1,6 +1,6 @@
 # FOLIO Svelte Spike
 
-SvelteKit 기반 FOLIO 공개 조회 화면 스파이크입니다. 현재 범위는 홈(`/`), 프로젝트 상세(`/projects/:id`), Power BI 레퍼런스(`/references/powerbi`), Power BI 콘텐츠 허브(`/powerbi`), 이메일 Auth 시작점(`/login`, `/signup`)입니다.
+SvelteKit 기반 FOLIO Cloudflare 전환 앱입니다. 현재 범위는 공개 조회뿐 아니라 홈(`/`), 프로젝트 상세(`/projects/:id`), Power BI 레퍼런스(`/references/powerbi`), Power BI 콘텐츠 허브(`/powerbi`), 인증/온보딩, 프로젝트 등록·수정, 마이페이지, 알림, 좋아요/댓글, 썸네일/PBIX 서버 엔드포인트까지 포함합니다.
 
 ## Setup
 

@@ -31,6 +31,16 @@
 		notifications = result.notifications;
 		error = result.error;
 		loading = false;
+		if (!result.error && notifications.some((notification) => !notification.is_read)) {
+			const ok = await markAllNotificationsRead();
+			if (ok) {
+				notifications = notifications.map((notification) => ({
+					...notification,
+					is_read: true,
+					read_at: notification.read_at ?? new Date().toISOString()
+				}));
+			}
+		}
 	}
 
 	async function openProject(notification: NotificationItem) {
@@ -63,15 +73,14 @@
 	<meta name="description" content="FOLIO 프로젝트 댓글 알림을 확인합니다." />
 </svelte:head>
 
-<section class="notification-hero">
-	<div>
-		<div class="eyebrow">Notifications</div>
+<section class="notification-hero page-image-hero">
+	<div class="page-image-hero-copy">
+		<div class="page-image-hero-eyebrow">Notifications</div>
 		<h1>알림</h1>
 		<p>내 프로젝트에 새로 들어온 반응을 확인하세요.</p>
 	</div>
-	<div class="notification-count-card">
-		<span>새 알림</span>
-		<strong>{unreadCount}</strong>
+	<div class="page-image-hero-visual">
+		<img src="/hero-my-page-v2.webp" alt="프로필 카드와 포트폴리오 통계를 표현한 일러스트" />
 	</div>
 </section>
 
@@ -79,7 +88,7 @@
 	<div class="section-header">
 		<div>
 			<h2>최근 알림</h2>
-			<p>프로젝트 보기 또는 모두 읽음으로 알림 상태를 정리할 수 있습니다.</p>
+			<p>알림 페이지를 열면 새 알림은 읽음 처리됩니다.</p>
 		</div>
 		{#if unreadCount > 0}
 			<button type="button" onclick={markAllRead}>모두 읽음</button>
