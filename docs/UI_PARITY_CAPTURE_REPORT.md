@@ -190,6 +190,156 @@ Svelte uses real URL routes:
 
 Impact: Svelte improves sharability and deployment semantics, but old query-param URLs need redirect or compatibility decisions before migration.
 
+## Design System Parity
+
+Design audit reference: `docs/DESIGN_SYSTEM.md` plus Streamlit styles in `folio_app/styles/*` and Svelte global styles in `svelte_app/src/app.css`.
+
+### Token Alignment
+
+Svelte matches the core FOLIO tokens:
+
+- `--folio-navy: #0b1f3f`
+- `--folio-blue: #1459c8`
+- `--folio-mint: #0a9485`
+- `--folio-bg: #f4f7fd`
+- `--folio-surface: #ffffff`
+- `--folio-border: #dce5f7`
+- `--folio-muted: #5c6f8a`
+- `--folio-subtle: #eef3fd`
+- Inter/system font stack
+- 14px base body size, `line-height: 1.6`, `word-break: keep-all`
+
+Impact: The Svelte app preserves the main visual language and should not feel like a separate brand.
+
+### Layout And Surface Alignment
+
+Covered well in Svelte:
+
+- Light blue-gray app background with white surfaces.
+- `max-width: 1440px` page shell.
+- Dark navy sticky header.
+- Hero sections use white surface, border, 16px radius, and desktop padding close to the design system.
+- Cards and panels use restrained 8px radius.
+- Project cards use 16:9 cover area, title/summary/tags/meta ordering, and restrained hover behavior.
+- Buttons, chips, inputs, panels, and forms mostly follow the documented token set.
+
+Differences:
+
+- Svelte uses a global `--folio-shadow` and applies visible shadows to many hero/card surfaces; the design system emphasizes border/surface first and limited decoration.
+- Streamlit's home gallery is rail-oriented; Svelte uses static grids for rails/references, so the home-gallery interaction feel is not identical.
+- Svelte mobile heroes collapse to one column, but some visual panels remain visible where the design system says visuals can be hidden if they make mobile too long.
+
+### Header Alignment
+
+Streamlit design system header:
+
+- Dark navy surface.
+- Left logo image.
+- Right nav.
+- Current page is shown with underline.
+- Power BI uses a popover menu.
+- Notifications can appear as a popover with recent items.
+
+Svelte header:
+
+- Dark navy surface and right nav are aligned.
+- Brand is text `FOLIO`, not the Streamlit logo image.
+- No active underline/current-page state.
+- Power BI is a single link, not a topic popover.
+- Notifications are a badge link, not a preview popover.
+
+Impact: Header is functionally simpler and visually close, but not design-system parity.
+
+### Hero Alignment
+
+Svelte generally follows the Page Hero rules:
+
+- White surface.
+- 1px border.
+- 16px radius.
+- Desktop padding close to `28px 42px 34px`.
+- Large navy title, muted description, blue eyebrow.
+
+Gaps:
+
+- Streamlit reference hero has platform logo/tabs positioning rules; Svelte reference visual uses a two-column decorative mini panel and currently only Power BI.
+- About hero and policy page hero do not exist in Svelte.
+- CTA/spacer consistency for subpage heroes was not fully verified visually because in-session image preview was unavailable.
+
+### Project Card Alignment
+
+Svelte aligns with the card system in these ways:
+
+- 16:9 card cover.
+- Title, summary, tags, meta ordering.
+- Tags are pill-shaped and subdued.
+- Hover is restrained: slight translate and blue border.
+- No iframe hover preview or large scale hover.
+
+Gaps:
+
+- Streamlit has 24 auto-cover color/pattern variations; Svelte currently uses a simpler gradient fallback unless `thumbnail_url` exists.
+- Streamlit card rail behavior and incremental reference loading are richer than Svelte's static grid/load-more pattern.
+- Need manual screenshot review for title clamp, Korean wrapping, and mobile card density.
+
+### Detail Page Alignment
+
+Streamlit design system calls out a compact detail action bar:
+
+- View count, comment count, public status, link copy, and like should sit in a coherent action group.
+- Like should remain adjacent to the action group.
+- External result links should live below the representative result section.
+
+Svelte detail:
+
+- Like is shown in the hero action area.
+- View/like/comment counts are metadata pills in the hero.
+- External links are placed below the representative visual section, which is aligned.
+- Link copy/share and report actions are absent.
+
+Impact: Svelte detail is readable and token-aligned, but it does not yet match the detailed action-bar composition specified by the design system.
+
+### Form And Profile Alignment
+
+Svelte aligns with:
+
+- Section-card form layout.
+- 8px radius inputs/buttons.
+- Primary/secondary button styles.
+- Profile summary inside My Page.
+- Empty states with next action.
+
+Gaps:
+
+- Streamlit form section headers use title-left/description-right patterns more explicitly; Svelte form headers are simpler stacked blocks.
+- Streamlit project form includes richer platform/thumbnail/PBIX helper panels and preview affordances.
+- Svelte profile summary is functionally equivalent but visually less close to the documented centered profile summary pattern.
+
+### Footer Alignment
+
+Streamlit footer includes:
+
+- Copyright.
+- Version/metadata center slot.
+- Policy/contact links.
+
+Svelte footer currently includes only:
+
+- `Copyright © 2026 Snowball Impact. All rights reserved.`
+
+Impact: Footer is not design-system parity and should be updated alongside About/policy routes.
+
+### Design Priority Gaps
+
+1. Add logo image usage or decide that text brand is the new standard.
+2. Add active nav underline/current-page styling.
+3. Add Power BI topic navigation in the header or another design-system-consistent place.
+4. Add notification preview popover or document the simpler badge-link decision.
+5. Add footer policy/contact links and optional version slot.
+6. Bring Svelte detail action bar closer to `Detail Action Bar` guidance: view/comment/public/copy/like grouping.
+7. Recreate or deliberately simplify Streamlit's 24 auto-cover card variation system.
+8. Review mobile screenshots manually for hero visual hiding, card density, and Korean wrapping.
+
 ## Data And Service Parity
 
 Core Supabase contracts used by Svelte match the Streamlit data model:
@@ -242,3 +392,4 @@ Notable Streamlit-side service areas not yet surfaced in Svelte UI:
 - Image files were generated successfully, but in-session image preview was blocked by the Windows sandbox helper. The files are available in the workspace for manual review.
 - During Streamlit capture, runtime deprecation warnings appeared for `st.cache` and `st.components.v1.html`; this does not block parity but is another reason to continue the Svelte migration.
 - Local Svelte verification had already passed before this capture set.
+
