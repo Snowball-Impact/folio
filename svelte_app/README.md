@@ -108,4 +108,4 @@ The spike now uses `@sveltejs/adapter-cloudflare` because the chosen deployment 
 
 Automatic thumbnail capture is not Cloudflare-compatible as currently implemented because it depends on local Playwright/Chromium. For Cloudflare staging, use manual URL/upload thumbnails or replace capture with Cloudflare Browser Run before enabling it.
 
-Use [../docs/CLOUDFLARE_DEPLOYMENT.md](../docs/CLOUDFLARE_DEPLOYMENT.md) for the Cloudflare deployment plan, [../docs/SVELTE_E2E_READINESS.md](../docs/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/SVELTE_STAGING_QA_RUNBOOK.md](../docs/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.
+Use [../docs/svelte/CLOUDFLARE_DEPLOYMENT.md](../docs/svelte/CLOUDFLARE_DEPLOYMENT.md) for the Cloudflare deployment plan, [../docs/svelte/SVELTE_E2E_READINESS.md](../docs/svelte/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md](../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.

@@ -2,6 +2,7 @@
 
 새 대화에서 작업을 이어갈 때 이 문서를 먼저 읽어라.
 코드와 문서가 다르면 코드베이스를 확인한 뒤 이 문서를 고쳐라.
+문서 영역은 `docs/common/`, `docs/streamlit/`, `docs/svelte/`, `docs/migration/`, `docs/legacy/`로 나뉜다. SvelteKit 작업은 `docs/svelte/README.md`, Streamlit 원본 작업은 `docs/streamlit/README.md`, 이전 증거는 `docs/migration/README.md`를 이어서 읽는다.
 민감 정보(API 키, 비밀번호 등)는 이 문서에 기록하지 않는다.
 
 ---
@@ -11,7 +12,7 @@
 **FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
 핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
 
-2026-08 기준 제품 방향은 `docs/MVP_PRD.md`를 기본으로 하며, 커뮤니티 게시판은 `docs/FOLIO_Community_PRD.md`, 운영자 화면은 `docs/FOLIO_Admin_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI-first 콘텐츠, 데이터 시각화 갤러리 경험, 커뮤니티/운영 기능을 단계적으로 결합하는 것이다.
+2026-08 기준 제품 방향은 `docs/common/MVP_PRD.md`를 기본으로 하며, 커뮤니티 게시판은 `docs/common/FOLIO_Community_PRD.md`, 운영자 화면은 `docs/common/FOLIO_Admin_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI-first 콘텐츠, 데이터 시각화 갤러리 경험, 커뮤니티/운영 기능을 단계적으로 결합하는 것이다.
 
 - **스택**: Streamlit + Supabase (PostgreSQL + Auth)
 - **실행**: `streamlit run app.py` → `http://localhost:8501`
@@ -25,8 +26,8 @@
 - 마지막 원격 반영 기준 커밋은 `b361f37 Fix home load milestone target selection`이다.
 - 현재 작업 트리는 성능 개선 배포 직후 깨끗했다. 문서 교훈 기록은 별도 변경으로 남긴다.
 - 새 PRD 문서:
-  - `docs/FOLIO_Community_PRD.md`: 하나의 `커뮤니티` 게시판으로 공지/질문/팁·노하우/기타를 다룬다. 별도 Q&A/자유게시판/공지사항 화면을 만들지 않는다. MVP 댓글은 기존 프로젝트 댓글 UI/기능을 확장해 재사용하는 방향이다.
-  - `docs/FOLIO_Admin_PRD.md`: `/admin` 통합 운영 화면이다. 승인·심사 시스템이 아니라 프로젝트/커뮤니티/댓글/신고/사용자를 조회하고 필요 시 숨김/공개/삭제 또는 신고 상태 변경을 하는 사후 관리 도구다.
+  - `docs/common/FOLIO_Community_PRD.md`: 하나의 `커뮤니티` 게시판으로 공지/질문/팁·노하우/기타를 다룬다. 별도 Q&A/자유게시판/공지사항 화면을 만들지 않는다. MVP 댓글은 기존 프로젝트 댓글 UI/기능을 확장해 재사용하는 방향이다.
+  - `docs/common/FOLIO_Admin_PRD.md`: `/admin` 통합 운영 화면이다. 승인·심사 시스템이 아니라 프로젝트/커뮤니티/댓글/신고/사용자를 조회하고 필요 시 숨김/공개/삭제 또는 신고 상태 변경을 하는 사후 관리 도구다.
 - 상세페이지 신고 기능은 운영자에게 접수하는 흐름으로 둔다. 프로젝트 소유자에게 신고 row나 신고 메모를 직접 노출하지 않는다. 신고 조회와 `open/reviewing/resolved/dismissed` 상태 변경은 추후 Admin 신고 관리 화면에서 구현한다.
 - Admin 콘텐츠 관리는 Power BI 외부 큐레이션 콘텐츠 업데이트를 GitHub Actions로 트리거하는 방식으로 기획한다. Admin 런타임에서 CSV/썸네일을 직접 영구 수정하지 않고, `tools/collect_powerbi_all.py` 실행, 검증, 커밋, `main` push, Streamlit Cloud 자동 반영 흐름을 따른다.
 - 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다.
@@ -434,11 +435,11 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - `python -m unittest discover -s tests -v`
 - 라우팅, 인증 클라이언트 격리, 온보딩 오류 처리, 프로필 보존
 - 프로젝트 HTML 정제, 본문 섹션 파싱, URL 정규화, 태그·검색 필터
-- 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. 상세 결과는 `docs/INTEGRATION_VALIDATION.md`를 참고한다.
+- 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. Streamlit 기준 상세 결과는 `docs/streamlit/INTEGRATION_VALIDATION.md`를 참고한다.
 
 ### Streamlit Community Cloud 배포
 
-- 현재 기본 배포 문서는 `docs/STREAMLIT_CLOUD_DEPLOYMENT.md`다.
+- Streamlit 원본 배포 문서는 `docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`, SvelteKit 현재 배포 문서는 `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`다.
 - 배포 Main file path는 루트 `app.py`다.
 - Linux 패키지는 `packages.txt`로 설치한다. 현재 자동 캡처 fallback을 위해 `chromium`이 들어 있다.
 - Streamlit Cloud Secrets에는 시스템 Chromium fallback을 위해 `CHROME_BINARY_PATH=/usr/bin/chromium`을 둘 수 있다.
@@ -450,7 +451,7 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 
 ## 작업 원칙
 
-- **모든 작업은 GitHub 이슈로 관리한다** (버그·기능·완료된 작업 기록 포함). 처리 흐름(분석 → 범위 확인 → 구현 → 검증 → 코멘트 → 명시적 승인 후 닫기)은 `docs/ENGINEERING_PLAYBOOK.md` 14번 섹션 참고.
+- **모든 작업은 GitHub 이슈로 관리한다** (버그·기능·완료된 작업 기록 포함). 처리 흐름(분석 → 범위 확인 → 구현 → 검증 → 코멘트 → 명시적 승인 후 닫기)은 `docs/common/ENGINEERING_PLAYBOOK.md` 14번 섹션 참고.
 - 기본 협업 스타일은 **Ponytail + Caveman**이다. 코드는 Ponytail처럼 최소 동작 변경, 기존 패턴·stdlib·native 우선, 불필요한 dependency/abstraction 제거를 기준으로 짠다. 사용자 보고는 Caveman처럼 짧게, 결론 먼저, 개조식으로, 군더더기 없이 하되 보안·검증·배포 리스크는 생략하지 않는다.
 - 단순 CSS/문구 변경은 검증 생략.
 - 같은 화면의 단순 UI 변경은 여러 건을 한 작업 묶음으로 처리하고, 묶음 종료 시 `npm.cmd run check` 또는 관련 표적 테스트를 한 번만 실행한다. CSS 한 줄마다 브라우저 캡처를 반복하지 않는다. 인증·권한·DB·라우팅·파일/외부 공급자 흐름은 변경 규모와 관계없이 검증한다.
@@ -556,7 +557,7 @@ Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내�
    - ADR-012에 따른 `project_views`, RPC, 익명 방문자 쿠키와 앱 호출 로직을 로컬과 원격 Supabase에 적용했다.
    - 쿠키 유지, RPC 결과 구분, 실패 후 재시도, SQL 중복·작성자 제외 계약 테스트를 추가했다.
    - 실제 anon 호출, 하드 리로드, 작성자 본인 열람 제외와 직접 테이블 접근 차단을 검증했다.
-   - 기존 조회수와 검증 기록을 초기화하고 새 정책 기준으로 집계를 시작했다. 상세 결과는 `docs/INTEGRATION_VALIDATION.md`를 참고한다.
+   - 기존 조회수와 검증 기록을 초기화하고 새 정책 기준으로 집계를 시작했다. 상세 결과는 `docs/streamlit/INTEGRATION_VALIDATION.md`를 참고한다.
 3. **미검증 인증 흐름 확인**
    - 별도 테스트 계정 사용 승인 후 회원가입, 이메일 인증, 최초 온보딩을 확인한다.
    - 서로 다른 두 계정 사이의 작성자 전용 수정·삭제 RLS를 확인한다.
@@ -578,7 +579,7 @@ Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내�
 
 ### 완료: GitHub QA 이슈 172/174 대응 (2026-07-07)
 
-회원가입 화면의 필수 입력 라벨에 `*`를 표시했다. `소속`은 필수 입력으로 유지하되 placeholder에 `개인, 학원, 교육과정, 학교, 기관, 회사명` 예시를 추가했다. `회원가입` 버튼은 Streamlit 텍스트 입력 rerun 타이밍 때문에 비활성 상태가 늦게 풀리는 UX가 있어 항상 누를 수 있게 두고, 제출 시 이메일/비밀번호/비밀번호 확인/이름/소속을 검증한다. `profiles` 기준 가입 여부 조회가 실패하면 미가입으로 간주하지 않고 가입 진행을 막는다. Supabase Auth가 기존 이메일을 `user.identities == []` 형태의 성공 응답처럼 돌려주는 경우도 "이미 가입된 이메일"로 차단한다. `인증 메일 다시 받기` 영역과 `이미 계정이 있다면 로그인하기` 버튼은 상시 노출하지 않고 가입 성공 후 또는 이미 가입된 이메일을 입력/제출했을 때의 맥락에 맞춰 표시한다. Supabase Auth는 보안상 기존 이메일에도 성공처럼 응답할 수 있으므로 재발송 성공 문구는 "발송 완료"가 아니라 "요청 처리"로 표현한다. 관련 단위 테스트와 `docs/SUPABASE_SETUP.md`를 갱신했다.
+회원가입 화면의 필수 입력 라벨에 `*`를 표시했다. `소속`은 필수 입력으로 유지하되 placeholder에 `개인, 학원, 교육과정, 학교, 기관, 회사명` 예시를 추가했다. `회원가입` 버튼은 Streamlit 텍스트 입력 rerun 타이밍 때문에 비활성 상태가 늦게 풀리는 UX가 있어 항상 누를 수 있게 두고, 제출 시 이메일/비밀번호/비밀번호 확인/이름/소속을 검증한다. `profiles` 기준 가입 여부 조회가 실패하면 미가입으로 간주하지 않고 가입 진행을 막는다. Supabase Auth가 기존 이메일을 `user.identities == []` 형태의 성공 응답처럼 돌려주는 경우도 "이미 가입된 이메일"로 차단한다. `인증 메일 다시 받기` 영역과 `이미 계정이 있다면 로그인하기` 버튼은 상시 노출하지 않고 가입 성공 후 또는 이미 가입된 이메일을 입력/제출했을 때의 맥락에 맞춰 표시한다. Supabase Auth는 보안상 기존 이메일에도 성공처럼 응답할 수 있으므로 재발송 성공 문구는 "발송 완료"가 아니라 "요청 처리"로 표현한다. 관련 단위 테스트와 `docs/common/SUPABASE_SETUP.md`를 갱신했다.
 
 ### 완료: 코덱스 UI/UX 리뷰 대응 (2026-07-07)
 
@@ -640,7 +641,7 @@ Streamlit은 `st.markdown()`/`st.html()`로 넣은 `<script>`를 보안상 실�
 
 ### 계획 변경: 프로젝트 범위 확대와 댓글 MVP 단순화 (2026-08-01)
 
-기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이 내용은 현재 `docs/MVP_PRD.md`에 통합되어 있고, 당시 기준 PRD는 `docs/legacy/PRD.md`에 보존했다.
+기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이 내용은 현재 `docs/common/MVP_PRD.md`에 통합되어 있고, 당시 기준 PRD는 `docs/legacy/PRD.md`에 보존했다.
 
 #189 댓글 기능은 구조화 피드백 질문·유형·알림까지 한 번에 구현하지 않고, 먼저 단순 댓글과 1단계 대댓글로 실증한다. 1차 포함 범위는 댓글 작성·조회·삭제, 대댓글 작성, 작성자 배지, 댓글 수 표시다. 댓글 수정, 피드백 유형, 작성자 질문, 알림, 관리자 댓글 관리는 실제 사용 반응 확인 후 후속 이슈로 분리한다.
 
@@ -712,7 +713,7 @@ FOLIO의 주요 사용자 화면을 홈 갤러리 기준의 차분한 라이트 
 - 프로젝트 상세 하단에 댓글 섹션을 렌더링한다. 비로그인 사용자는 조회만 가능하고 로그인 CTA를 본다. 로그인 사용자는 댓글과 최상위 댓글에 대한 1단계 답글을 작성할 수 있으며, 본인 댓글만 삭제 버튼이 보인다. 프로젝트 작성자의 댓글에는 `작성자` 배지를 표시한다. 댓글 목록은 루트 댓글 기준 20개 단위 페이지네이션을 사용하고, 한 페이지뿐이어도 중앙에 페이지 번호를 표시한다.
 - 댓글/답글 입력 버튼은 항상 활성 상태로 두고, 빈 입력과 인증 오류는 댓글 영역 안에서 안내한다.
 - 마이페이지 프로젝트 카드에는 공통 메트릭 컴포넌트를 통해 댓글 수가 함께 표시된다.
-- 댓글 기획서는 `docs/COMMENT_FEATURE_PLAN.md`에 별도로 기록했다.
+- 댓글 기획서는 `docs/common/COMMENT_FEATURE_PLAN.md`에 별도로 기록했다.
 - 상세 히어로 footer 정렬 문제를 여러 번 반복 수정한 뒤 실제 Selenium DOM 계측으로 원인을 확인했다. 핵심 원인은 selector 오해였다: `st.container(horizontal=True, key="detail_footer_row")`는 `.st-key-detail_footer_row`와 `[data-testid="stHorizontalBlock"]`가 같은 DOM 노드에 붙는다. descendant selector(`.st-key-detail_footer_row [data-testid="stHorizontalBlock"]`)는 매치되지 않아 메타 영역 `flex: 1`이 적용되지 않았고, 숨은 복사 handler wrapper가 남은 폭을 먹었다. 현재는 compound selector(`.st-key-detail_footer_row[data-testid="stHorizontalBlock"]`)와 0 크기 iframe wrapper 처리로 해결했다. 같은 UI 문제가 두 번 이상 재발하면 다음 패치 전에 반드시 DOM 좌표와 computed style을 측정한다.
 
 로컬 검증:
@@ -990,7 +991,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 ### 다음 할 일
 
 1. 현재 작업트리 정리 여부를 결정한다.
-   - 미커밋 변경: 레퍼런스 정렬 UX, 홈 히어로 문구, 푸터 버전, `docs/FOLIO_Community_PRD.md`, `docs/FOLIO_Admin_PRD.md`, 문서 갱신.
+   - 미커밋 변경: 레퍼런스 정렬 UX, 홈 히어로 문구, 푸터 버전, `docs/common/FOLIO_Community_PRD.md`, `docs/common/FOLIO_Admin_PRD.md`, 문서 갱신.
    - 콘텐츠 번역 작업과 UI 작업 diff가 섞이지 않도록 커밋/배포 여부를 먼저 정한다.
 
 2. Power BI 콘텐츠 번역 품질 개선을 위한 구조 분석을 먼저 한다.
@@ -1028,4 +1029,4 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
    - 우선 후보는 `SvelteKit + Cloudflare Pages + Supabase + 캡처 전용 Worker/API`다.
    - 도메인은 가비아/후이즈/Namecheap 등에서 구매하고, 네임서버를 Cloudflare로 넘겨 DNS/SSL/보안/Pages 연결을 한곳에서 관리하는 방식을 우선한다.
    - 공개 조회 화면부터 이전하고, Auth/댓글/신고/등록/수정/캡처는 단계적으로 옮긴다.
-   - 예상 리소스와 리스크는 `docs/PAAS_DEPLOYMENT.md`의 `TODO: SvelteKit 전환 검토`를 따른다.
+   - 예상 리소스와 리스크는 `docs/streamlit/PAAS_DEPLOYMENT.md`의 `TODO: SvelteKit 전환 검토`를 따른다.

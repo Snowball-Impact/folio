@@ -14,7 +14,7 @@
 
 ### AI 협업과 컨텍스트 관리
 
-- 새 작업 컨텍스트에서는 `docs/PROJECT_CONTEXT.md`와 본 문서를 먼저 읽는다.
+- 새 작업 컨텍스트에서는 `docs/common/PROJECT_CONTEXT.md`와 본 문서를 먼저 읽는다.
 - 이후에는 현재 요청과 직접 관련된 설계 문서와 코드만 추가로 확인한다.
 - 내부 분석과 코드 탐색은 영어로 진행하고, 사용자에게 보여주는 설명·질문·결과는 한국어로 작성한다.
 - 같은 내용을 반복하거나 불필요한 중간 출력을 만들지 않고, 판단 근거와 결과를 간결하게 전달한다.
@@ -37,7 +37,7 @@
 | 인증·CRUD·검증·캐시 | `folio_app/services/` |
 | 색상·간격·반응형 | `folio_app/styles/` |
 | 테이블·RLS·RPC | `supabase/schema.sql` |
-| 현재 상태와 작업 규칙 | `docs/PROJECT_CONTEXT.md`와 본 문서 |
+| 현재 상태와 작업 규칙 | `docs/common/PROJECT_CONTEXT.md`와 본 문서 |
 
 페이지가 Supabase query를 직접 만들거나 서비스가 Streamlit 레이아웃을 렌더링하지 않는다.
 
@@ -292,7 +292,7 @@ python -m pyflakes folio_app app.py
 - **원본의 암묵적 UX 신호를 체크리스트로 끌어올린다.** “히어로 오른쪽에 카드가 있다”는 구조가 같아 보여도, 사용자가 기대하는 것은 썸네일 미리보기, 선택 모드 라벨, 입력 즉시 반영, 업로드/URL/캡처 예정 상태다. 원본 UI가 기능의 결과를 미리 보여주는 영역이라면 Svelte에도 별도 preview state가 있어야 한다.
 - **전수조사 요청을 받으면 페이지 단위가 아니라 workflow state matrix로 본다.** 예: Submit/Edit은 `기본 정보`, `산출물 링크`, `플랫폼/PBIX`, `썸네일`, `본문 편집기`, `히어로 미리보기`, `저장/초안/공개 설정`을 하나의 흐름으로 묶어 비교한다. 각 항목은 원본 코드 위치, 원본 캡처, Svelte 코드 위치, 현재 캡처, 누락/차이, 수정 계획을 남긴다.
 - **Windows에서 JSON과 Markdown을 편집하면 BOM과 backtick을 확인한다.** `package.json`에 BOM이 붙으면 Vite가 읽지 못한다. Markdown backtick 치환은 PowerShell escape와 충돌할 수 있으므로 줄 단위 편집 후 `git diff --check`를 본다.
-- **자동 smoke와 수동 staging QA를 혼동하지 않는다.** verify가 통과해도 로그인, recovery, PBIX 실제 import, SMTP 발송, Chromium 캡처, Storage public URL은 실제 계정과 배포 환경에서 눌러봐야 한다. 자세한 회고는 `docs/SVELTE_MIGRATION_RETROSPECTIVE.md`를 따른다.
+- **자동 smoke와 수동 staging QA를 혼동하지 않는다.** verify가 통과해도 로그인, recovery, PBIX 실제 import, SMTP 발송, Chromium 캡처, Storage public URL은 실제 계정과 배포 환경에서 눌러봐야 한다. 자세한 회고는 `docs/migration/SVELTE_MIGRATION_RETROSPECTIVE.md`를 따른다.
 
 ## 15. GitHub 이슈 기반 작업 관리
 

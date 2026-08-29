@@ -137,8 +137,8 @@ PBIX 교체 성공의 클라이언트 orchestration은 별도의 비변경 인�
 
 ## 관련 기준 문서
 
-- `docs/ENGINEERING_PLAYBOOK.md`
-- `docs/SVELTE_E2E_READINESS.md`
-- `docs/SVELTE_STAGING_QA_RUNBOOK.md`
-- `docs/CLOUDFLARE_DEPLOYMENT.md`
-- `docs/UIUX_ENVIRONMENT_RECOVERY_PLAN_2026-08-28.md`
+- `docs/common/ENGINEERING_PLAYBOOK.md`
+- `docs/svelte/SVELTE_E2E_READINESS.md`
+- `docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md`
+- `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`
+- `docs/migration/UIUX_ENVIRONMENT_RECOVERY_PLAN_2026-08-28.md`

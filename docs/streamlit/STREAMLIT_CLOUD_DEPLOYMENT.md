@@ -1,6 +1,6 @@
 # Streamlit Community Cloud 배포와 캡처 실험
 
-이 문서는 이전 Streamlit Community Cloud 배포 기준과 캡처 실험 기록이다. 현재 운영 전환 기준은 Docker 기반 PaaS이며, 새 배포 절차는 `docs/PAAS_DEPLOYMENT.md`를 따른다.
+이 문서는 이전 Streamlit Community Cloud 배포 기준과 캡처 실험 기록이다. 현재 운영 전환 기준은 Docker 기반 PaaS이며, 새 배포 절차는 `docs/streamlit/PAAS_DEPLOYMENT.md`를 따른다.
 
 FOLIO의 과거 기본 무료 배포 채널은 Streamlit Community Cloud였다. 당시 목표는 기존 Streamlit 앱을 유지하면서, Community Cloud 런타임에서 Playwright 기반 썸네일 자동 캡처가 실제로 동작하는지 검증하는 것이었다.
 

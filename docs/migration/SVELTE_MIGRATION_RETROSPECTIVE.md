@@ -2,7 +2,7 @@
 
 이 문서는 Streamlit 기반 FOLIO MVP를 SvelteKit으로 단계 이전하면서 얻은 교훈을 기록한다. 목적은 구현 기록을 자랑하는 것이 아니라, 다음 전환·배포·검증 작업에서 같은 판단을 더 빠르고 차분하게 반복하기 위한 것이다.
 
-> Historical note: 2026-08-24 항목 일부는 당시 `adapter-node` 전환 상태를 기록한다. 현재 코드는 `@sveltejs/adapter-cloudflare`와 Wrangler Pages runtime을 사용한다. 현재 실행 포트와 검증 명령은 `docs/SVELTE_DEVELOPMENT_ENVIRONMENT.md`를 기준으로 한다.
+> Historical note: 2026-08-24 항목 일부는 당시 `adapter-node` 전환 상태를 기록한다. 현재 코드는 `@sveltejs/adapter-cloudflare`와 Wrangler Pages runtime을 사용한다. 현재 실행 포트와 검증 명령은 `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`를 기준으로 한다.
 
 ## 2026-08-24 중간 정리
 

@@ -25,13 +25,13 @@
 
 새 컨텍스트가 열리면 아래 순서로 읽는다.
 
-1. `docs/PROJECT_CONTEXT.md`
+1. `docs/common/PROJECT_CONTEXT.md`
 2. 이 문서
-3. `docs/ENGINEERING_PLAYBOOK.md`
-4. `docs/SVELTE_DEVELOPMENT_ENVIRONMENT.md`
-5. `docs/UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md`
+3. `docs/common/ENGINEERING_PLAYBOOK.md`
+4. `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`
+5. `docs/migration/UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md`
 6. 현재 요청과 직접 관련된 원본 페이지 코드와 Svelte route/component
-7. 배포 작업이면 `docs/CLOUDFLARE_DEPLOYMENT.md`
+7. 배포 작업이면 `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`
 
 문서의 판정이 실제 코드와 다르면 코드를 우선하고, 문서를 같은 작업 묶음에서 고친다. 오래된 캡처나 과거 문서의 `pass`를 현재 상태의 근거로 재사용하지 않는다.
 
@@ -221,7 +221,7 @@
 - 변경 묶음의 `check`와 `build`를 실행한다.
 - 영향 route의 표적 테스트와 필요한 viewport 캡처를 실행한다.
 - 상태 전이나 공통 컴포넌트를 바꿨다면 인증 suite를 한 번 실행한다.
-- 결과를 `docs/UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md` 또는 새 리팩토링 기록에 추가한다.
+- 결과를 `docs/migration/UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md` 또는 새 리팩토링 기록에 추가한다.
 - 변경 파일, 검증 결과, 남은 `partial/unknown`, 다음 작업을 커밋 전에 요약한다.
 
 ## 7. 검증 명령 기준
@@ -324,7 +324,7 @@ npm.cmd run test:ui:auth -- --project=desktop --project=mobile
 - 기존 외부 인증 회귀: desktop/mobile 각 14 passed·6 skipped
 - mutation 회귀: 본문 persistence와 thumbnail auto-cover 원복 포함 통과
 
-운영 시 `PUBLIC_RUM_ENDPOINT`를 배포 환경에 설정하면 web vitals와 Power BI metric 전송이 활성화된다. 실제 PBIX live Import/복구는 승인된 `PLAYWRIGHT_PBIX_LIVE_PROJECT_ID`와 원복 절차가 준비된 뒤에만 실행한다. 세부 상태와 명령은 `docs/SVELTE_REFACTOR_CHECKLIST_2026-08-29.md` 및 `docs/SVELTE_RUM_CONTRACT_2026-08-29.md`를 기준으로 한다.
+운영 시 `PUBLIC_RUM_ENDPOINT`를 배포 환경에 설정하면 web vitals와 Power BI metric 전송이 활성화된다. 실제 PBIX live Import/복구는 승인된 `PLAYWRIGHT_PBIX_LIVE_PROJECT_ID`와 원복 절차가 준비된 뒤에만 실행한다. 세부 상태와 명령은 `docs/svelte/SVELTE_REFACTOR_CHECKLIST_2026-08-29.md` 및 `docs/svelte/SVELTE_RUM_CONTRACT_2026-08-29.md`를 기준으로 한다.
 
 이번 범위에서는 전용 PBIX live fixture와 staging RUM endpoint를 제공하지 않기로 결정했으므로, 두 외부 실데이터 검증은 생략한다. 일반 개발·빌드·회귀 검증의 완료 상태에는 영향을 주지 않는다.
 

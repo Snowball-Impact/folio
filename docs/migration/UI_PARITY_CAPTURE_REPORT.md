@@ -24,7 +24,7 @@ Reaudited after the 2026-08-24 cutover work because functional smoke coverage wa
 | Area | Streamlit/design-system source | Current Svelte state | Priority |
 | --- | --- | --- | --- |
 | Brand logo | `folio_app/components/layout.py` renders `static_image_src("logo.webp")`; design system requires left Folio logo image | Implemented after reaudit: Svelte header and favicon now use `/logo.webp` | Done |
-| Header active state | `docs/DESIGN_SYSTEM.md` requires current page underline | Implemented after reaudit: nav links now receive active state and underline styling | Done |
+| Header active state | `docs/common/DESIGN_SYSTEM.md` requires current page underline | Implemented after reaudit: nav links now receive active state and underline styling | Done |
 | Home hero | `folio_app/pages/home.py` defines 4 `_HOME_HERO_SLIDES` with animated track and dots | Implemented after reaudit: Svelte home now uses a 4-slide animated carousel plus first-slide clone | Done |
 | Home hero visual assets | Streamlit first slide uses `hero-preview-home.jpg`; other slides use guide/Power BI/study flows | Implemented after reaudit: Svelte uses `/hero-preview-home.jpg` plus guide/Power BI/study visual flows | Done |
 | Home browse panel | Streamlit home includes project count-up, search input, popular tag pills, and platform scope handling | Implemented after reaudit: Svelte home now has count-up, GET search, popular tag pills, and query-driven filtering for Power BI scope | Done |
@@ -64,7 +64,7 @@ The audit scanned these source areas:
 - Svelte routes: `svelte_app/src/routes/**`
 - Svelte components: `svelte_app/src/lib/components/*`
 - Svelte client/server services: `svelte_app/src/lib/**/*.ts`
-- Supabase schema and contracts: `supabase/schema.sql`, `docs/DATA_MODEL.md`, `docs/SVELTE_PHASE0_DATA_CONTRACTS.md`
+- Supabase schema and contracts: `supabase/schema.sql`, `docs/common/DATA_MODEL.md`, `docs/svelte/SVELTE_PHASE0_DATA_CONTRACTS.md`
 
 ## Screen And Feature Coverage
 
@@ -236,7 +236,7 @@ Status: Svelte improves sharability and now redirects the main Streamlit query-p
 
 ## Design System Parity
 
-Design audit reference: `docs/DESIGN_SYSTEM.md` plus Streamlit styles in `folio_app/styles/*` and Svelte global styles in `svelte_app/src/app.css`.
+Design audit reference: `docs/common/DESIGN_SYSTEM.md` plus Streamlit styles in `folio_app/styles/*` and Svelte global styles in `svelte_app/src/app.css`.
 
 ### Token Alignment
 
@@ -386,7 +386,7 @@ Impact: Footer is not design-system parity and should be updated alongside About
 
 ## Documentation Audit
 
-Documentation audit references: `README.md`, `docs/README.md`, `docs/PROJECT_CONTEXT.md`, `docs/MVP_PRD.md`, `docs/SVELTE_MIGRATION_PRD.md`, `docs/FOLIO_Community_PRD.md`, `docs/FOLIO_Admin_PRD.md`, `docs/USER_FLOWS.md`, `docs/CLOUDFLARE_DEPLOYMENT.md`, `docs/SVELTE_E2E_READINESS.md`, `docs/SVELTE_STAGING_QA_RUNBOOK.md`, `docs/COMMENT_FEATURE_PLAN.md`, `docs/DECISIONS.md`, `docs/ENGINEERING_PLAYBOOK.md`, `docs/SUPABASE_SETUP.md`, and `docs/INTEGRATION_VALIDATION.md`.
+Documentation audit references: `README.md`, `docs/README.md`, `docs/common/PROJECT_CONTEXT.md`, `docs/common/MVP_PRD.md`, `docs/migration/SVELTE_MIGRATION_PRD.md`, `docs/common/FOLIO_Community_PRD.md`, `docs/common/FOLIO_Admin_PRD.md`, `docs/common/USER_FLOWS.md`, `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`, `docs/svelte/SVELTE_E2E_READINESS.md`, `docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md`, `docs/common/COMMENT_FEATURE_PLAN.md`, `docs/common/DECISIONS.md`, `docs/common/ENGINEERING_PLAYBOOK.md`, `docs/common/SUPABASE_SETUP.md`, and `docs/streamlit/INTEGRATION_VALIDATION.md`.
 
 ### Current Migration Contract
 
@@ -404,12 +404,12 @@ Current Svelte code is already beyond the first public spike and covers most P0-
 
 Docs that define product scope beyond the current Svelte app add these gaps:
 
-- Community board: `docs/FOLIO_Community_PRD.md` defines a unified `/community` board for notices, questions, tips, and misc posts. It reuses the existing comment system, but still needs `community_posts`, board list/detail/write/edit/delete flows, pinned notices, view counts, and admin hiding/deletion. This is not the same as project detail comments and is not implemented in the Svelte app.
-- Admin: `docs/FOLIO_Admin_PRD.md` defines `/admin` as a post-management console, not an approval system. It covers overview, project management, community management, comment management, user lookup, content reports, and Power BI curation workflow triggers. None of this is present in the Svelte UI.
+- Community board: `docs/common/FOLIO_Community_PRD.md` defines a unified `/community` board for notices, questions, tips, and misc posts. It reuses the existing comment system, but still needs `community_posts`, board list/detail/write/edit/delete flows, pinned notices, view counts, and admin hiding/deletion. This is not the same as project detail comments and is not implemented in the Svelte app.
+- Admin: `docs/common/FOLIO_Admin_PRD.md` defines `/admin` as a post-management console, not an approval system. It covers overview, project management, community management, comment management, user lookup, content reports, and Power BI curation workflow triggers. None of this is present in the Svelte UI.
 - Content reports: Admin PRD and migration PRD keep `content_reports` as a required operations signal. Svelte now exposes project detail 신고 after audit, but the admin review surface is still missing.
-- Content Feed: `docs/MVP_PRD.md` keeps a future `contents`/feed foundation for Power BI/Fabric updates, tutorials, jobs, newsletters, and collected links. The Svelte Power BI hub covers curated content display, but the broader feed product and DB-backed contents model remain future work.
+- Content Feed: `docs/common/MVP_PRD.md` keeps a future `contents`/feed foundation for Power BI/Fabric updates, tutorials, jobs, newsletters, and collected links. The Svelte Power BI hub covers curated content display, but the broader feed product and DB-backed contents model remain future work.
 - File report foundation: HTML/Markdown report support and Notebook/GitHub/nbviewer registration are documented future tracks. Current Svelte remains project/link/PBIX oriented.
-- Social and GitHub import: `docs/MVP_PRD.md` still lists social links and GitHub URL import as TODO/future; neither should be treated as present Svelte parity.
+- Social and GitHub import: `docs/common/MVP_PRD.md` still lists social links and GitHub URL import as TODO/future; neither should be treated as present Svelte parity.
 - Analytics: MVP and Streamlit ADRs require GA-style page/event tracking. Streamlit has virtual pageview workarounds; Svelte has no equivalent tracking layer found in the audited code.
 
 ### Cutover And Routing Docs Gaps
@@ -421,7 +421,7 @@ Docs that define product scope beyond the current Svelte app add these gaps:
 
 ### Cloudflare Docs Gaps
 
-`docs/CLOUDFLARE_DEPLOYMENT.md` and the staging QA docs distinguish local Svelte feature completeness from Cloudflare production readiness:
+`docs/svelte/CLOUDFLARE_DEPLOYMENT.md` and the staging QA docs distinguish local Svelte feature completeness from Cloudflare production readiness:
 
 - Cloudflare adapter build, bundled curation CSVs, route smoke, Supabase contract smoke, and security bundle scan are implemented verification gates.
 - First Cloudflare staging should avoid pretending Workers is a long-running Node server. PBIX import over about 25 MB, local Playwright thumbnail capture, and socket-based SMTP need explicit decisions: disable, move to Cloudflare-native services, or offload to a separate Node/container worker.
@@ -431,9 +431,9 @@ Docs that define product scope beyond the current Svelte app add these gaps:
 ### Documentation Consistency Notes
 
 - `svelte_app/README.md` was stale at the top: it still described the app as a public-read spike while the current scope includes auth, onboarding, submit/edit, my page, notifications, comments, thumbnail endpoints, and PBIX endpoints. The opening scope should stay aligned with the expanded migration state.
-- `docs/PROJECT_CONTEXT.md` still describes the main stack and deployment channel from the Streamlit-era handoff. It is useful historical context, but for current Svelte/Cloudflare acceptance the newer Svelte migration, Cloudflare, E2E, staging QA, retrospective, and this parity report should take precedence.
+- `docs/common/PROJECT_CONTEXT.md` still describes the main stack and deployment channel from the Streamlit-era handoff. It is useful historical context, but for current Svelte/Cloudflare acceptance the newer Svelte migration, Cloudflare, E2E, staging QA, retrospective, and this parity report should take precedence.
 - `docs/README.md` says `legacy/` is historical context. Legacy wireframes can reinforce UX intent, but they should not override `PROJECT_CONTEXT.md`, live code, Supabase schema, or the current Svelte migration docs.
-- `docs/COMMENT_FEATURE_PLAN.md` says comment edit and richer feedback were excluded from the first comment MVP, while `docs/MVP_PRD.md` mentions comment edit/admin delete as a broader community target. Treat comment edit as future product scope, not a current Streamlit-to-Svelte parity blocker.
+- `docs/common/COMMENT_FEATURE_PLAN.md` says comment edit and richer feedback were excluded from the first comment MVP, while `docs/common/MVP_PRD.md` mentions comment edit/admin delete as a broader community target. Treat comment edit as future product scope, not a current Streamlit-to-Svelte parity blocker.
 
 ### Documentation-Based Priority Additions
 

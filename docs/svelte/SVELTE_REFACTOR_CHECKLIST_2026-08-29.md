@@ -135,7 +135,7 @@
 - P3-4 RUM 안정화: Power BI 이벤트가 초기화 순서상 누락돼도 pagehide 시 Performance measure를 보완 전송하도록 처리
 - 최종 P3-4 검증: `check`, `build`, `test:unit`, `performance:budget`, `git diff --check` 통과
 - P3-4 UI 회귀: RUM endpoint 미설정 기본 상태에서 `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5179` 기준 desktop/mobile 공개 UI 각 4 passed
-- P3-4 RUM 계약: endpoint payload, CORS, `sendBeacon`/JSON fallback, 비식별 원칙을 `docs/SVELTE_RUM_CONTRACT_2026-08-29.md`에 기록
+- P3-4 RUM 계약: endpoint payload, CORS, `sendBeacon`/JSON fallback, 비식별 원칙을 `docs/svelte/SVELTE_RUM_CONTRACT_2026-08-29.md`에 기록
 - 배치 1 외부 통합: Supabase 계약 통과, Power BI 상세 iframe 1개/프레임 리소스 38개/초기화 metric 약 `1364ms` 확인. PBIX live와 RUM endpoint는 fixture/endpoint 미지정으로 실행 보류
 - 배치 2 전체 회귀: `npm.cmd run verify` 통과. 공개 UI desktop/mobile 각 4 passed·1 skipped; 인증 UI는 로컬 테스트 세션 미구성으로 반복 타임아웃되어 중단하고 기존 외부 회귀 결과(각 14 passed·6 skipped)를 기준으로 유지
 - 배치 3 최종 인수인계: 인수인계 문서 실행 종료 기록과 RUM 계약 문서, 운영 검증 명령을 갱신. PBIX live fixture와 staging RUM endpoint 검증은 사용자 결정에 따라 이번 범위에서 생략

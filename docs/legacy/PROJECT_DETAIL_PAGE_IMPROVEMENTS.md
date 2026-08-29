@@ -222,7 +222,7 @@ def _render_hero_footer_actions() -> None:
 ---
 
 ## 📚 참고 문서
-- [PROJECT_CONTEXT.md](PROJECT_CONTEXT.md) - 프로젝트 전체 개요
+- [PROJECT_CONTEXT.md](../common/PROJECT_CONTEXT.md) - 프로젝트 전체 개요
 - [WEEK1_BUILD_CHECKLIST.md](WEEK1_BUILD_CHECKLIST.md) - 1주차 체크리스트
 - [WEEK2_BUILD_CHECKLIST.md](WEEK2_BUILD_CHECKLIST.md) - 2주차 체크리스트
 

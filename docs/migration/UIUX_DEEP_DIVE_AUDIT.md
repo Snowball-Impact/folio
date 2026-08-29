@@ -7,9 +7,9 @@ Audited on 2026-08-24 from the original Streamlit screenshots and a fresh curren
 - Original Streamlit captures: `artifacts/ui-parity/streamlit/`
 - Current Svelte recaptures: `artifacts/ui-parity/svelte-current/`
 - Side-by-side contact sheets: `artifacts/ui-parity/design-audit/`
-- Design rubric: `docs/DESIGN_SYSTEM.md`
-- Current parity report: `docs/UI_PARITY_CAPTURE_REPORT.md`
-- Layout/harmony reaudit: `docs/UI_LAYOUT_HARMONY_DEEP_DIVE.md`
+- Design rubric: `docs/common/DESIGN_SYSTEM.md`
+- Current parity report: `docs/migration/UI_PARITY_CAPTURE_REPORT.md`
+- Layout/harmony reaudit: `docs/migration/UI_LAYOUT_HARMONY_DEEP_DIVE.md`
 
 Generated comparison sheets:
 

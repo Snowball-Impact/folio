@@ -21,7 +21,7 @@
 - Streamlit screenshots: `artifacts/ui-parity/streamlit/`
 - Svelte screenshots: `artifacts/ui-parity/svelte-current/`
 - Contact sheets: `artifacts/ui-parity/design-audit/`
-- Design system: `docs/DESIGN_SYSTEM.md`
+- Design system: `docs/common/DESIGN_SYSTEM.md`
 - Streamlit UI source: `folio_app/pages/*`, `folio_app/components/*`, `folio_app/styles/*`
 - Svelte UI source: `svelte_app/src/routes/*`, `svelte_app/src/lib/components/*`, `svelte_app/src/app.css`
 

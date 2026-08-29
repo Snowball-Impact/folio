@@ -8,7 +8,7 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 
 ## 증거 범위와 한계
 
-- Desktop Browser 결과: [README](../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/README.md), [capture-report.json](../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/capture-report.json)
+- Desktop Browser 결과: [README](../../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/README.md), [capture-report.json](../../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/capture-report.json)
 - Desktop Browser 캡처는 `/my`, `/notifications`, `/submit`의 비로그인 상태다. 상세에 사용한 `7553d519-b395-464a-bd57-3b33100e2df1`는 데스크톱·모바일 모두 404다.
 - Desktop Browser 결과의 모바일 문서 크기는 `375x860`으로 기록되어 있다. 정확한 `390x844` 인증 상태는 Playwright로 별도 캡처했다.
 - Playwright는 `svelte_app/playwright.config.ts`의 `desktop 1440x1000`, `mobile 390x844` 설정을 사용한다.
@@ -55,7 +55,7 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 - 원본 `folio_app/app.py`의 상세 공개 빠른 경로가 CookieManager를 건너뛰어 로그인 쿠키를 복원하지 못하던 문제를 제거했다. 상세도 쿠키 준비·복원 단계를 거치도록 변경했고, 직접 URL은 정착 후 인증 상태를 확인했다.
 - `folio_app/services/auth_restore.py`는 유효한 `set_session()` 뒤 프로필·정책 동의 보정 실패를 인증 실패로 전파하지 않는다. 회귀 테스트는 `tests/test_auth_stability.py`에 있다.
 - 원본 내부 이동 및 직접 URL 인증 캡처에서 데스크톱·모바일 모두 `로그아웃`, 작성자용 `수정/삭제`, 댓글 입력창이 확인됐다. 직접 URL의 초기 로딩 셸은 정착 후 인증 상태로 전환되므로 캡처 대기 조건을 포함해 `pass`로 판정한다.
-- 원본·Svelte 동일 fixture 인증 비교는 프로젝트 ID를 명시해 다시 생성한 [same-project-detail-authenticated-20260828](../artifacts/ui-parity/same-project-detail-authenticated-20260828/)에 저장했다. 정식 루트 `app.py` 기준 원본과 Svelte 모두 같은 제목의 Power BI iframe host/페이지 탭을 보였다. 비교 리포트는 `root-entry-pbix-recompare`다. 이전 캡처가 다른 프로젝트였던 사실은 최신 산출물로 정정한다.
+- 원본·Svelte 동일 fixture 인증 비교는 프로젝트 ID를 명시해 다시 생성한 [same-project-detail-authenticated-20260828](../../artifacts/ui-parity/same-project-detail-authenticated-20260828/)에 저장했다. 정식 루트 `app.py` 기준 원본과 Svelte 모두 같은 제목의 Power BI iframe host/페이지 탭을 보였다. 비교 리포트는 `root-entry-pbix-recompare`다. 이전 캡처가 다른 프로젝트였던 사실은 최신 산출물로 정정한다.
 - 위 페이지별 표의 상세 행에서 `valid-project-fixture` 캡처를 동일 fixture 근거로 기록한 부분은 폐기한다. 해당 캡처는 다른 SmartHRD 프로젝트였으며, 동일 fixture 판정은 ID를 명시해 재생성한 캡처와 `root-entry-pbix-recompare`만 사용한다. 동일 fixture 댓글 수는 0개이므로 댓글 밀도는 `unknown`이다.
 - 이전 원본 링크 fallback 캡처와 `0x0/hidden` 계측은 잘못된 직접 실행점 및 전역 CSS 규칙이 섞인 상태였다. 전역 숨김 규칙을 좁히고 루트 `app.py`로 재실행한 결과 PBIX host가 visible이 됐다.
 - Svelte는 `PowerBIReport`의 SDK `error` 상태를 부모 상세 페이지로 전달하고, 저장된 `power_bi_url`이 있으면 `.dashboard-frame` fallback으로 전환하도록 보강했다. URL이 없을 때만 오류 패널을 유지한다.
@@ -65,7 +65,7 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 
 - 비-PBIX 공개 fixture `eaa667f4-23d2-4720-b2bc-ea4bc1ac3da2`를 원본 정식 진입점 `app.py`와 Svelte에서 각각 캡처했다. 원본은 `app.py` 기준 외부 대시보드 iframe이 desktop `1208x520`, mobile `424x520`으로 보였고, Svelte도 desktop·mobile 모두 실제 Data Studio 화면 픽셀이 표시됐다.
 - 원본의 전역 `iframe[title="st.iframe"]:not([src])` 숨김 규칙은 `components.html()` 정상 iframe까지 숨길 수 있어, 실제 `height=0` 속성/스타일을 가진 스크립트 전용 iframe만 대상으로 좁혔다. 수정 후 원본 진단에서 대시보드 컴포넌트 host가 visible이 됐다.
-- 이 비교의 산출물은 [external-dashboard-fixture-20260828](../artifacts/ui-parity/external-dashboard-fixture-20260828/)이다. Streamlit 모바일 결과 이미지가 브라우저 최소 폭 때문에 `500px`로 생성되어 Svelte `390px`와의 픽셀 parity는 `partial`로 두고, 콘텐츠 표시 기능은 `pass`로 분리한다.
+- 이 비교의 산출물은 [external-dashboard-fixture-20260828](../../artifacts/ui-parity/external-dashboard-fixture-20260828/)이다. Streamlit 모바일 결과 이미지가 브라우저 최소 폭 때문에 `500px`로 생성되어 Svelte `390px`와의 픽셀 parity는 `partial`로 두고, 콘텐츠 표시 기능은 `pass`로 분리한다.
 
 ## 이번 재검토에서 확인된 수정 사항
 
@@ -95,16 +95,16 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 - `npm.cmd run test:ui`: 최신 실행에서 비로그인 핵심 라우트 데스크톱·모바일 `8 passed, 2 skipped`; 스킵은 고정 public detail fixture 미설정이다. 최신 4개 라우트 캡처는 `artifacts/playwright/test-results/routes-*`에 생성됐다.
 - `npm.cmd run test:ui:auth`: 기본 인증 회귀 suite는 mutation 테스트를 제외하고 실행하며, 스킵 수는 fixture 설정에 따라 달라진다.
 - 인증 suite 전체 실행 결과(최신, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5176`, 유효 `PLAYWRIGHT_PROJECT_ID` 지정): 데스크톱·모바일 합계 `40 passed, 0 skipped`; 공통 헤더 popover, 등록 validation·preview, 수정 기존 상태·저장·상세 이동, PBIX 교체 계약, 유효 상세 fixture, Power BI fallback, 댓글 등록 mock을 포함한다. 실패와 skip은 없었다. 이전 `24 passed, 10 skipped`, `30 passed, 4 skipped`, `34 passed` 결과는 base URL 또는 선택적 fixture 미지정·이전 코드 기준 진단 실행으로 대체한다.
-- 실제 서식 persistence 실행: 데스크톱·모바일 모두 `editorHasStructure/detailHasStructure/editHasStructure=true`; h2·목록·인용·`https://example.com/reference` 링크가 상세와 수정 재진입에서 유지됐다. 결과 캡처와 metrics는 [uiux-rich-body-persistence-20260828](../artifacts/uiux-rich-body-persistence-20260828/)에 있다. sanitizer 라이브 주입도 데스크톱·모바일에서 `javascript:` 링크 href 제거, `script` 0개, 안전한 `https` 링크의 `target=_blank`·`rel=noreferrer` 유지를 확인했다.
+- 실제 서식 persistence 실행: 데스크톱·모바일 모두 `editorHasStructure/detailHasStructure/editHasStructure=true`; h2·목록·인용·`https://example.com/reference` 링크가 상세와 수정 재진입에서 유지됐다. 결과 캡처와 metrics는 [uiux-rich-body-persistence-20260828](../../artifacts/uiux-rich-body-persistence-20260828/)에 있다. sanitizer 라이브 주입도 데스크톱·모바일에서 `javascript:` 링크 href 제거, `script` 0개, 안전한 `https` 링크의 `target=_blank`·`rel=noreferrer` 유지를 확인했다.
 - 댓글 등록 계약 테스트: 데스크톱·모바일 `2/2` 통과. mock insert payload, trim, 성공 메시지, 목록 refresh, 댓글 수 갱신, 이메일 알림 endpoint 호출을 확인했으며 실제 DB mutation은 발생시키지 않았다.
 - PBIX 교체 성공 orchestration 계약 테스트: 데스크톱·모바일 `2/2` 통과. 실제 Power BI Workspace를 변경하지 않고 기존 Embed URL·`supported` 상태 보존, `artifacts/test.pbix` multipart 전달, 성공 응답 후 상세 이동을 확인했다.
 - 실제 PBIX 교체 성공 테스트: `PLAYWRIGHT_PBIX_LIVE_PROJECT_ID=7553...`를 지정해 데스크톱·모바일 `2/2` 통과했다. Import 완료 후 상세 `powerBIStatus=ready`, 프로젝트 `published/supported`, `powerbi_reports.import_status=succeeded`, report/dataset/embed URL 존재, 오류 없음까지 토큰 없이 확인했다.
 - opt-in `@mutation` 실제 fixture 테스트: 2/2 통과, 한 줄 소개 저장 반영 및 원복(데스크톱·모바일)
 - opt-in `@mutation-thumbnail` 실제 fixture 테스트: 2/2 통과, JPG 업로드·상세 표시·auto-cover 복구(데스크톱·모바일)
 - opt-in `@mutation-pbix-safe` 테스트: 2/2 통과, 기존 Embed URL 보존·게시 실패 UI 상태(데스크톱·모바일)
-- 인증 캡처: [Playwright test-results](../artifacts/playwright/test-results/)
-- 전체 라우트·뷰포트별 익명 캡처: [browser-viewport-captures](../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/)
-- 핵심 4페이지 시각 비교: [UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28](UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28.md), [focus-compare artifacts](../artifacts/ui-parity/focus-compare-20260828/)
+- 인증 캡처: [Playwright test-results](../../artifacts/playwright/test-results/)
+- 전체 라우트·뷰포트별 익명 캡처: [browser-viewport-captures](../../artifacts/browser-viewport-captures-2026-08-28T01-56-42-329Z/)
+- 핵심 4페이지 시각 비교: [UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28](UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28.md), [focus-compare artifacts](../../artifacts/ui-parity/focus-compare-20260828/)
 - 최신 핵심 인증 캡처는 관리형 서버 포트 `5176` 기준으로 생성했다. Playwright 기본 포트 `5174`와 다르면 `PLAYWRIGHT_BASE_URL`을 명시해야 한다.
 - 상세 viewport 회귀: 데스크톱·모바일 `2/2` 통과. 현재 공통 shell 기준 헤더 좌표는 데스크톱·모바일 모두 `top=16px`; 상호작용 후 최상단 복귀를 검증했다.
 - 동일 fixture 비로그인 상세 캡처: 원본·Svelte desktop/mobile `2쌍` 생성, 양쪽 댓글 0개. 원본 인증 내부 이동 상세도 desktop/mobile로 추가 생성했다. 비교 산출물은 `artifacts/ui-parity/same-project-detail-20260828`에 있다.
@@ -126,7 +126,7 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 - 마이페이지 인증 캡처는 현재 `5176` 서버에서 데스크톱·모바일 `2 passed`로 재생성했다. 산출물은 `artifacts/playwright/test-results/authenticated-routes-authe-1eb4f-rs-authenticated-state-auth-{desktop,mobile}/my-authenticated.png`다.
 - 마이페이지 캡처에서 프로필 편집 위치, 통계 칩, 프로젝트 카드 footer, 보기·수정·삭제 액션, 모바일 hero 숨김을 확인했다. 원본은 1개 프로젝트, Svelte는 2개 프로젝트라 카드 수 기반 픽셀 비교는 `partial`이다.
 - 프로필 편집 취소 및 프로젝트 삭제 확인 모달 취소는 데스크톱·모바일 `2 passed`이며, 산출물은 `artifacts/playwright/test-results/authenticated-routes-authe-fae12--dialogs-cancel-safely-auth-{desktop,mobile}/my-interactions.png`다. 실제 mutation은 발생시키지 않았다.
-- sanitizer 라이브 검증은 `svelte_app/scripts/verify-project-body-sanitizer.mjs`로 수행했다. snapshot 후 `javascript:` 링크와 `<script>`를 주입하고 상세 DOM을 데스크톱·모바일에서 확인한 결과 위험 링크 href 제거, script 0개, 실행 플래그 미발생, 정상 `https` 링크·`target=_blank`·`rel=noreferrer` 유지가 모두 통과했다. 테스트 후 원본문은 자동 복구했다. 결과는 [uiux-project-body-sanitizer-20260828](../artifacts/uiux-project-body-sanitizer-20260828/)에 있다.
+- sanitizer 라이브 검증은 `svelte_app/scripts/verify-project-body-sanitizer.mjs`로 수행했다. snapshot 후 `javascript:` 링크와 `<script>`를 주입하고 상세 DOM을 데스크톱·모바일에서 확인한 결과 위험 링크 href 제거, script 0개, 실행 플래그 미발생, 정상 `https` 링크·`target=_blank`·`rel=noreferrer` 유지가 모두 통과했다. 테스트 후 원본문은 자동 복구했다. 결과는 [uiux-project-body-sanitizer-20260828](../../artifacts/uiux-project-body-sanitizer-20260828/)에 있다.
 - 알림 최신 인증 검증은 현재 `5176` 서버에서 데스크톱·모바일 `8 passed`다. 목록 렌더링, 상태·제목·날짜, 별도 행의 프로젝트 보기, 헤더 팝오버 열기/닫기, 모두 읽음, 프로젝트 이동 및 읽음 처리까지 확인했다. 캡처는 `artifacts/playwright/test-results/authenticated-routes-authe-eb0dd-rs-authenticated-state-auth-{desktop,mobile}/notifications-authenticated.png`와 `authenticated-routes-authe-47b74-pover-opens-and-closes-auth-{desktop,mobile}/notification-popover.png`다.
 - 알림의 기능·반응형 정보 계층은 `pass`다. 데스크톱 시각 비교에서 원본의 인셋 헤더·제한 폭과 Svelte의 넓은 outer content가 다른 점은 남아 있어 전체 UIUX 판정은 `partial`로 유지한다.
 
@@ -236,7 +236,7 @@ Streamlit 원본과 Svelte 구현을 원본 코드, 원본 캡처, Svelte 코드
 | 위험/확장 콘텐츠 보존 | 원본 sanitizer는 허용 tag subset만 보존 | 원본 Quill 본문 표시 | Svelte sanitizer의 safe style/image/math 및 H6 허용 | 목록·인용·링크·mark·이미지·수식과 H6 shape 확인 | pass |
 
 - 검증 도중 H6가 Svelte sanitizer 허용 목록에서 빠져 상세 표시에서 제거되는 결함을 발견했고 `format.ts`에 H6를 추가했다. 또한 단일 커서 들여쓰기 대상 계산을 수정했다.
-- 실제 테스트 fixture를 snapshot한 뒤 저장하고, desktop/mobile 각각 상세·수정 재진입을 확인한 후 원본문을 자동 복구했다. 새 산출물은 [uiux-rich-body-persistence-20260829](../artifacts/uiux-rich-body-persistence-20260829/)다.
+- 실제 테스트 fixture를 snapshot한 뒤 저장하고, desktop/mobile 각각 상세·수정 재진입을 확인한 후 원본문을 자동 복구했다. 새 산출물은 [uiux-rich-body-persistence-20260829](../../artifacts/uiux-rich-body-persistence-20260829/)다.
 - 기능 persistence 판정은 `pass`지만, Quill/Tiptap의 HTML 표현과 toolbar 시각은 서로 달라 전체 등록/수정 UIUX parity는 여전히 `partial`이다.
 
 ### 2026-08-29 toolbar 그룹 순서 증거

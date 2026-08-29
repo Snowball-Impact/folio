@@ -208,7 +208,7 @@ folio_app/app.py
 
 이 앱은 지속 실행되는 Streamlit 서버가 필요하므로 Vercel Functions에 직접 배포하지 않습니다. 현재 기본 무료 배포 채널은 **Streamlit Community Cloud**입니다.
 
-자세한 절차와 자동 캡처 실험 기준은 [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)를 따릅니다.
+자세한 절차와 자동 캡처 실험 기준은 [`docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md)를 따릅니다.
 
 1. 저장소를 GitHub에 push합니다.
 2. Streamlit Community Cloud에서 저장소와 루트 `app.py`를 선택합니다.
@@ -245,21 +245,21 @@ Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용�
 ## 주요 문서
 
 - 전체 문서 안내: [`docs/README.md`](docs/README.md)
-- 시스템 아키텍처: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- 핵심 사용자 흐름: [`docs/USER_FLOWS.md`](docs/USER_FLOWS.md)
-- ERD와 RLS 데이터 모델: [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md)
-- 주요 설계 결정: [`docs/DECISIONS.md`](docs/DECISIONS.md)
-- 개발 정책과 교훈: [`docs/ENGINEERING_PLAYBOOK.md`](docs/ENGINEERING_PLAYBOOK.md)
-- 작업 전 현재 컨텍스트: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
-- 디자인 시스템: [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md)
-- 제품/기획 개요: [`docs/MVP_PRD.md`](docs/MVP_PRD.md)
-- 커뮤니티 게시판 PRD: [`docs/FOLIO_Community_PRD.md`](docs/FOLIO_Community_PRD.md)
-- 관리자 페이지 PRD: [`docs/FOLIO_Admin_PRD.md`](docs/FOLIO_Admin_PRD.md)
-- Supabase 설정: [`docs/SUPABASE_SETUP.md`](docs/SUPABASE_SETUP.md)
-- Streamlit Cloud 배포와 캡처 실험: [`docs/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/STREAMLIT_CLOUD_DEPLOYMENT.md)
+- 시스템 아키텍처: [`docs/common/ARCHITECTURE.md`](docs/common/ARCHITECTURE.md)
+- 핵심 사용자 흐름: [`docs/common/USER_FLOWS.md`](docs/common/USER_FLOWS.md)
+- ERD와 RLS 데이터 모델: [`docs/common/DATA_MODEL.md`](docs/common/DATA_MODEL.md)
+- 주요 설계 결정: [`docs/common/DECISIONS.md`](docs/common/DECISIONS.md)
+- 개발 정책과 교훈: [`docs/common/ENGINEERING_PLAYBOOK.md`](docs/common/ENGINEERING_PLAYBOOK.md)
+- 작업 전 현재 컨텍스트: [`docs/common/PROJECT_CONTEXT.md`](docs/common/PROJECT_CONTEXT.md)
+- 디자인 시스템: [`docs/common/DESIGN_SYSTEM.md`](docs/common/DESIGN_SYSTEM.md)
+- 제품/기획 개요: [`docs/common/MVP_PRD.md`](docs/common/MVP_PRD.md)
+- 커뮤니티 게시판 PRD: [`docs/common/FOLIO_Community_PRD.md`](docs/common/FOLIO_Community_PRD.md)
+- 관리자 페이지 PRD: [`docs/common/FOLIO_Admin_PRD.md`](docs/common/FOLIO_Admin_PRD.md)
+- Supabase 설정: [`docs/common/SUPABASE_SETUP.md`](docs/common/SUPABASE_SETUP.md)
+- Streamlit Cloud 배포와 캡처 실험: [`docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md)
 - 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)
 
-현재 우선순위와 작업 기준은 `docs/PROJECT_CONTEXT.md`를 따릅니다.
+현재 우선순위와 작업 기준은 `docs/common/PROJECT_CONTEXT.md`를 따릅니다. SvelteKit 작업은 `docs/svelte/`, Streamlit 작업은 `docs/streamlit/`을 먼저 확인합니다.
 
 ## 개발 메모
 

@@ -4,7 +4,7 @@
 
 마이페이지, 알림, 프로젝트 등록, 프로젝트 상세를 원본 Streamlit 캡처와 최신 인증 Svelte 캡처로 나란히 확인했다. 이 문서는 픽셀 점수보다 기능과 UIUX 차이를 찾기 위한 비교 기록이다.
 
-비교 생성물은 [focus-compare-20260828](../artifacts/ui-parity/focus-compare-20260828/)에 저장했다.
+비교 생성물은 [focus-compare-20260828](../../artifacts/ui-parity/focus-compare-20260828/)에 저장했다.
 
 ## 비교 기준과 한계
 
@@ -28,7 +28,7 @@
 | 상세 | desktop | 1424x3622 | 1440x3051 | 0.842 | 0.409 |
 | 상세 | mobile | 500x7901 | 390x3389 | 0.429 | 0.357 |
 
-수치 원본은 [report.json](../artifacts/ui-parity/focus-compare-20260828/report.json), 시각 확인용은 [metrics.md](../artifacts/ui-parity/focus-compare-20260828/metrics.md)와 페이지별 `first-viewport`/`full` sheet다.
+수치 원본은 [report.json](../../artifacts/ui-parity/focus-compare-20260828/report.json), 시각 확인용은 [metrics.md](../../artifacts/ui-parity/focus-compare-20260828/metrics.md)와 페이지별 `first-viewport`/`full` sheet다.
 
 ## 페이지별 판정
 
@@ -48,7 +48,7 @@
 - 원본 상세를 로그인 후 직접 URL로 열었을 때 데스크톱·모바일 초기 로딩 셸에서는 인증 UI가 잠시 보이지 않았지만, 정착 후 `로그아웃`, 작성자 액션, 댓글 입력, visitor cookie, visible Power BI host가 확인됐다. 직접 URL 세션 복원은 `pass`로 판정하고, 캡처 도구가 초기 상태와 정착 상태를 별도 기록하도록 보강했다.
 - 상세 비교 도구는 작은 `h3` overflow를 스크롤 대상처럼 선택하던 문제를 수정했고, `--wait-for-text`, `--settle-seconds`, `--login`, `--via-my-page`를 지원한다.
 
-동일 fixture 비로그인 수치 산출물은 [same-project-detail-20260828](../artifacts/ui-parity/same-project-detail-20260828/)의 `same-project-metrics.md`와 `same-project-report.json`이다. 위 표의 해당 산출물 인증 상태는 `anonymous`로 기록되어 있으며, 인증 비교는 아래 별도 표를 사용한다.
+동일 fixture 비로그인 수치 산출물은 [same-project-detail-20260828](../../artifacts/ui-parity/same-project-detail-20260828/)의 `same-project-metrics.md`와 `same-project-report.json`이다. 위 표의 해당 산출물 인증 상태는 `anonymous`로 기록되어 있으며, 인증 비교는 아래 별도 표를 사용한다.
 
 ### 1. 마이페이지
 
@@ -83,7 +83,7 @@
 - 원본 반응형 CSS는 `max-width: 760px`에서 page hero visual을 숨긴다. 기존 Svelte는 등록 hero 미리보기를 모바일에서 다시 표시하고 있었고, 모바일 비교에서 별도 대형 preview 카드가 나타났다.
 - 이 차이를 `svelte_app/src/app.css`에서 모바일 `.submit-preview-hero .hero-thumbnail-preview` 숨김으로 수정했다. 5176 기준 인증 모바일 재캡처에서 preview DOM은 화면에 노출되지 않았고, 폼·Tiptap·제출 액션은 유지됐다.
 - 원본 저장 코드는 본문을 `problem/dataset/process/insights` 네 필드로 분해한다. Svelte의 비변경 수정 저장 테스트도 저장 직전 동기화된 네 필드에 `<p>` HTML이 포함되는지 데스크톱·모바일 모두 확인했다. 저장 payload 계약은 `pass`다.
-- 실제 opt-in persistence 검증에서 Tiptap `h2`, `ul/li`, `blockquote`, `a[href]`, `sup`, `sub`, 글자 색상, 글꼴, 배경색, `img[src]`, inline math가 저장 후 상세와 수정 재진입에서도 유지되는 것을 데스크톱·모바일 모두 확인했다. 해당 결과는 [uiux-rich-body-persistence-20260828](../artifacts/uiux-rich-body-persistence-20260828/)에 저장했다. 위험 URL·style 라이브 주입 검증에서도 `javascript:` 링크·이미지, 위험 style, `script`가 제거되고 안전한 `https` 링크·이미지·수식과 허용된 글자 색상만 유지됐다. 결과는 [uiux-project-body-sanitizer-20260828](../artifacts/uiux-project-body-sanitizer-20260828/)에 저장했다.
+- 실제 opt-in persistence 검증에서 Tiptap `h2`, `ul/li`, `blockquote`, `a[href]`, `sup`, `sub`, 글자 색상, 글꼴, 배경색, `img[src]`, inline math가 저장 후 상세와 수정 재진입에서도 유지되는 것을 데스크톱·모바일 모두 확인했다. 해당 결과는 [uiux-rich-body-persistence-20260828](../../artifacts/uiux-rich-body-persistence-20260828/)에 저장했다. 위험 URL·style 라이브 주입 검증에서도 `javascript:` 링크·이미지, 위험 style, `script`가 제거되고 안전한 `https` 링크·이미지·수식과 허용된 글자 색상만 유지됐다. 결과는 [uiux-project-body-sanitizer-20260828](../../artifacts/uiux-project-body-sanitizer-20260828/)에 저장했다.
 - 원본 hero preview의 작성자 fallback과 조회·좋아요·댓글 icon metrics를 Svelte `ProjectCard`의 preview 전용 markup으로 맞췄고, `.submit-hero .card-summary`가 상위 `p` 색상 규칙에 덮이지 않도록 대비를 복구했다. desktop 캡처에서 원본과 같은 하단 정보 계층을 확인했으며, mobile preview 숨김 규칙은 유지한다.
 - 문단 형식 선택기의 `Normal -> H2 -> H3 -> H1 -> H2` 전환, 위첨자·아래첨자·글자 색상 mark DOM, 실제 에디터 heading DOM 동기화를 데스크톱·모바일에서 각각 검증했다. 표적 테스트는 `2 passed`였고, 이후 인증 전체 suite도 `40 passed`로 통과했다.
 
@@ -151,7 +151,7 @@
 - 이전 `streamlit-7553-authenticated-internal-navigation-*` 링크 fallback 캡처는 잘못된 원본 실행점·전역 CSS 상태가 섞인 stale evidence로 남겨두고, 최종 비교에는 이번 `root-entry-pbix-recompare` 산출물을 사용한다.
 - Svelte는 SDK 오류 시 저장된 `power_bi_url`로 fallback iframe을 렌더링하도록 보강했으며, 이는 원본의 `_render_powerbi_embedded_viewer()` 실패 후 `_render_fallback_dashboard()` 분기와 대응한다.
 - 외부 Power BI 프레임 차단 재현 테스트에서 데스크톱·모바일 모두 SDK shell 제거, fallback iframe 표시, overflow 0을 확인했다. 이 검증은 실제 Power BI 콘텐츠 성공이 아니라 오류 시 사용자에게 저장 URL 경로를 보장하는 동작 검증이다.
-- 동일 상태 비교 산출물은 [same-project-detail-authenticated-20260828](../artifacts/ui-parity/same-project-detail-authenticated-20260828/)에 있다.
+- 동일 상태 비교 산출물은 [same-project-detail-authenticated-20260828](../../artifacts/ui-parity/same-project-detail-authenticated-20260828/)에 있다.
 
 ## 다음 순서
 

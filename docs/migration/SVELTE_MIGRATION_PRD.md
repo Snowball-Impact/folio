@@ -2,9 +2,9 @@
 
 - 문서 버전: v0.1
 - 작성일: 2026-08-24
-- 기준 자료: `README.md`, `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/USER_FLOWS.md`, `docs/MVP_PRD.md`, `docs/PROJECT_CONTEXT.md`, 실제 `folio_app/` 코드와 `supabase/schema.sql`
+- 기준 자료: `README.md`, `docs/common/ARCHITECTURE.md`, `docs/common/DATA_MODEL.md`, `docs/common/USER_FLOWS.md`, `docs/common/MVP_PRD.md`, `docs/common/PROJECT_CONTEXT.md`, 실제 `folio_app/` 코드와 `supabase/schema.sql`
 - 목적: 현재 Streamlit MVP를 유지하면서, 공개 사용자 경험부터 Svelte 기반 웹앱으로 단계 이전하기 위한 화면 우선순위와 데이터 계약을 먼저 정의한다.
-- Phase 0 상세 계약: `docs/SVELTE_PHASE0_DATA_CONTRACTS.md`
+- Phase 0 상세 계약: `docs/svelte/SVELTE_PHASE0_DATA_CONTRACTS.md`
 
 ---
 
