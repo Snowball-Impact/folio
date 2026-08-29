@@ -35,6 +35,8 @@ const learningCategoryOrder = [
 	'디자인'
 ];
 
+let hubContentPromise: Promise<Omit<PowerBIHubContent, 'topic'>> | null = null;
+
 export function normalizePowerBIHubTopic(value: string | null): PowerBIHubTopic {
 	if (value === 'learning' || value === 'community' || value === 'certifications') {
 		return value;
@@ -46,6 +48,11 @@ export function normalizePowerBIHubTopic(value: string | null): PowerBIHubTopic 
 }
 
 export async function loadPowerBIHubContent(topic: PowerBIHubTopic): Promise<PowerBIHubContent> {
+	hubContentPromise ??= buildPowerBIHubContent();
+	return { ...(await hubContentPromise), topic };
+}
+
+async function buildPowerBIHubContent(): Promise<Omit<PowerBIHubContent, 'topic'>> {
 	const [desktopRows, updateRows, changelogRows, learningRows, updateVideoRows, programRows, communityRows] =
 		await Promise.all([
 			readCsv(csvSources.desktop),
@@ -65,7 +72,6 @@ export async function loadPowerBIHubContent(topic: PowerBIHubTopic): Promise<Pow
 	const certifications = certificationLinks();
 
 	return {
-		topic,
 		desktop: desktopRows[0] ? desktopLink(desktopRows[0]) : null,
 		news,
 		learning,

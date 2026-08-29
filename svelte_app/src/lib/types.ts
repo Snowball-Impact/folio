@@ -17,6 +17,25 @@ export type EmbedStatus = 'supported' | 'external_only' | 'failed';
 
 export type PlatformKey = 'powerbi' | 'tableau' | 'datastudio' | 'streamlit';
 
+export type ProjectSubmitInput = {
+	title: string;
+	one_liner: string;
+	tags: string;
+	platform: PlatformKey | 'other';
+	problem: string;
+	dataset: string;
+	process: string;
+	insights: string;
+	power_bi_url: string;
+	report_url: string;
+	github_url: string;
+	thumbnail_url: string;
+	thumbnail_mode: ThumbnailMode;
+	delete_thumbnail?: boolean;
+	delete_pbix?: boolean;
+	is_public: boolean;
+};
+
 export type PublicAuthor = {
 	id?: string;
 	name?: string;

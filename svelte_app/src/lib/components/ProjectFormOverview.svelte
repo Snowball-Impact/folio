@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { ProjectSubmitInput } from '$lib/projects';
+import type { ProjectSubmitInput } from '$lib/types';
+	import { projectFormTagLabel } from '$lib/projectForm';
 
 	type PlatformOption = {
 		key: ProjectSubmitInput['platform'];
@@ -22,39 +23,7 @@
 		hasExistingThumbnail?: boolean;
 	} = $props();
 
-	const tagLabel = $derived(
-		(() => {
-			const rawTags = input.tags
-				.replaceAll('#', '')
-				.split(',')
-				.map((tag) => tag.trim())
-				.filter(Boolean);
-			const platform = platformOptions.find((option) => option.key === input.platform);
-			const platformTag = platform?.key === 'other' ? '' : platform?.label ?? '';
-			const platformAliases = new Set(
-				[
-					platform?.label ?? '',
-					platform?.key ?? '',
-					input.platform === 'datastudio' ? 'Data Studio' : '',
-					input.platform === 'datastudio' ? 'Looker Studio' : '',
-					input.platform === 'powerbi' ? 'PowerBI' : '',
-					input.platform === 'powerbi' ? 'Power BI' : ''
-				]
-				.filter(Boolean)
-				.map(normalizeTag)
-			);
-			const tags = rawTags.filter((tag) => !platformAliases.has(normalizeTag(tag)));
-			const visibleTags = [platformTag, ...tags]
-				.filter(Boolean)
-				.filter((tag, index, values) => values.findIndex((value) => normalizeTag(value) === normalizeTag(tag)) === index)
-				.slice(0, 5);
-			return visibleTags.length ? `태그 ${visibleTags.map((tag) => `#${tag}`).join(' ')}` : '태그';
-		})()
-	);
-
-	function normalizeTag(value: string) {
-		return value.trim().toLowerCase().replaceAll(' ', '');
-	}
+	const tagLabel = $derived(projectFormTagLabel(input.tags, input.platform));
 </script>
 
 <section class="project-form-section project-form-overview-section">

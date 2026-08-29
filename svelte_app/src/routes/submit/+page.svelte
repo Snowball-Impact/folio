@@ -6,27 +6,23 @@
 	import ProjectFormOverview from '$lib/components/ProjectFormOverview.svelte';
 	import OperationProgress, { type OperationStep } from '$lib/components/OperationProgress.svelte';
 	import { currentSession } from '$lib/auth';
-	import { publishProjectPbix } from '$lib/powerbi-publish';
-	import { createProject, updateProject, type ProjectSubmitInput } from '$lib/projects';
-	import { captureProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
+	import type { ProjectSubmitInput } from '$lib/types';
+	import { runProjectSaveWorkflow } from '$lib/projectSaveWorkflow';
 	import {
-		replacePendingBodyImages,
+		emptyProjectSubmitInput,
+		previewTags,
+		PROJECT_PLATFORM_OPTIONS
+	} from '$lib/projectForm';
+	import {
 		stripPendingBodyImages,
-		uploadProjectBodyImages,
 		type PendingProjectBodyImage
 	} from '$lib/projectBodyImages';
 	import { PROJECT_BODY_TEMPLATE, parseProjectBody } from '$lib/projectBody';
 	import type { ProjectCard as ProjectCardType } from '$lib/types';
 
-	const platformOptions = [
-		{ key: 'other', label: '기타' },
-		{ key: 'tableau', label: 'Tableau' },
-		{ key: 'powerbi', label: 'Power BI' },
-		{ key: 'datastudio', label: 'Data Studio' },
-		{ key: 'streamlit', label: 'Streamlit' }
-	] as const;
+	const platformOptions = PROJECT_PLATFORM_OPTIONS;
 
-	let input = $state<ProjectSubmitInput>(emptyInput());
+	let input = $state<ProjectSubmitInput>(emptyProjectSubmitInput());
 	let message = $state('');
 	let error = $state('');
 	let submitting = $state(false);
@@ -129,93 +125,32 @@
 			return;
 		}
 		submitting = true;
-		startOperation(buildSubmitOperationSteps());
-		setOperationStep('save', 18, '프로젝트 정보를 저장하는 중입니다.');
-		const result = await createProject(input);
-		if (!result.ok || !result.projectId) {
-			failOperation();
+		const result = await runProjectSaveWorkflow({
+			mode: 'create',
+			input,
+			bodyHtml,
+			bodyImageFiles,
+			thumbnailFile,
+			pbixFile,
+			setBodyHtml: (html) => (bodyHtml = html),
+			syncProjectBodyInput,
+			releaseBodyImageFiles,
+			startOperation,
+			setOperationStep,
+			failOperation
+		});
+		if (!result.ok) {
 			submitting = false;
 			error = result.message;
+			if (result.projectSaved && result.projectId) {
+				await goto(`/projects/${result.projectId}`);
+			}
 			return;
 		}
-		if (bodyImageFiles.length > 0) {
-			setOperationStep('body-image-upload', 34, '본문 이미지를 업로드하는 중입니다.');
-			const bodyImageResult = await uploadProjectBodyImages(result.projectId, bodyImageFiles);
-			if (!bodyImageResult.ok || bodyImageResult.urls.length !== bodyImageFiles.length) {
-				failOperation();
-				submitting = false;
-				error = `${bodyImageResult.message} 프로젝트는 등록되었습니다.`;
-				await goto(`/projects/${result.projectId}`);
-				return;
-			}
-			bodyHtml = replacePendingBodyImages(bodyHtml, bodyImageFiles, bodyImageResult.urls);
-			syncProjectBodyInput();
-			const bodyUpdateResult = await saveProjectBody(result.projectId);
-			if (!bodyUpdateResult.ok) {
-				failOperation();
-				submitting = false;
-				error = `${bodyUpdateResult.message} 프로젝트는 등록되었습니다.`;
-				await goto(`/projects/${result.projectId}`);
-				return;
-			}
-			releaseBodyImageFiles();
-		}
-		if (thumbnailFile) {
-			setOperationStep('thumbnail-upload', 42, '썸네일 이미지를 업로드하는 중입니다.');
-			const uploadResult = await uploadProjectThumbnail(result.projectId, thumbnailFile);
-			if (!uploadResult.ok) {
-				failOperation();
-				submitting = false;
-				error = `${uploadResult.message} 프로젝트는 등록되었습니다.`;
-				await goto(`/projects/${result.projectId}`);
-				return;
-			}
-		}
-		if (pbixFile) {
-			setOperationStep('pbix-publish', 62, 'PBIX 파일을 Power BI Workspace에 게시하는 중입니다.');
-			const publishResult = await publishProjectPbix(result.projectId, pbixFile);
-			if (!publishResult.ok) {
-				failOperation();
-				submitting = false;
-				error = `${publishResult.message} 프로젝트는 등록되었습니다.`;
-				await goto(`/projects/${result.projectId}`);
-				return;
-			}
-		}
-		if (input.thumbnail_mode === 'capture') {
-			setOperationStep('thumbnail-capture', 82, '프로젝트 대표 썸네일을 자동 캡처 중입니다.');
-			const captureResult = await captureProjectThumbnail(result.projectId);
-			if (!captureResult.ok) {
-				failOperation();
-				submitting = false;
-				error = `${captureResult.message} 프로젝트는 등록되었습니다.`;
-				await goto(`/projects/${result.projectId}`);
-				return;
-			}
-		}
-		setOperationStep('finish', 100, '프로젝트 등록 요청이 완료되었습니다.');
 		submitting = false;
 		message = result.message;
 		clearDraft({ keepMessage: true });
 		await goto(`/projects/${result.projectId}`);
-	}
-
-	function buildSubmitOperationSteps(): OperationStep[] {
-		const steps: OperationStep[] = [{ id: 'save', label: '프로젝트 정보를 저장합니다.', status: 'pending' }];
-		if (bodyImageFiles.length > 0) {
-			steps.push({ id: 'body-image-upload', label: '본문 이미지를 업로드합니다.', status: 'pending' });
-		}
-		if (thumbnailFile) {
-			steps.push({ id: 'thumbnail-upload', label: '썸네일 이미지를 업로드합니다.', status: 'pending' });
-		}
-		if (pbixFile) {
-			steps.push({ id: 'pbix-publish', label: 'PBIX 파일을 Power BI Workspace에 게시합니다.', status: 'pending' });
-		}
-		if (input.thumbnail_mode === 'capture') {
-			steps.push({ id: 'thumbnail-capture', label: '대표 썸네일을 자동 캡처합니다.', status: 'pending' });
-		}
-		steps.push({ id: 'finish', label: '프로젝트 등록 요청을 완료합니다.', status: 'pending' });
-		return steps;
 	}
 
 	function startOperation(steps: OperationStep[]) {
@@ -269,31 +204,6 @@
 		bodyImageFiles = [];
 	}
 
-	async function saveProjectBody(projectId: string) {
-		return updateProject(projectId, input);
-	}
-
-	function emptyInput(): ProjectSubmitInput {
-		return {
-			title: '',
-			one_liner: '',
-			tags: '',
-			platform: 'other',
-			problem: '',
-			dataset: '',
-			process: '',
-			insights: '',
-			power_bi_url: '',
-			report_url: '',
-			github_url: '',
-			thumbnail_url: '',
-			thumbnail_mode: 'auto_cover',
-			delete_thumbnail: false,
-			delete_pbix: false,
-			is_public: true
-		};
-	}
-
 	function restoreDraft() {
 		if (!draftStorageKey) {
 			return;
@@ -304,7 +214,7 @@
 		}
 		try {
 			const draft = JSON.parse(rawDraft);
-			input = { ...emptyInput(), ...draft, is_public: true };
+			input = { ...emptyProjectSubmitInput(), ...draft, is_public: true };
 			bodyHtml = typeof draft.project_body === 'string' && draft.project_body.trim() ? draft.project_body : bodyHtml;
 		} catch {
 			localStorage.removeItem(draftStorageKey);
@@ -319,7 +229,7 @@
 		if (thumbnailPreviewUrl) {
 			URL.revokeObjectURL(thumbnailPreviewUrl);
 		}
-		input = emptyInput();
+		input = emptyProjectSubmitInput();
 		bodyHtml = PROJECT_BODY_TEMPLATE;
 		releaseBodyImageFiles();
 		thumbnailFile = null;
@@ -361,31 +271,6 @@
 		input.dataset = sections.dataset;
 		input.process = sections.process;
 		input.insights = sections.insights;
-	}
-	function previewTags(tags: string, platform: ProjectSubmitInput['platform']) {
-		const rawTags = tags
-			.replaceAll('#', '')
-			.split(',')
-			.map((tag) => tag.trim())
-			.filter(Boolean);
-		const uniqueTags = [...new Set(rawTags)];
-		if (platform === 'other') {
-			return uniqueTags.slice(0, 5);
-		}
-		const platformLabel = platformOptions.find((option) => option.key === platform)?.label ?? '';
-		const platformAliases = new Set([
-			platformLabel,
-			platform,
-			platform === 'datastudio' ? 'Data Studio' : '',
-			platform === 'datastudio' ? 'Looker Studio' : '',
-			platform === 'powerbi' ? 'PowerBI' : '',
-			platform === 'powerbi' ? 'Power BI' : ''
-		].map(normalizeTag));
-		return [platformLabel, ...uniqueTags.filter((tag) => !platformAliases.has(normalizeTag(tag)))].slice(0, 5);
-	}
-
-	function normalizeTag(value: string) {
-		return value.trim().toLowerCase().replaceAll(' ', '');
 	}
 </script>
 

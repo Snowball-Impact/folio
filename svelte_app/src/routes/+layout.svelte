@@ -1,9 +1,15 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
 	import OnboardingGate from '$lib/components/OnboardingGate.svelte';
+	import { initRum } from '$lib/rum';
 
 	let { children } = $props();
+
+	onMount(() => {
+		initRum();
+	});
 </script>
 
 <svelte:head>

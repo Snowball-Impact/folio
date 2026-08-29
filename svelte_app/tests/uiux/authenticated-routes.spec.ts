@@ -519,8 +519,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await expect(sizeSelect).toHaveValue('default');
 		await sizeSelect.selectOption('1.5em');
 		await expect(editorContent.locator('span[style*="font-size: 1.5em"]').first()).toBeVisible();
-		await editorContent.click();
-		await page.keyboard.press('Control+a');
+		await editorContent.locator('h2').first().selectText();
 		await page.getByTitle('들여쓰기').click();
 		await expect(editorContent.locator('[data-indent="1"]')).toHaveCount(1);
 		await page.getByTitle('내어쓰기').click();
@@ -590,6 +589,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await expect(bodyPreview.locator(`img[src="${imageSrc}"]`)).toHaveAttribute('alt', '분석 결과 차트');
 		await expect(bodyPreview.locator('img[alt="test1_thumbnail.jpg"]')).toHaveCount(1);
 		await expect(bodyPreview.locator('[data-type="inline-math"]')).toBeVisible();
+		await expect(bodyPreview.locator('.katex')).toBeVisible();
 		await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
 		await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 		await page.screenshot({ path: testInfo.outputPath('submit-controls.png'), fullPage: true });
@@ -836,7 +836,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		const thumbnailPath = resolve(process.cwd(), '..', 'artifacts', 'test1_thumbnail.jpg');
 		try {
 			await page.locator('.thumbnail-choice-panel input[type="radio"][value="upload"]').check();
-			const thumbnailInput = page.locator('input[type="file"][accept="image/jpeg,image/png,image/webp"]');
+			const thumbnailInput = page.locator('.thumbnail-panel input[type="file"][accept="image/jpeg,image/png,image/webp"]');
 			await expect(thumbnailInput).toBeVisible();
 			await thumbnailInput.setInputFiles(thumbnailPath);
 			await expect(page.locator('.hero-thumbnail-preview img')).toHaveCount(1);

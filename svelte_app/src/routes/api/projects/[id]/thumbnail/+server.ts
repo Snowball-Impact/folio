@@ -1,6 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { getSupabaseServerClient, getSupabaseUserClient } from '$lib/server/supabase';
+import { authFailureResponse, authenticateBearerRequest, getOwnedProjectQuery } from '$lib/server/request-auth';
 
 const DEFAULT_BUCKET = 'project-thumbnails';
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
@@ -16,29 +16,16 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ error: '프로젝트 ID가 없습니다.' }, { status: 400 });
 	}
 
-	const accessToken = bearerToken(request);
-	if (!accessToken) {
-		return json({ error: '로그인 후 썸네일을 업로드할 수 있습니다.' }, { status: 401 });
+	const auth = await authenticateBearerRequest(request);
+	if (!auth.ok) {
+		return authFailureResponse(auth, {
+			missingToken: '로그인 후 썸네일을 업로드할 수 있습니다.',
+			unavailable: '썸네일 업로드 서버 환경 변수가 설정되지 않았습니다.',
+			invalidSession: '로그인 세션을 확인하지 못했습니다.'
+		});
 	}
 
-	const userClient = getSupabaseUserClient(accessToken);
-	const serviceClient = getSupabaseServerClient();
-	if (!userClient || !serviceClient) {
-		return json({ error: '썸네일 업로드 서버 환경 변수가 설정되지 않았습니다.' }, { status: 503 });
-	}
-
-	const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
-	const user = userData.user;
-	if (userError || !user) {
-		return json({ error: '로그인 세션을 확인하지 못했습니다.' }, { status: 401 });
-	}
-
-	const { data: project, error: projectError } = await serviceClient
-		.from('projects')
-		.select('id,author_id')
-		.eq('id', projectId)
-		.eq('author_id', user.id)
-		.maybeSingle();
+	const { data: project, error: projectError } = await getOwnedProjectQuery(auth, projectId, 'id,author_id').maybeSingle();
 	if (projectError || !project) {
 		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
@@ -58,7 +45,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const bucketName = env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_BUCKET;
 	const path = `projects/${safeStorageName(projectId)}/thumbnail-${Date.now()}.${extension}`;
 	const bytes = new Uint8Array(await file.arrayBuffer());
-	const bucket = serviceClient.storage.from(bucketName);
+	const bucket = auth.serviceClient.storage.from(bucketName);
 	const { error: uploadError } = await bucket.upload(path, bytes, {
 		contentType: file.type,
 		cacheControl: '3600',
@@ -70,14 +57,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 
 	await removeOldThumbnails(bucket, projectId, path);
 	const publicUrl = cacheBustedUrl(bucket.getPublicUrl(path).data.publicUrl);
-	const { error: updateError } = await serviceClient
+	const { error: updateError } = await auth.serviceClient
 		.from('projects')
 		.update({
 			thumbnail_url: publicUrl,
 			thumbnail_mode: 'upload'
 		})
 		.eq('id', projectId)
-		.eq('author_id', user.id);
+		.eq('author_id', auth.user.id);
 	if (updateError) {
 		return json({ error: '프로젝트에 썸네일을 연결하지 못했습니다.' }, { status: 502 });
 	}
@@ -92,43 +79,30 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		return json({ error: '프로젝트 ID가 없습니다.' }, { status: 400 });
 	}
 
-	const accessToken = bearerToken(request);
-	if (!accessToken) {
-		return json({ error: '로그인 후 썸네일을 삭제할 수 있습니다.' }, { status: 401 });
+	const auth = await authenticateBearerRequest(request);
+	if (!auth.ok) {
+		return authFailureResponse(auth, {
+			missingToken: '로그인 후 썸네일을 삭제할 수 있습니다.',
+			unavailable: '썸네일 삭제 서버 환경 변수가 설정되지 않았습니다.',
+			invalidSession: '로그인 세션을 확인하지 못했습니다.'
+		});
 	}
 
-	const userClient = getSupabaseUserClient(accessToken);
-	const serviceClient = getSupabaseServerClient();
-	if (!userClient || !serviceClient) {
-		return json({ error: '썸네일 삭제 서버 환경 변수가 설정되지 않았습니다.' }, { status: 503 });
-	}
-
-	const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
-	const user = userData.user;
-	if (userError || !user) {
-		return json({ error: '로그인 세션을 확인하지 못했습니다.' }, { status: 401 });
-	}
-
-	const { data: project, error: projectError } = await serviceClient
-		.from('projects')
-		.select('id,author_id')
-		.eq('id', projectId)
-		.eq('author_id', user.id)
-		.maybeSingle();
+	const { data: project, error: projectError } = await getOwnedProjectQuery(auth, projectId, 'id,author_id').maybeSingle();
 	if (projectError || !project) {
 		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 
 	const bucketName = env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_BUCKET;
-	await removeOldThumbnails(serviceClient.storage.from(bucketName), projectId, '');
-	const { error: updateError } = await serviceClient
+	await removeOldThumbnails(auth.serviceClient.storage.from(bucketName), projectId, '');
+	const { error: updateError } = await auth.serviceClient
 		.from('projects')
 		.update({
 			thumbnail_url: null,
 			thumbnail_mode: 'auto_cover'
 		})
 		.eq('id', projectId)
-		.eq('author_id', user.id);
+		.eq('author_id', auth.user.id);
 	if (updateError) {
 		return json({ error: '프로젝트 썸네일 연결을 삭제하지 못했습니다.' }, { status: 502 });
 	}
@@ -141,12 +115,6 @@ async function safeFormData(request: Request) {
 	} catch {
 		return null;
 	}
-}
-
-function bearerToken(request: Request) {
-	const header = request.headers.get('authorization') ?? '';
-	const match = header.match(/^Bearer\s+(.+)$/i);
-	return match?.[1]?.trim() ?? '';
 }
 
 function validateThumbnail(file: File) {

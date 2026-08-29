@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount, tick } from 'svelte';
-	import katex from 'katex';
-	import 'katex/dist/katex.min.css';
 	import { sanitizeProjectHtml } from '$lib/format';
+
+	type KatexRenderer = typeof import('katex').default;
+	let katexPromise: Promise<KatexRenderer> | null = null;
 
 	let {
 		html,
@@ -16,11 +17,19 @@
 
 	let container = $state<HTMLDivElement | null>(null);
 
-	function renderMath() {
+	async function renderMath() {
 		if (!container) {
 			return;
 		}
-		for (const node of container.querySelectorAll<HTMLElement>('[data-type="inline-math"], [data-type="block-math"]')) {
+		const mathNodes = [...container.querySelectorAll<HTMLElement>('[data-type="inline-math"], [data-type="block-math"]')];
+		if (mathNodes.length === 0) {
+			return;
+		}
+		const katex = await loadKatex();
+		for (const node of mathNodes) {
+			if (!node.isConnected) {
+				continue;
+			}
 			const latex = node.dataset.latex?.trim();
 			if (!latex) {
 				continue;
@@ -34,6 +43,10 @@
 				node.textContent = latex;
 			}
 		}
+	}
+
+	function loadKatex() {
+		return (katexPromise ??= Promise.all([import('katex'), import('katex/dist/katex.min.css')]).then(([module]) => module.default));
 	}
 
 	onMount(() => {

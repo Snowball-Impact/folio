@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
 import { expect, test } from '@playwright/test';
+import { testEnv } from './test-env';
 
 const focusRoutes = [
 	{ name: 'home', path: '/' },
@@ -8,7 +9,7 @@ const focusRoutes = [
 	{ name: 'submit', path: '/submit' }
 ];
 
-const publicDetailProjectId = process.env.PLAYWRIGHT_PUBLIC_DETAIL_PROJECT_ID || process.env.PLAYWRIGHT_PROJECT_ID || '';
+const publicDetailProjectId = testEnv('PLAYWRIGHT_PUBLIC_DETAIL_PROJECT_ID', 'PLAYWRIGHT_PROJECT_ID');
 
 for (const route of focusRoutes) {
 	test(`${route.name} renders a capture-ready page`, async ({ page }, testInfo) => {

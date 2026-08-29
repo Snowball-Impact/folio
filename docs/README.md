@@ -37,6 +37,7 @@
 | [SVELTE_STAGING_QA_RUNBOOK.md](SVELTE_STAGING_QA_RUNBOOK.md) | SvelteKit staging 배포 후 실제 계정으로 확인할 수동 QA 실행 순서 |
 | [SVELTE_DEVELOPMENT_ENVIRONMENT.md](SVELTE_DEVELOPMENT_ENVIRONMENT.md) | Streamlit 원본, Svelte 개발 서버, Cloudflare preview, UIUX capture 환경 기준 |
 | [SVELTE_MIGRATION_RETROSPECTIVE.md](SVELTE_MIGRATION_RETROSPECTIVE.md) | Streamlit에서 SvelteKit으로 이전하며 얻은 전환 교훈과 남은 리스크 |
+| [SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md](SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md) | UIUX 클로닝 이후 Svelte 리팩토링·최적화 작업의 기준, 교훈, 검증 순서 |
 | [UI_LAYOUT_HARMONY_DEEP_DIVE.md](UI_LAYOUT_HARMONY_DEEP_DIVE.md) | Streamlit 원본 대비 Svelte 컴포넌트 위치·배치·균형·조화 전수 조사 |
 | [UIUX_FOCUS_PAGE_STATIC_AUDIT_2026-08-28.md](UIUX_FOCUS_PAGE_STATIC_AUDIT_2026-08-28.md) | 마이페이지·알림·등록/수정·상세의 원본/Svelte 정적 구조 대조 |
 | [UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md](UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md) | Desktop Browser와 Playwright 캡처를 합친 페이지별 증거표와 현재 판정 |

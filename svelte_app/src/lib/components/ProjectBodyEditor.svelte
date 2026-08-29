@@ -1,46 +1,10 @@
 <script lang="ts">
 import { onDestroy, onMount } from 'svelte';
-import Color from '@tiptap/extension-color';
-import { Editor, Extension } from '@tiptap/core';
-	import { NodeSelection } from '@tiptap/pm/state';
-	import Image from '@tiptap/extension-image';
-	import Highlight from '@tiptap/extension-highlight';
-	import Link from '@tiptap/extension-link';
-	import Mathematics from '@tiptap/extension-mathematics';
-import Placeholder from '@tiptap/extension-placeholder';
-import Subscript from '@tiptap/extension-subscript';
-import Superscript from '@tiptap/extension-superscript';
-import { TextStyle } from '@tiptap/extension-text-style';
-import FontSize from '@tiptap/extension-text-style/font-size';
-import FontFamily from '@tiptap/extension-font-family';
-import TextAlign from '@tiptap/extension-text-align';
-	import Underline from '@tiptap/extension-underline';
-	import { StarterKit } from '@tiptap/starter-kit';
+import type { Editor as TiptapEditor } from '@tiptap/core';
 import ProjectRichContent from './ProjectRichContent.svelte';
 import RichEditorIcon from './RichEditorIcon.svelte';
 
 	type BodyImageFileChange = (file: File, objectUrl: string) => void;
-
-	const BlockIndent = Extension.create({
-		name: 'blockIndent',
-		addGlobalAttributes() {
-			return [
-				{
-					types: ['paragraph', 'heading'],
-					attributes: {
-						indent: {
-							default: 0,
-							parseHTML: (element: HTMLElement) => Number(element.dataset.indent ?? 0) || 0,
-							renderHTML: (attributes: { indent?: number }) => {
-								const indent = Math.max(0, Math.min(6, Number(attributes.indent) || 0));
-								return indent ? { 'data-indent': String(indent), style: `margin-left: ${indent * 24}px` } : {};
-							}
-						}
-					}
-				}
-			];
-		}
-	});
 
 	let {
 		value,
@@ -53,7 +17,8 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 	} = $props();
 
 	let element = $state<HTMLDivElement | null>(null);
-	let editor = $state<Editor | null>(null);
+	let editor = $state<TiptapEditor | null>(null);
+	let NodeSelectionConstructor: typeof import('@tiptap/pm/state').NodeSelection | null = null;
 	let previewHtml = $state('');
 	let lastEmittedHtml = '';
 	type BlockFormat = 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'heading4' | 'heading5' | 'heading6';
@@ -64,7 +29,7 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 	let fontFamily = $state('default');
 	let imageInput = $state<HTMLInputElement | null>(null);
 
-	function syncBlockFormat(instance: Editor | null = editor) {
+	function syncBlockFormat(instance: TiptapEditor | null = editor) {
 		if (!instance) {
 			return;
 		}
@@ -96,46 +61,112 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		if (!element) {
 			return;
 		}
-		editor = new Editor({
-			element,
-				extensions: [
-				StarterKit.configure({
-					heading: { levels: [1, 2, 3, 4, 5, 6] },
-					link: false,
-					underline: false
-				}),
-				BlockIndent,
-				TextAlign.configure({
-					types: ['heading', 'paragraph']
-				}),
-				Underline,
-				Subscript,
-				Superscript,
-				TextStyle,
-				FontSize,
-				Color.configure({ types: ['textStyle'] }),
-				FontFamily.configure({ types: ['textStyle'] }),
-				Highlight.configure({ multicolor: true }),
-				Image.configure({ allowBase64: false, inline: false }),
-				Mathematics.configure({ katexOptions: { throwOnError: false } }),
-				Link.configure({
-					openOnClick: false,
-					HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' }
-				}),
-				Placeholder.configure({
-					placeholder: '프로젝트의 문제 정의, 사용 데이터, 분석 과정, 핵심 인사이트를 작성하세요.'
-					})
-			],
-			content: value,
-			onSelectionUpdate: ({ editor: currentEditor }) => syncBlockFormat(currentEditor),
-			onTransaction: ({ editor: currentEditor }) => syncBlockFormat(currentEditor),
-			 onUpdate: ({ editor }) => {
-				previewHtml = editor.getHTML();
-				lastEmittedHtml = previewHtml;
-				onChange(previewHtml);
+		let cancelled = false;
+		async function initializeEditor() {
+			const [
+				{ Editor, Extension },
+				{ default: Color },
+				{ NodeSelection },
+				{ default: Image },
+				{ default: Highlight },
+				{ default: Link },
+				{ default: Mathematics },
+				{ default: Placeholder },
+				{ default: Subscript },
+				{ default: Superscript },
+				{ TextStyle },
+				{ default: FontSize },
+				{ default: FontFamily },
+				{ default: TextAlign },
+				{ default: Underline },
+				{ StarterKit }
+			] = await Promise.all([
+				import('@tiptap/core'),
+				import('@tiptap/extension-color'),
+				import('@tiptap/pm/state'),
+				import('@tiptap/extension-image'),
+				import('@tiptap/extension-highlight'),
+				import('@tiptap/extension-link'),
+				import('@tiptap/extension-mathematics'),
+				import('@tiptap/extension-placeholder'),
+				import('@tiptap/extension-subscript'),
+				import('@tiptap/extension-superscript'),
+				import('@tiptap/extension-text-style'),
+				import('@tiptap/extension-text-style/font-size'),
+				import('@tiptap/extension-font-family'),
+				import('@tiptap/extension-text-align'),
+				import('@tiptap/extension-underline'),
+				import('@tiptap/starter-kit')
+			]);
+			if (cancelled || !element) {
+				return;
 			}
-		});
-		syncBlockFormat(editor);
+			NodeSelectionConstructor = NodeSelection;
+			const BlockIndent = Extension.create({
+				name: 'blockIndent',
+				addGlobalAttributes() {
+					return [
+						{
+							types: ['paragraph', 'heading'],
+							attributes: {
+								indent: {
+									default: 0,
+									parseHTML: (element: HTMLElement) => Number(element.dataset.indent ?? 0) || 0,
+									renderHTML: (attributes: { indent?: number }) => {
+										const indent = Math.max(0, Math.min(6, Number(attributes.indent) || 0));
+										return indent ? { 'data-indent': String(indent), style: `margin-left: ${indent * 24}px` } : {};
+									}
+								}
+							}
+						}
+					];
+				}
+			});
+			editor = new Editor({
+				element,
+				extensions: [
+					StarterKit.configure({
+						heading: { levels: [1, 2, 3, 4, 5, 6] },
+						link: false,
+						underline: false
+					}),
+					BlockIndent,
+					TextAlign.configure({
+						types: ['heading', 'paragraph']
+					}),
+					Underline,
+					Subscript,
+					Superscript,
+					TextStyle,
+					FontSize,
+					Color.configure({ types: ['textStyle'] }),
+					FontFamily.configure({ types: ['textStyle'] }),
+					Highlight.configure({ multicolor: true }),
+					Image.configure({ allowBase64: false, inline: false }),
+					Mathematics.configure({ katexOptions: { throwOnError: false } }),
+					Link.configure({
+						openOnClick: false,
+						HTMLAttributes: { rel: 'noopener noreferrer', target: '_blank' }
+					}),
+					Placeholder.configure({
+						placeholder: '프로젝트의 문제 정의, 사용 데이터, 분석 과정, 핵심 인사이트를 작성하세요.'
+					})
+				],
+				content: value,
+				onSelectionUpdate: ({ editor: currentEditor }) => syncBlockFormat(currentEditor),
+				onUpdate: ({ editor }) => {
+					syncBlockFormat(editor);
+					previewHtml = editor.getHTML();
+					lastEmittedHtml = previewHtml;
+					onChange(previewHtml);
+				}
+			});
+			syncBlockFormat(editor);
+		}
+		void initializeEditor();
+		return () => {
+			cancelled = true;
+		};
 	});
 
 	$effect(() => {
@@ -352,7 +383,7 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		if (!editor) {
 			return false;
 		}
-		if (editor.state.selection instanceof NodeSelection && editor.state.selection.node.type.name === 'image') {
+		if (NodeSelectionConstructor && editor.state.selection instanceof NodeSelectionConstructor && editor.state.selection.node.type.name === 'image') {
 			return editor
 				.chain()
 				.focus()
@@ -457,3 +488,383 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		</div>
 	</details>
 </div>
+
+<style>
+	.rich-editor-shell {
+		display: grid;
+		overflow: hidden;
+		border: 1px solid var(--folio-border);
+		border-radius: 8px;
+		background: white;
+	}
+
+	.rich-editor-toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0;
+		padding: 8px;
+		border-bottom: 1px solid var(--folio-border);
+		background: var(--folio-subtle);
+	}
+
+	.rich-editor-toolbar-group {
+		display: inline-flex;
+		flex-wrap: wrap;
+		gap: 0;
+		align-items: center;
+		margin-right: 12px;
+		padding-right: 0;
+	}
+
+	.rich-editor-toolbar-group:last-child {
+		margin-right: 0;
+	}
+
+	.rich-editor-toolbar button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		box-sizing: border-box;
+		min-width: 28px;
+		min-height: 24px;
+		padding: 3px 5px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: #4b5563;
+		cursor: pointer;
+		font-size: 12px;
+		font-weight: 800;
+		line-height: 1;
+		transition: background-color 120ms ease, color 120ms ease;
+	}
+
+	:global(.rich-editor-toolbar .editor-icon) {
+		display: block;
+		width: 18px;
+		height: 18px;
+		flex: 0 0 18px;
+	}
+
+	.rich-editor-format-select {
+		min-height: 24px;
+		padding: 3px 22px 3px 5px;
+		border: 0;
+		border-radius: 3px;
+		background: transparent;
+		color: #4b5563;
+		cursor: pointer;
+		font-size: 12px;
+		font-weight: 800;
+	}
+
+	.rich-editor-color-select {
+		min-height: 28px;
+		padding: 0 24px 0 8px;
+		border: 1px solid var(--folio-border);
+		border-radius: 8px;
+		background: white;
+		color: var(--folio-navy);
+		cursor: pointer;
+		font-size: 12px;
+		font-weight: 800;
+	}
+
+	.rich-editor-toolbar .rich-editor-format-select {
+		width: 82px;
+	}
+
+	.rich-editor-toolbar .rich-editor-color-select {
+		width: 72px;
+	}
+
+	.rich-editor-toolbar .rich-editor-highlight-select {
+		width: 88px;
+	}
+
+	.rich-editor-toolbar .rich-editor-font-select {
+		width: 96px;
+	}
+
+	.rich-editor-toolbar .rich-editor-size-select {
+		width: 82px;
+	}
+
+	.rich-editor-toolbar button:hover,
+	.rich-editor-toolbar button:focus-visible,
+	.rich-editor-toolbar select:hover,
+	.rich-editor-toolbar select:focus-visible,
+	.rich-editor-toolbar button.active {
+		background: #eaf2ff;
+		color: var(--folio-blue);
+	}
+
+	.rich-editor {
+		max-height: 330px;
+		min-height: 240px;
+		overflow-y: auto;
+		padding: 14px 16px;
+		color: var(--folio-navy);
+		font-size: 14px;
+		line-height: 1.58;
+	}
+
+	:global(.rich-editor .tiptap) {
+		min-height: 210px;
+		outline: none;
+	}
+
+	:global(.rich-editor .tiptap > *:first-child) {
+		margin-top: 0;
+	}
+
+	:global(.rich-editor .tiptap h2) {
+		margin: 18px 0 8px;
+		color: var(--folio-navy);
+		font-size: 18px;
+		line-height: 1.35;
+	}
+
+	:global(.rich-editor .tiptap h1) {
+		margin: 18px 0 8px;
+		color: var(--folio-navy);
+		font-size: 22px;
+		line-height: 1.3;
+	}
+
+	:global(.rich-editor .tiptap h3) {
+		margin: 14px 0 6px;
+		font-size: 15px;
+	}
+
+	:global(.rich-editor .tiptap h4),
+	:global(.rich-editor .tiptap h5),
+	:global(.rich-editor .tiptap h6) {
+		margin: 12px 0 5px;
+	}
+
+	:global(.rich-editor .tiptap h4) {
+		font-size: 14px;
+	}
+
+	:global(.rich-editor .tiptap h5) {
+		font-size: 13px;
+	}
+
+	:global(.rich-editor .tiptap h6) {
+		font-size: 12px;
+	}
+
+	:global(.rich-editor .tiptap p) {
+		margin: 0 0 8px;
+	}
+
+	:global(.rich-editor .tiptap ul),
+	:global(.rich-editor .tiptap ol) {
+		margin: 0 0 12px 22px;
+		padding: 0;
+	}
+
+	:global(.rich-editor .tiptap blockquote) {
+		margin: 12px 0;
+		padding-left: 14px;
+		border-left: 3px solid var(--folio-border);
+		color: var(--folio-muted);
+	}
+
+	:global(.rich-editor .tiptap p.is-editor-empty:first-child::before) {
+		float: left;
+		height: 0;
+		color: var(--folio-muted);
+		content: attr(data-placeholder);
+		pointer-events: none;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='1']) {
+		margin-left: 24px;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='2']) {
+		margin-left: 48px;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='3']) {
+		margin-left: 72px;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='4']) {
+		margin-left: 96px;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='5']) {
+		margin-left: 120px;
+	}
+
+	:global(.rich-editor .tiptap [data-indent='6']) {
+		margin-left: 144px;
+	}
+
+	.rich-editor-toolbar {
+		gap: 0;
+		align-items: center;
+	}
+
+	.rich-editor-toolbar button {
+		box-sizing: border-box;
+		min-width: 28px;
+		min-height: 24px;
+		padding: 3px 5px;
+		font-size: 11px;
+	}
+
+	.rich-editor-toolbar-group {
+		gap: 0;
+		margin-right: 8px;
+		padding-right: 0;
+	}
+
+	:global(.rich-editor .tiptap mark) {
+		border-radius: 4px;
+		background: #fff2a8;
+		padding: 0 2px;
+	}
+
+	:global(.rich-editor .tiptap code) {
+		border: 1px solid var(--folio-border);
+		border-radius: 5px;
+		background: var(--folio-subtle);
+		padding: 1px 5px;
+		font-size: 0.9em;
+	}
+
+	:global(.rich-editor .tiptap pre) {
+		overflow-x: auto;
+		margin: 12px 0;
+		padding: 14px;
+		border-radius: 8px;
+		background: #0f172a;
+		color: white;
+		font-size: 13px;
+		line-height: 1.55;
+	}
+
+	:global(.rich-editor .tiptap pre code) {
+		border: 0;
+		background: transparent;
+		padding: 0;
+		color: inherit;
+	}
+
+	:global(.rich-editor .tiptap a) {
+		color: var(--folio-blue);
+		font-weight: 800;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	:global(.rich-editor .tiptap hr) {
+		margin: 22px 0;
+		border: 0;
+		border-top: 1px solid var(--folio-border);
+	}
+
+	:global(.rich-editor .tiptap img) {
+		display: block;
+		max-width: 100%;
+		height: auto;
+		margin: 12px 0;
+		border-radius: 8px;
+	}
+
+	:global(.rich-editor .tiptap [data-type='inline-math']) {
+		display: inline-block;
+		max-width: 100%;
+		overflow-x: auto;
+		vertical-align: middle;
+	}
+
+	:global(.rich-editor .tiptap [data-type='block-math']) {
+		max-width: 100%;
+		overflow-x: auto;
+		padding: 8px 0;
+	}
+
+	@media (max-width: 760px) {
+		.rich-editor-toolbar {
+			gap: 0;
+		}
+
+		.rich-editor-toolbar-group {
+			width: 100%;
+			margin-right: 0;
+			padding-right: 0;
+			border-right: 0;
+		}
+
+		.rich-editor-toolbar button {
+			flex: 0 0 auto;
+		}
+
+		.rich-editor {
+			min-height: 380px;
+			padding: 15px;
+		}
+	}
+
+	.rich-editor-preview {
+		border-top: 1px solid var(--folio-border);
+		background: #f8fbff;
+	}
+
+	.rich-editor-preview summary {
+		display: flex;
+		align-items: center;
+		min-height: 42px;
+		padding: 0 16px;
+		color: var(--folio-blue);
+		cursor: pointer;
+		font-size: 13px;
+		font-weight: 800;
+	}
+
+	.rich-editor-preview-content {
+		display: grid;
+		gap: 10px;
+		padding: 14px 18px 18px;
+		border-top: 1px solid rgba(201, 216, 238, 0.68);
+		color: var(--folio-navy);
+		font-size: 14px;
+		line-height: 1.65;
+	}
+
+	:global(.rich-editor-preview-content h2) {
+		margin: 8px 0 0;
+		font-size: 17px;
+		line-height: 1.35;
+	}
+
+	:global(.rich-editor-preview-content h1) {
+		margin: 8px 0 0;
+		font-size: 20px;
+		line-height: 1.3;
+	}
+
+	:global(.rich-editor-preview-content h3) {
+		margin: 6px 0 0;
+		font-size: 15px;
+	}
+
+	:global(.rich-editor-preview-content h4),
+	:global(.rich-editor-preview-content h5),
+	:global(.rich-editor-preview-content h6) {
+		margin: 6px 0 0;
+	}
+
+	:global(.rich-editor-preview-content p),
+	:global(.rich-editor-preview-content ul),
+	:global(.rich-editor-preview-content ol),
+	:global(.rich-editor-preview-content blockquote),
+	:global(.rich-editor-preview-content pre) {
+		margin: 0;
+	}
+</style>

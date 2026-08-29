@@ -18,14 +18,33 @@
 
 	let container: HTMLDivElement;
 	let status = $state<PowerBIReportStatus>('loading');
+	let loadDurationMs = $state<number | null>(null);
 	let powerBIService: PowerBIServiceNamespace.Service | null = null;
+	let embedStartedAt = 0;
+	let metricRecorded = false;
+	let measurementName = '';
 
 	function setStatus(nextStatus: PowerBIReportStatus) {
 		status = nextStatus;
+		if (nextStatus !== 'loading' && !metricRecorded && embedStartedAt > 0) {
+			metricRecorded = true;
+			loadDurationMs = Math.round(performance.now() - embedStartedAt);
+			const endMark = `${measurementName}:end`;
+			performance.mark(endMark);
+			performance.measure(measurementName, `${measurementName}:start`, endMark);
+			window.dispatchEvent(
+				new CustomEvent('folio:powerbi-metric', {
+					detail: { status: nextStatus, durationMs: loadDurationMs, title }
+				})
+			);
+		}
 		onStatusChange?.(nextStatus);
 	}
 
 	onMount(async () => {
+		measurementName = `folio-powerbi-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+		embedStartedAt = performance.now();
+		performance.mark(`${measurementName}:start`);
 		try {
 			const powerbiClient = (await import('powerbi-client')) as PowerBIClientModule;
 			const { factories, models, service } = powerbiClient;
@@ -71,7 +90,7 @@
 	});
 </script>
 
-<div class="powerbi-shell" data-powerbi-status={status}>
+<div class="powerbi-shell" data-powerbi-status={status} data-powerbi-load-ms={loadDurationMs ?? undefined}>
 	<div bind:this={container} class="powerbi-report" aria-label={`${title} Power BI 보고서`}></div>
 	{#if status === 'loading'}
 		<div class="powerbi-overlay">Power BI 보고서를 불러오는 중...</div>

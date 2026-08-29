@@ -1,14 +1,14 @@
 import { json } from '@sveltejs/kit';
-import { loadProjectDetail } from '$lib/projects';
+import { loadProjectEmbedState } from '$lib/projects';
 import { getPowerBIEmbedConfig, PowerBIServiceError } from '$lib/server/powerbi';
 
 export async function GET({ params }) {
 	const projectId = params.id;
-	const detail = await loadProjectDetail(projectId);
-	const project = detail.project;
+	const projectState = await loadProjectEmbedState(projectId);
+	const project = projectState.state;
 
 	if (!project || project.status === 'deleted' || !project.is_public) {
-		return json({ error: detail.error || '프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+		return json({ error: projectState.error || '프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 	if (project.status !== 'published' || project.project_type !== 'powerbi') {
 		return json({ error: 'Power BI 임베드를 사용할 수 없는 프로젝트입니다.' }, { status: 409 });

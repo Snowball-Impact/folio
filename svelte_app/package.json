@@ -12,6 +12,9 @@
 		"test:ui:auth": "playwright test --grep @auth --grep-invert @mutation",
 		"test:ui:headed": "playwright test --headed --grep-invert @auth",
 		"test:ui:report": "playwright show-report ..\\artifacts\\playwright\\report",
+		"test:unit": "node --experimental-strip-types --test tests/unit/project-input.test.ts",
+		"measure:routes": "node scripts/measure-route-performance.mjs",
+		"performance:budget": "node scripts/check-performance-budget.mjs",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -23,7 +26,7 @@
 		"smoke:security": "node scripts/smoke-security.mjs",
 		"preview:cloudflare": "wrangler pages dev .svelte-kit/cloudflare --ip=127.0.0.1 --port=8788",
 		"deploy:cloudflare": "wrangler pages deploy .svelte-kit/cloudflare",
-		"verify": "npm.cmd run check && npm.cmd run build && npm.cmd run smoke && npm.cmd run smoke:supabase && npm.cmd run smoke:security"
+		"verify": "npm.cmd run check && npm.cmd run build && npm.cmd run performance:budget && npm.cmd run smoke && npm.cmd run smoke:supabase && npm.cmd run smoke:security"
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.62.1",

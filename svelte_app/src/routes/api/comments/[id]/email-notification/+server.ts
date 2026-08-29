@@ -1,5 +1,5 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
-import { getSupabaseServerClient, getSupabaseUserClient } from '$lib/server/supabase';
+import { authFailureResponse, authenticateBearerRequest } from '$lib/server/request-auth';
 import { sendProjectCommentEmail } from '$lib/server/email';
 
 type CommentRecord = {
@@ -27,24 +27,16 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ error: '댓글 ID가 없습니다.' }, { status: 400 });
 	}
 
-	const accessToken = bearerToken(request);
-	if (!accessToken) {
-		return json({ error: '로그인 후 이메일 알림을 요청할 수 있습니다.' }, { status: 401 });
+	const auth = await authenticateBearerRequest(request);
+	if (!auth.ok) {
+		return authFailureResponse(auth, {
+			missingToken: '로그인 후 이메일 알림을 요청할 수 있습니다.',
+			unavailable: '이메일 알림 서버 환경 변수가 설정되지 않았습니다.',
+			invalidSession: '로그인 세션을 확인하지 못했습니다.'
+		});
 	}
 
-	const userClient = getSupabaseUserClient(accessToken);
-	const serviceClient = getSupabaseServerClient();
-	if (!userClient || !serviceClient) {
-		return json({ error: '이메일 알림 서버 환경 변수가 설정되지 않았습니다.' }, { status: 503 });
-	}
-
-	const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
-	const user = userData.user;
-	if (userError || !user) {
-		return json({ error: '로그인 세션을 확인하지 못했습니다.' }, { status: 401 });
-	}
-
-	const { data: comment, error: commentError } = await serviceClient
+	const { data: comment, error: commentError } = await auth.serviceClient
 		.from('comments')
 		.select('id,project_id,author_id,body')
 		.eq('id', commentId)
@@ -52,22 +44,22 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (commentError || !comment) {
 		return json({ error: '댓글을 찾을 수 없습니다.' }, { status: 404 });
 	}
-	if (comment.author_id !== user.id) {
+	if (comment.author_id !== auth.user.id) {
 		return json({ error: '본인이 작성한 댓글만 이메일 알림을 요청할 수 있습니다.' }, { status: 403 });
 	}
 
-	const { data: project, error: projectError } = await serviceClient
+	const { data: project, error: projectError } = await auth.serviceClient
 		.from('projects')
 		.select('id,author_id,title')
 		.eq('id', comment.project_id)
 		.maybeSingle<ProjectRecord>();
-	if (projectError || !project || project.author_id === user.id) {
+	if (projectError || !project || project.author_id === auth.user.id) {
 		return json({ ok: true, skipped: true, message: '이메일 알림 대상이 없습니다.' });
 	}
 
 	const [{ data: recipient }, { data: actor }] = await Promise.all([
-		serviceClient.from('profiles').select('id,email,name').eq('id', project.author_id).maybeSingle<ProfileRecord>(),
-		serviceClient.from('profiles').select('id,email,name').eq('id', user.id).maybeSingle<ProfileRecord>()
+		auth.serviceClient.from('profiles').select('id,email,name').eq('id', project.author_id).maybeSingle<ProfileRecord>(),
+		auth.serviceClient.from('profiles').select('id,email,name').eq('id', auth.user.id).maybeSingle<ProfileRecord>()
 	]);
 
 	try {
@@ -82,9 +74,3 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json({ ok: false, skipped: false, message: '이메일 알림 발송에 실패했습니다.' }, { status: 202 });
 	}
 };
-
-function bearerToken(request: Request) {
-	const header = request.headers.get('authorization') ?? '';
-	const match = header.match(/^Bearer\s+(.+)$/i);
-	return match?.[1]?.trim() ?? '';
-}
