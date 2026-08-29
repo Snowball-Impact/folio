@@ -4,12 +4,26 @@
 	import type { PowerBIEmbedConfig } from '$lib/types';
 
 	type PowerBIClientModule = typeof import('powerbi-client');
+	type PowerBIReportStatus = 'loading' | 'ready' | 'error';
 
-	let { config, title }: { config: PowerBIEmbedConfig; title: string } = $props();
+	let {
+		config,
+		title,
+		onStatusChange
+	}: {
+		config: PowerBIEmbedConfig;
+		title: string;
+		onStatusChange?: (status: PowerBIReportStatus) => void;
+	} = $props();
 
 	let container: HTMLDivElement;
-	let status = $state<'loading' | 'ready' | 'error'>('loading');
+	let status = $state<PowerBIReportStatus>('loading');
 	let powerBIService: PowerBIServiceNamespace.Service | null = null;
+
+	function setStatus(nextStatus: PowerBIReportStatus) {
+		status = nextStatus;
+		onStatusChange?.(nextStatus);
+	}
 
 	onMount(async () => {
 		try {
@@ -37,13 +51,16 @@
 			});
 
 			report.on('loaded', () => {
-				status = 'ready';
+				setStatus('ready');
+			});
+			report.on('rendered', () => {
+				setStatus('ready');
 			});
 			report.on('error', () => {
-				status = 'error';
+				setStatus('error');
 			});
 		} catch {
-			status = 'error';
+			setStatus('error');
 		}
 	});
 
@@ -54,7 +71,7 @@
 	});
 </script>
 
-<div class="powerbi-shell">
+<div class="powerbi-shell" data-powerbi-status={status}>
 	<div bind:this={container} class="powerbi-report" aria-label={`${title} Power BI 보고서`}></div>
 	{#if status === 'loading'}
 		<div class="powerbi-overlay">Power BI 보고서를 불러오는 중...</div>

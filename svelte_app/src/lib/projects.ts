@@ -52,6 +52,8 @@ export type ProjectSubmitInput = {
 	github_url: string;
 	thumbnail_url: string;
 	thumbnail_mode: 'auto_cover' | 'manual_url' | 'upload' | 'capture';
+	delete_thumbnail?: boolean;
+	delete_pbix?: boolean;
 	is_public: boolean;
 };
 
@@ -188,25 +190,32 @@ export async function loadProjectDetail(projectId: string) {
 		p_project_id: projectId
 	});
 
-	if (error) {
+	if (!error && data) {
+		const project = normalizeProject(data);
+		if (project && project.status !== 'deleted') {
+			return { project, error: '' };
+		}
+	}
+
+	// Match the Streamlit service fallback when the remote detail RPC is stale or unavailable.
+	// Resolve the browser session first so the owner-read RLS policy can expose a private project.
+	await currentSession();
+	const { data: row, error: fallbackError } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('id', projectId)
+		.neq('status', 'deleted')
+		.maybeSingle();
+
+	if (fallbackError || !row) {
 		return {
 			project: null,
-			error: '프로젝트를 불러오지 못했습니다.'
+			error: error ? '프로젝트를 불러오지 못했습니다.' : '프로젝트를 찾을 수 없습니다.'
 		};
 	}
 
-	const project = data ? normalizeProject(data) : null;
-	if (!project || project.status === 'deleted') {
-		return {
-			project: null,
-			error: '프로젝트를 찾을 수 없습니다.'
-		};
-	}
-
-	return {
-		project,
-		error: ''
-	};
+	const [project] = await attachPublicProjectMetadata([normalizeProject(row)]);
+	return project ? { project, error: '' } : { project: null, error: '프로젝트를 찾을 수 없습니다.' };
 }
 
 export async function loadReferenceProjects(
@@ -380,8 +389,9 @@ export async function listMyProjects() {
 	const projects = (Array.isArray(data) ? data : [])
 		.map(normalizeProject)
 		.filter((project) => project.status !== 'deleted');
+	const projectsWithMetadata = await attachPublicProjectMetadata(projects);
 	return {
-		projects: await attachPublicProjectMetadata(projects),
+		projects: await attachUnreadCommentStatus(projectsWithMetadata, session.user.id),
 		error: ''
 	};
 }
@@ -446,6 +456,44 @@ function normalizeHomeSnapshot(value: unknown): HomeSnapshot {
 	};
 }
 
+
+async function attachUnreadCommentStatus(projects: ProjectCard[], userId: string) {
+	const supabase = getSupabaseClient();
+	const projectIds = projects.map((project) => project.id).filter(Boolean);
+	if (!supabase || projects.length === 0 || projectIds.length === 0 || !userId) {
+		return projects;
+	}
+
+	try {
+		const [commentsResult, readsResult] = await Promise.all([
+			supabase.from('comments').select('project_id,author_id,created_at').in('project_id', projectIds).neq('author_id', userId),
+			supabase.from('project_comment_reads').select('project_id,last_read_at').eq('user_id', userId).in('project_id', projectIds)
+		]);
+		if (commentsResult.error || readsResult.error) {
+			throw commentsResult.error ?? readsResult.error;
+		}
+		const latestExternalComments = latestCommentByProjectId(commentsResult.data);
+		const reads = readsResult.data;
+		const readsByProject = new Map(
+			(Array.isArray(reads) ? reads : [])
+				.map((read) => asRecord(read))
+				.map((read) => [nullableString(read.project_id), nullableString(read.last_read_at)] as const)
+				.filter((entry): entry is [string, string | null] => Boolean(entry[0]))
+		);
+
+		return projects.map((project) => {
+			const latestCommentAt = latestExternalComments.get(project.id);
+			const lastReadAt = readsByProject.get(project.id);
+			const hasUnreadComments = Boolean(
+				latestCommentAt && (!lastReadAt || Date.parse(latestCommentAt) > Date.parse(lastReadAt))
+			);
+			return { ...project, has_unread_comments: hasUnreadComments };
+		});
+	} catch (error) {
+		console.warn('Failed to load unread comment state', error);
+		return projects;
+	}
+}
 async function attachPublicProjectMetadata(projects: ProjectCard[]) {
 	const supabase = getSupabaseClient();
 	if (!supabase || projects.length === 0) {
@@ -600,12 +648,6 @@ function validateProjectInput(input: ProjectSubmitInput) {
 	if (!input.problem.trim() && !input.dataset.trim() && !input.process.trim() && !input.insights.trim()) {
 		return '프로젝트 본문을 한 섹션 이상 입력하세요.';
 	}
-	if (!input.problem.trim()) {
-		return '문제 정의를 입력하세요.';
-	}
-	if (!input.insights.trim()) {
-		return '주요 관찰 포인트를 입력하세요.';
-	}
 	if (input.power_bi_url.trim() && !normalizePowerBIEmbedUrl(input.power_bi_url)) {
 		return 'Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다.';
 	}
@@ -622,7 +664,9 @@ function validateProjectInput(input: ProjectSubmitInput) {
 }
 
 function buildProjectPayload(input: ProjectSubmitInput) {
-	const powerBiUrl = normalizePowerBIEmbedUrl(input.power_bi_url);
+	const powerBiUrl = input.delete_pbix ? null : normalizePowerBIEmbedUrl(input.power_bi_url);
+	const thumbnailUrl = input.delete_thumbnail || input.thumbnail_mode !== 'manual_url' ? null : normalizeOptionalUrl(input.thumbnail_url);
+	const thumbnailMode = input.delete_thumbnail || input.thumbnail_mode === 'upload' ? 'auto_cover' : input.thumbnail_mode;
 	return {
 		title: input.title.trim(),
 		one_liner: input.one_liner.trim() || null,
@@ -633,8 +677,8 @@ function buildProjectPayload(input: ProjectSubmitInput) {
 		power_bi_url: powerBiUrl,
 		report_url: normalizeOptionalUrl(input.report_url),
 		github_url: normalizeOptionalUrl(input.github_url),
-		thumbnail_url: input.thumbnail_mode === 'manual_url' ? normalizeOptionalUrl(input.thumbnail_url) : null,
-		thumbnail_mode: input.thumbnail_mode === 'upload' ? 'auto_cover' : input.thumbnail_mode,
+		thumbnail_url: thumbnailUrl,
+		thumbnail_mode: thumbnailMode,
 		project_type: projectTypeForPlatform(input.platform),
 		platform_key: normalizeSubmitPlatform(input.platform),
 		status: 'published',
@@ -707,8 +751,8 @@ function normalizeOptionalUrl(value: string) {
 	}
 }
 
-function normalizePowerBIEmbedUrl(value: string) {
-	let rawValue = value.trim();
+export function normalizePowerBIEmbedUrl(value: string | null | undefined) {
+	let rawValue = (value ?? '').trim();
 	if (!rawValue) {
 		return null;
 	}
@@ -742,7 +786,11 @@ function latestCommentByProjectId(rows: unknown) {
 		const record = asRecord(row);
 		const projectId = nullableString(record.project_id);
 		const createdAt = nullableString(record.created_at);
-		if (projectId && createdAt && (!latest.has(projectId) || createdAt > latest.get(projectId)!)) {
+		if (
+			projectId &&
+			createdAt &&
+			(!latest.has(projectId) || Date.parse(createdAt) > Date.parse(latest.get(projectId)!))
+		) {
 			latest.set(projectId, createdAt);
 		}
 	}
@@ -786,7 +834,8 @@ function normalizeProject(value: unknown): ProjectDetail {
 		},
 		like_count: Number(payload.like_count ?? 0),
 		comment_count: Number(payload.comment_count ?? 0),
-		latest_comment_at: nullableString(payload.latest_comment_at)
+		latest_comment_at: nullableString(payload.latest_comment_at),
+		has_unread_comments: Boolean(payload.has_unread_comments)
 	};
 }
 

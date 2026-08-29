@@ -35,8 +35,12 @@
 | [INTEGRATION_VALIDATION.md](INTEGRATION_VALIDATION.md) | 실제 계정과 원격 Supabase 통합 검증 결과 |
 | [SVELTE_E2E_READINESS.md](SVELTE_E2E_READINESS.md) | SvelteKit 전환 전 운영 환경·E2E go/no-go 체크리스트 |
 | [SVELTE_STAGING_QA_RUNBOOK.md](SVELTE_STAGING_QA_RUNBOOK.md) | SvelteKit staging 배포 후 실제 계정으로 확인할 수동 QA 실행 순서 |
+| [SVELTE_DEVELOPMENT_ENVIRONMENT.md](SVELTE_DEVELOPMENT_ENVIRONMENT.md) | Streamlit 원본, Svelte 개발 서버, Cloudflare preview, UIUX capture 환경 기준 |
 | [SVELTE_MIGRATION_RETROSPECTIVE.md](SVELTE_MIGRATION_RETROSPECTIVE.md) | Streamlit에서 SvelteKit으로 이전하며 얻은 전환 교훈과 남은 리스크 |
 | [UI_LAYOUT_HARMONY_DEEP_DIVE.md](UI_LAYOUT_HARMONY_DEEP_DIVE.md) | Streamlit 원본 대비 Svelte 컴포넌트 위치·배치·균형·조화 전수 조사 |
+| [UIUX_FOCUS_PAGE_STATIC_AUDIT_2026-08-28.md](UIUX_FOCUS_PAGE_STATIC_AUDIT_2026-08-28.md) | 마이페이지·알림·등록/수정·상세의 원본/Svelte 정적 구조 대조 |
+| [UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md](UIUX_CAPTURE_EVIDENCE_REVIEW_2026-08-28.md) | Desktop Browser와 Playwright 캡처를 합친 페이지별 증거표와 현재 판정 |
+| [UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28.md](UIUX_FOCUS_CAPTURE_COMPARISON_2026-08-28.md) | 네 핵심 페이지의 최신 원본/Svelte 캡처 시각 비교와 반응형 차이 |
 | [COLLABORATION_RETROSPECTIVE.md](COLLABORATION_RETROSPECTIVE.md) | AI 협업 방식과 교훈 회고 |
 | [curation/powerbi_CONTENT_OPS.md](curation/powerbi_CONTENT_OPS.md) | Power BI 업데이트·커뮤니티·학습 콘텐츠 정기 수집과 점검 절차 |
 

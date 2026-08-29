@@ -15,6 +15,7 @@ from folio_app.services.auth import (
     resend_signup_confirmation,
     sign_up,
 )
+from folio_app.services.auth_restore import restore_session
 from folio_app.services.profiles import ensure_profile, get_onboarding_status
 from folio_app.services.supabase_client import clear_supabase_client, get_supabase_client
 
@@ -25,6 +26,33 @@ class CookieStub(dict):
 
 
 class AuthRestoreUXTests(unittest.TestCase):
+    @patch("folio_app.services.auth_restore.apply_pending_policy_consents")
+    @patch("folio_app.services.auth_restore.ensure_profile", side_effect=RuntimeError("profile API clock skew"))
+    @patch("folio_app.services.auth_restore.save_auth_session")
+    @patch("folio_app.services.auth_restore.get_supabase_client")
+    def test_profile_repair_failure_does_not_discard_valid_restored_session(
+        self,
+        get_client,
+        save_session,
+        _ensure_profile,
+        _apply_consents,
+    ) -> None:
+        user = SimpleNamespace(
+            id="user-id",
+            email="user@example.com",
+            user_metadata={"name": "사용자", "organization": "소속"},
+            model_dump=lambda: {"id": "user-id", "email": "user@example.com"},
+        )
+        session = SimpleNamespace(access_token="access", refresh_token="refresh")
+        client = MagicMock()
+        client.auth.set_session.return_value = SimpleNamespace(user=user, session=session)
+        get_client.return_value = client
+
+        result = restore_session("access", "refresh")
+
+        self.assertTrue(result.ok)
+        save_session.assert_called_once_with(session, {"id": "user-id", "email": "user@example.com"})
+
     @patch("folio_app.app.restore_session", return_value=AuthResult(False, "로그인 복원 실패"))
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st")

@@ -8,18 +8,20 @@
 		markNotificationRead,
 		type NotificationItem
 	} from '$lib/notifications';
-	import { formatDate } from '$lib/format';
+	import { formatDateTime } from '$lib/format';
 
 	let notifications = $state<NotificationItem[]>([]);
 	let loading = $state(true);
 	let message = $state('');
 	let error = $state('');
+	let needsLogin = $state(false);
 	const unreadCount = $derived(notifications.filter((notification) => !notification.is_read).length);
 
 	onMount(async () => {
 		const session = await currentSession();
 		if (!session) {
-			await goto('/login?next=/notifications');
+			needsLogin = true;
+			loading = false;
 			return;
 		}
 		await refreshNotifications();
@@ -32,6 +34,7 @@
 		error = result.error;
 		loading = false;
 		if (!result.error && notifications.some((notification) => !notification.is_read)) {
+			const unreadIds = notifications.filter((notification) => !notification.is_read).map((notification) => notification.id);
 			const ok = await markAllNotificationsRead();
 			if (ok) {
 				notifications = notifications.map((notification) => ({
@@ -39,6 +42,7 @@
 					is_read: true,
 					read_at: notification.read_at ?? new Date().toISOString()
 				}));
+				window.dispatchEvent(new CustomEvent('folio:notifications-read', { detail: { ids: unreadIds } }));
 			}
 		}
 	}
@@ -60,11 +64,12 @@
 			return;
 		}
 		message = '모든 알림을 읽음 처리했습니다.';
-		notifications = notifications.map((notification) => ({
-			...notification,
-			is_read: true,
-			read_at: notification.read_at ?? new Date().toISOString()
-		}));
+			notifications = notifications.map((notification) => ({
+				...notification,
+				is_read: true,
+				read_at: notification.read_at ?? new Date().toISOString()
+			}));
+		window.dispatchEvent(new CustomEvent('folio:notifications-read'));
 	}
 </script>
 
@@ -84,7 +89,15 @@
 	</div>
 </section>
 
-<section class="notifications-panel">
+{#if needsLogin}
+	<section class="notifications-panel">
+		<div class="comments-empty notification-login-required">
+			<span>알림을 확인하려면 로그인이 필요합니다.</span>
+			<a class="button-link" href="/login?next=/notifications">로그인하기</a>
+		</div>
+	</section>
+{:else}
+	<section class="notifications-panel">
 	<div class="section-header">
 		<div>
 			<h2>최근 알림</h2>
@@ -105,7 +118,7 @@
 	{#if loading}
 		<div class="comments-empty">알림을 불러오는 중입니다.</div>
 	{:else if notifications.length === 0}
-		<div class="comments-empty">아직 알림이 없습니다.</div>
+		<div class="comments-empty">아직 새 알림이 없습니다.</div>
 	{:else}
 		<div class="notification-list">
 			{#each notifications as notification}
@@ -113,10 +126,7 @@
 					<div>
 						<span>{notification.is_read ? '읽음' : '새 알림'}</span>
 						<strong>{notification.title}</strong>
-						{#if notification.body}
-							<p>{notification.body}</p>
-						{/if}
-						<time>{formatDate(notification.created_at)}</time>
+						<time>{formatDateTime(notification.created_at)}</time>
 					</div>
 					{#if notification.project_id}
 						<button type="button" onclick={() => openProject(notification)}>프로젝트 보기</button>
@@ -126,3 +136,4 @@
 		</div>
 	{/if}
 </section>
+{/if}

@@ -9,7 +9,7 @@
 		listProjectComments,
 		markProjectCommentsSeen
 	} from '$lib/comments';
-	import { formatDate } from '$lib/format';
+	import { formatDateTime } from '$lib/format';
 	import type { ProjectComment } from '$lib/types';
 
 	let {
@@ -39,6 +39,17 @@
 	let deleting = $state(false);
 	let message = $state('');
 	let error = $state('');
+	let currentPage = $state(1);
+	const COMMENTS_PAGE_SIZE = 20;
+	const totalPages = $derived(Math.max(1, Math.ceil(comments.length / COMMENTS_PAGE_SIZE)));
+	const visibleComments = $derived(
+		comments.slice((currentPage - 1) * COMMENTS_PAGE_SIZE, currentPage * COMMENTS_PAGE_SIZE)
+	);
+
+	$effect(() => {
+		if (currentPage > totalPages) currentPage = totalPages;
+		if (currentPage < 1) currentPage = 1;
+	});
 
 	$effect(() => {
 		if (!initialized) {
@@ -122,7 +133,7 @@
 	}
 </script>
 
-<section class="comments-panel">
+<section id="project-comments" class="comments-panel">
 	<div class="comments-heading">
 		<h2>댓글 {commentCount}개</h2>
 		<p>프로젝트에 대한 의견이나 질문을 남겨보세요.</p>
@@ -143,7 +154,7 @@
 	{:else}
 		<div class="comments-login-note">
 			<span>로그인 후 댓글을 작성할 수 있습니다.</span>
-			<a href="/login">로그인하기</a>
+			<a href={`/login?next=/projects/${projectId}`}>로그인하기</a>
 		</div>
 	{/if}
 
@@ -158,39 +169,54 @@
 		</div>
 	{:else}
 		<div class="comment-list">
-			{#each comments as comment, index}
-				{@render CommentNode(comment, `${index + 1}`)}
+			{#each visibleComments as comment, index}
+				{@render CommentNode(comment, `${(currentPage - 1) * COMMENTS_PAGE_SIZE + index + 1}`)}
 			{/each}
 		</div>
 	{/if}
+
+	<div class="comments-pagination" aria-label="댓글 페이지 이동">
+		{#if totalPages > 1}
+			<button type="button" disabled={currentPage <= 1} onclick={() => (currentPage -= 1)}>이전</button>
+		{/if}
+		<span class="comments-page-status">{totalPages <= 1 ? currentPage : `${currentPage} / ${totalPages}`}</span>
+		{#if totalPages > 1}
+			<button type="button" disabled={currentPage >= totalPages} onclick={() => (currentPage += 1)}>다음</button>
+		{/if}
+	</div>
 </section>
 
 {#snippet CommentNode(comment: ProjectComment, indexLabel: string)}
 	<article class="comment-card" class:reply={comment.depth === 1}>
 		<div class="comment-index">{indexLabel}</div>
-		<div>
+		<div class="comment-content">
 			<div class="comment-author-line">
 				<strong>{comment.author.name ?? '작성자'}</strong>
-				<span>{formatDate(comment.created_at)}</span>
+				{#if projectAuthorId && comment.author_id === projectAuthorId}
+					<span class="comment-author-badge">작성자</span>
+				{/if}
 			</div>
 			<p>{comment.is_deleted ? '삭제된 댓글입니다.' : comment.body}</p>
-			{#if authenticated && !comment.is_deleted}
-				<div class="comment-actions">
-					{#if comment.depth === 0}
-						<button type="button" onclick={() => (replyTargetId = replyTargetId === comment.id ? null : comment.id)}>
-							답글
-						</button>
-					{/if}
-					{#if currentUserId === comment.author_id}
-						<button type="button" class:danger={deleteConfirmId === comment.id} disabled={deleting} onclick={() => removeComment(comment.id)}>
-							{deleteConfirmId === comment.id ? '삭제 확인' : '삭제'}
-						</button>
-						{#if deleteConfirmId === comment.id}
-							<button type="button" onclick={() => (deleteConfirmId = null)}>취소</button>
+			<div class="comment-footer">
+				{#if authenticated && !comment.is_deleted}
+					<div class="comment-actions">
+						{#if comment.depth === 0}
+							<button type="button" onclick={() => (replyTargetId = replyTargetId === comment.id ? null : comment.id)}>
+								답글
+							</button>
 						{/if}
-					{/if}
-				</div>
-			{/if}
+						{#if currentUserId === comment.author_id}
+							<button type="button" class:danger={deleteConfirmId === comment.id} disabled={deleting} onclick={() => removeComment(comment.id)}>
+								{deleteConfirmId === comment.id ? '삭제 확인' : '삭제'}
+							</button>
+							{#if deleteConfirmId === comment.id}
+								<button type="button" onclick={() => (deleteConfirmId = null)}>취소</button>
+							{/if}
+						{/if}
+					</div>
+				{/if}
+				<span class="comment-date">{formatDateTime(comment.created_at)}</span>
+			</div>
 		</div>
 	</article>
 	{#if authenticated && replyTargetId === comment.id}
@@ -203,6 +229,6 @@
 		</form>
 	{/if}
 	{#each comment.children as child, childIndex}
-		{@render CommentNode(child, `${indexLabel}-${childIndex + 1}`)}
+		{@render CommentNode(child, `${indexLabel}.${childIndex + 1}`)}
 	{/each}
 {/snippet}

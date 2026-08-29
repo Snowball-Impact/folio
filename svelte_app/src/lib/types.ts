@@ -51,6 +51,7 @@ export type ProjectCard = {
 	like_count: number;
 	comment_count: number;
 	latest_comment_at?: string | null;
+	has_unread_comments?: boolean;
 };
 
 export type HomeSnapshot = {

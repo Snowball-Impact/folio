@@ -133,7 +133,7 @@
 
 ## 9. Streamlit 브라우저 테스트 체크리스트
 
-- in-app browser 세션이 없으면 곧바로 로컬 Chrome/Selenium으로 대체하되, 먼저 `localhost:8501` 서버와 포트 중복 여부를 확인한다.
+- 브라우저 런타임은 별도 검증 표면이다. 연결된 브라우저 세션이 없으면 DOM/캡처 판정을 unknown으로 남기고, 다른 브라우저 자동화 도구로 조용히 대체하지 않는다. 서버/포트 점검은 별도 preflight에서 수행한다.
 - 스크롤 문제는 `window.scrollY`를 기준으로 단정하지 않는다. `section.stMain`, `[data-testid="stMain"]`, `.block-container` 등 실제 스크롤 가능한 요소의 `scrollHeight`, `clientHeight`, `scrollTop`을 먼저 측정한다.
 - sentinel 기반 무한스크롤은 sentinel의 `getBoundingClientRect()`와 실제 스크롤 컨테이너 위치를 함께 기록한다.
 - `components.html` 스크립트는 iframe sandbox 안에서 실행된다. 상위 페이지 URL 변경, top navigation, 직접 reload는 브라우저 정책에 막힐 수 있으므로 Streamlit 버튼 클릭, query param 콜백, `st.rerun()`처럼 앱 내부 동작을 태운다.
@@ -209,6 +209,15 @@ flowchart TD
 
 단순 문구 변경, 메뉴 라벨 변경, 작은 스타일 조정처럼 영향 범위가 명확한 수정은 과검증하지 않는다. 인증·권한·DB·라우팅·배포·큰 반응형 UI처럼 실패 비용이 큰 변경이나 사용자가 명시적으로 요청한 경우에만 테스트·캡처를 추가한다.
 
+### 작은 변경의 묶음 검증
+
+- 같은 화면의 문구·간격·색상·아이콘 같은 저위험 수정은 파일별로 테스트하지 않고 하나의 작업 묶음으로 처리한다.
+- 저위험 묶음은 수정이 끝난 뒤 변경 파일 확인과 필요 시 `npm.cmd run check`만 1회 수행한다. 브라우저 테스트와 캡처는 생략한다.
+- 한 화면의 여러 UI 상태를 함께 바꾼 중위험 묶음은 관련 Playwright 표적 테스트를 desktop/mobile 한 번씩만 실행한다. 각 CSS 수정마다 테스트를 반복하지 않는다.
+- 공통 컴포넌트·인증·라우팅·DB payload·실제 mutation이 포함되면 묶음의 마지막에 관련 회귀 suite를 1회 실행한다. 실패 원인이 불명확할 때만 추가 표적 테스트를 만든다.
+- 보안, 권한, 데이터 손실, 파일 업로드/삭제, 외부 공급자 게시 흐름은 작아 보여도 검증을 생략하지 않는다.
+- 검증을 생략한 저위험 변경은 문서나 최종 보고에 “브라우저 검증 생략”이라고 짧게 기록해 검증 누락과 의도적 생략을 구분한다.
+
 기본 명령:
 
 ```powershell
@@ -274,13 +283,17 @@ python -m pyflakes folio_app app.py
 ### SvelteKit 전환 교훈
 
 - **Svelte 전환은 화면 이식보다 데이터 계약 분리다.** 홈/상세/콘텐츠 화면은 먼저 RPC 응답 모양, nullable field, enum, visibility 규칙을 고정한 뒤 컴포넌트를 붙인다.
-- **FOLIO Svelte 앱은 Node SSR 앱이다.** PBIX 게시, 썸네일 업로드/캡처, SMTP, Supabase service role 작업이 있으므로 `@sveltejs/adapter-node`와 private env를 지원하는 host를 기준으로 배포한다.
+- **FOLIO Svelte 앱은 현재 Cloudflare adapter 기반이다.** 로컬 Vite dev는 Miniflare/Wrangler 경로를 사용하므로 npm.cmd run dev:managed로 프로젝트 내부의 .runtime/ 경로를 지정하고, 배포 target을 바꾸지 않는 한 adapter와 실행 명령을 혼용하지 않는다.
 - **원격 Supabase contract smoke를 완료 조건에 넣는다.** 로컬 schema가 맞아도 원격 RPC, check 제약, upsert 제약이 예전이면 앱은 실패한다. DB patch 후에는 `npm.cmd run smoke:supabase`로 확인한다.
 - **검증 명령은 하나로 수렴시킨다.** Svelte 앱 변경 후 기본 완료 gate는 `svelte_app/`에서 `npm.cmd run verify`다. 이 명령은 check, build, Node route smoke, Supabase contract smoke, security smoke를 실행한다.
 - **보안 smoke는 작은 경계를 자동화한다.** private env 이름/값이 클라이언트 코드와 bundle에 새지 않는지, thumbnail/PBIX/comment email endpoint가 익명 요청을 거절하는지 확인한다.
 - **SvelteKit CSRF와 앱 인증 gate를 구분한다.** FormData POST는 라우트 코드 전 CSRF 403으로 막힐 수 있다. bearer token 검증을 테스트하려면 같은 origin의 body 없는 POST처럼 앱 로직에 도달하는 최소 요청을 쓴다.
+- **Streamlit-to-Svelte UI parity는 정적 캡처 비교만으로 완료하지 않는다.** 원본의 코드 구조, 캡처, 현재 Svelte 렌더를 함께 보고 사용자가 실제로 조작하는 상태까지 비교한다. 특히 등록/수정 폼처럼 입력값이 히어로, 카드, 썸네일, 공개상태, 링크 패널에 반영되는 화면은 `empty`, `typed`, `radio-selected`, `file/url-selected`, `error`, `mobile` 상태를 각각 확인한다.
+- **원본의 암묵적 UX 신호를 체크리스트로 끌어올린다.** “히어로 오른쪽에 카드가 있다”는 구조가 같아 보여도, 사용자가 기대하는 것은 썸네일 미리보기, 선택 모드 라벨, 입력 즉시 반영, 업로드/URL/캡처 예정 상태다. 원본 UI가 기능의 결과를 미리 보여주는 영역이라면 Svelte에도 별도 preview state가 있어야 한다.
+- **전수조사 요청을 받으면 페이지 단위가 아니라 workflow state matrix로 본다.** 예: Submit/Edit은 `기본 정보`, `산출물 링크`, `플랫폼/PBIX`, `썸네일`, `본문 편집기`, `히어로 미리보기`, `저장/초안/공개 설정`을 하나의 흐름으로 묶어 비교한다. 각 항목은 원본 코드 위치, 원본 캡처, Svelte 코드 위치, 현재 캡처, 누락/차이, 수정 계획을 남긴다.
 - **Windows에서 JSON과 Markdown을 편집하면 BOM과 backtick을 확인한다.** `package.json`에 BOM이 붙으면 Vite가 읽지 못한다. Markdown backtick 치환은 PowerShell escape와 충돌할 수 있으므로 줄 단위 편집 후 `git diff --check`를 본다.
 - **자동 smoke와 수동 staging QA를 혼동하지 않는다.** verify가 통과해도 로그인, recovery, PBIX 실제 import, SMTP 발송, Chromium 캡처, Storage public URL은 실제 계정과 배포 환경에서 눌러봐야 한다. 자세한 회고는 `docs/SVELTE_MIGRATION_RETROSPECTIVE.md`를 따른다.
+
 ## 15. GitHub 이슈 기반 작업 관리
 
 모든 작업(버그, 기능, 완료된 작업 기록)은 GitHub 이슈로 관리한다.

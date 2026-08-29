@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { loadLikeState, setProjectLiked } from '$lib/likes';
 	import { formatCount } from '$lib/format';
@@ -39,7 +40,7 @@
 		message = '';
 		error = '';
 		if (!authenticated) {
-			message = '로그인 후 좋아요를 누를 수 있습니다.';
+			await goto(`/login?next=${encodeURIComponent(window.location.pathname)}`);
 			return;
 		}
 

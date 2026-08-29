@@ -5,6 +5,13 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
+		"dev:managed": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ..\\tools\\start_svelte_dev.ps1",
+		"diagnose:browser": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ..\\tools\\diagnose_browser_bridge.ps1",
+		"preflight:uiux": "python ..\\tools\\uiux_preflight.py --require-server --strict",
+		"test:ui": "playwright test --grep-invert @auth",
+		"test:ui:auth": "playwright test --grep @auth --grep-invert @mutation",
+		"test:ui:headed": "playwright test --headed --grep-invert @auth",
+		"test:ui:report": "playwright show-report ..\\artifacts\\playwright\\report",
 		"build": "vite build",
 		"preview": "vite preview",
 		"prepare": "svelte-kit sync || echo ''",
@@ -19,6 +26,7 @@
 		"verify": "npm.cmd run check && npm.cmd run build && npm.cmd run smoke && npm.cmd run smoke:supabase && npm.cmd run smoke:security"
 	},
 	"devDependencies": {
+		"@playwright/test": "^1.62.1",
 		"@sveltejs/adapter-cloudflare": "^7.2.9",
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
@@ -31,6 +39,23 @@
 	},
 	"dependencies": {
 		"@supabase/supabase-js": "^2.112.3",
+		"@tiptap/core": "^3.30.3",
+		"@tiptap/extension-bubble-menu": "^3.30.3",
+		"@tiptap/extension-color": "^3.30.3",
+		"@tiptap/extension-font-family": "^3.30.3",
+		"@tiptap/extension-highlight": "^3.30.3",
+		"@tiptap/extension-image": "^3.30.3",
+		"@tiptap/extension-link": "^3.30.3",
+		"@tiptap/extension-mathematics": "^3.30.3",
+		"@tiptap/extension-placeholder": "^3.30.3",
+		"@tiptap/extension-subscript": "^3.30.3",
+		"@tiptap/extension-superscript": "^3.30.3",
+		"@tiptap/extension-text-align": "^3.30.3",
+		"@tiptap/extension-text-style": "^3.30.3",
+		"@tiptap/extension-underline": "^3.30.3",
+		"@tiptap/pm": "^3.30.3",
+		"@tiptap/starter-kit": "^3.30.3",
+		"katex": "^0.18.4",
 		"powerbi-client": "^2.24.1"
 	}
 }

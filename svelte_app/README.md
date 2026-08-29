@@ -41,6 +41,24 @@ SMTP_USE_TLS=true
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
 
+Windows UIUX 검증은 Wrangler 경로를 프로젝트 내부로 고정하는 managed 명령을 사용합니다.
+
+```powershell
+npm.cmd run dev:managed -- --Port 5174
+```
+
+일반 개발 포트 `5173`, managed UIUX 검증 포트 `5174`, Cloudflare preview 포트 `8788`은 서로 다른 실행 단계입니다.
+
+Playwright 기반 Svelte UIUX 검증 환경은 Desktop Browser 연동과 독립적으로 실행됩니다.
+
+```powershell
+npx.cmd playwright install chromium
+npm.cmd run dev:managed -- --Port 5174
+npm.cmd run test:ui
+```
+
+기본 검증 대상은 `/`, `/my`, `/notifications`, `/submit`이며 데스크톱 `1440x1000`과 모바일 `390x844` 프로젝트로 실행합니다. 결과는 루트 `artifacts/playwright/` 아래에 저장됩니다. 인증 상태를 추가할 때는 저장된 cookie/localStorage를 커밋하지 않습니다.
+
 ## Validation
 
 ```powershell

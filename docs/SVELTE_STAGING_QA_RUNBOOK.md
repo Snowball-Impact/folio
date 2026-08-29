@@ -24,7 +24,7 @@ npm.cmd run verify
 통과 기준:
 
 - Svelte/TypeScript check 0 errors
-- adapter-node build 성공
+- adapter-cloudflare build 성공
 - public route smoke 성공
 - Supabase contract smoke 성공
 - security smoke 성공

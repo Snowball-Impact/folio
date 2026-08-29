@@ -64,3 +64,26 @@ export async function captureProjectThumbnail(projectId: string) {
 		thumbnailUrl: payload.thumbnail_url
 	};
 }
+
+export async function deleteProjectThumbnail(projectId: string) {
+	const session = await currentSession();
+	if (!session) {
+		return { ok: false, message: '로그인 후 썸네일을 삭제할 수 있습니다.' };
+	}
+
+	const response = await fetch(`/api/projects/${projectId}/thumbnail`, {
+		method: 'DELETE',
+		headers: {
+			Authorization: `Bearer ${session.access_token}`
+		}
+	});
+	const payload = (await response.json().catch(() => ({}))) as {
+		ok?: boolean;
+		message?: string;
+		error?: string;
+	};
+	if (!response.ok || payload.ok === false) {
+		return { ok: false, message: payload.error || payload.message || '썸네일 삭제에 실패했습니다.' };
+	}
+	return { ok: true, message: payload.message || '기존 썸네일을 삭제했습니다.' };
+}

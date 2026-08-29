@@ -1,50 +1,112 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import ProjectBodyEditor from '$lib/components/ProjectBodyEditor.svelte';
+	import ProjectHeroThumbnailPreview from '$lib/components/ProjectHeroThumbnailPreview.svelte';
+	import ProjectFormOverview from '$lib/components/ProjectFormOverview.svelte';
+	import OperationProgress, { type OperationStep } from '$lib/components/OperationProgress.svelte';
 	import { currentSession } from '$lib/auth';
 	import { publishProjectPbix } from '$lib/powerbi-publish';
-	import { createProject, type ProjectSubmitInput } from '$lib/projects';
+	import { createProject, updateProject, type ProjectSubmitInput } from '$lib/projects';
 	import { captureProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
+	import {
+		replacePendingBodyImages,
+		stripPendingBodyImages,
+		uploadProjectBodyImages,
+		type PendingProjectBodyImage
+	} from '$lib/projectBodyImages';
+	import { PROJECT_BODY_TEMPLATE, parseProjectBody } from '$lib/projectBody';
+	import type { ProjectCard as ProjectCardType } from '$lib/types';
 
 	const platformOptions = [
 		{ key: 'other', label: '기타' },
-		{ key: 'powerbi', label: 'Power BI' },
 		{ key: 'tableau', label: 'Tableau' },
+		{ key: 'powerbi', label: 'Power BI' },
 		{ key: 'datastudio', label: 'Data Studio' },
 		{ key: 'streamlit', label: 'Streamlit' }
 	] as const;
 
-	let input = $state<ProjectSubmitInput>({
-		title: '',
-		one_liner: '',
-		tags: '',
-		platform: 'other',
-		problem: '',
-		dataset: '',
-		process: '',
-		insights: '',
-		power_bi_url: '',
-		report_url: '',
-		github_url: '',
-		thumbnail_url: '',
-		thumbnail_mode: 'auto_cover',
-		is_public: true
-	});
+	let input = $state<ProjectSubmitInput>(emptyInput());
 	let message = $state('');
 	let error = $state('');
 	let submitting = $state(false);
 	let thumbnailFile = $state<File | null>(null);
 	let thumbnailPreviewUrl = $state<string | null>(null);
 	let pbixFile = $state<File | null>(null);
+	let bodyImageFiles = $state<PendingProjectBodyImage[]>([]);
 	let authChecked = $state(false);
 	let isAuthenticated = $state(false);
+	let draftLoaded = $state(false);
+	let draftStorageKey = $state('');
+	let bodyHtml = $state(PROJECT_BODY_TEMPLATE);
+	let skipNextDraftSave = false;
+	let operationProgress = $state(0);
+	let operationSteps = $state<OperationStep[]>([]);
+
+	const previewProject = $derived<ProjectCardType>({
+		id: 'submit-preview',
+		author_id: '',
+		title: input.title.trim() || '프로젝트명이 여기에 표시됩니다.',
+		one_liner: input.one_liner.trim() || '프로젝트 한 줄 소개가 표시됩니다.',
+		problem: input.problem,
+		dataset: input.dataset,
+		process: input.process,
+		insights: input.insights,
+		tags: previewTags(input.tags, input.platform),
+		thumbnail_url:
+			input.thumbnail_mode === 'manual_url'
+				? input.thumbnail_url.trim() || null
+				: input.thumbnail_mode === 'upload'
+					? thumbnailPreviewUrl
+					: input.thumbnail_mode === 'capture'
+						? input.thumbnail_url.trim() || null
+						: null,
+		thumbnail_mode: input.thumbnail_mode,
+		power_bi_url: input.power_bi_url.trim() || null,
+		report_url: input.report_url.trim() || null,
+		github_url: input.github_url.trim() || null,
+		platform_key: input.platform === 'other' ? null : input.platform,
+		project_type: input.platform === 'datastudio' ? 'looker' : input.platform === 'other' ? 'other' : input.platform,
+		status: 'published',
+		embed_status: input.power_bi_url.trim() ? 'supported' : 'external_only',
+		is_public: true,
+		view_count: 0,
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		author: { name: '작성자' },
+		like_count: 0,
+		comment_count: 0
+	});
+
+	$effect(() => {
+		if (!draftLoaded || !draftStorageKey) {
+			return;
+		}
+		if (skipNextDraftSave) {
+			skipNextDraftSave = false;
+			return;
+		}
+		localStorage.setItem(draftStorageKey, JSON.stringify(draftPayload(input, bodyHtml)));
+	});
 
 	onMount(async () => {
 		const session = await currentSession();
 		isAuthenticated = Boolean(session);
+		if (session) {
+			draftStorageKey = `folio-submit-draft:${session.user.id}:v1`;
+			restoreDraft();
+		}
+		draftLoaded = true;
 		authChecked = true;
 	});
 
+	function syncProjectBodyInput() {
+		const sections = parseProjectBody(stripPendingBodyImages(bodyHtml, bodyImageFiles));
+		input.problem = sections.problem;
+		input.dataset = sections.dataset;
+		input.process = sections.process;
+		input.insights = sections.insights;
+	}
 	async function submitProject(event: SubmitEvent) {
 		event.preventDefault();
 		if (!isAuthenticated) {
@@ -53,6 +115,7 @@
 		}
 		message = '';
 		error = '';
+		syncProjectBodyInput();
 		if (input.thumbnail_mode === 'upload' && !thumbnailFile) {
 			error = '업로드할 썸네일 이미지를 선택하세요.';
 			return;
@@ -66,15 +129,42 @@
 			return;
 		}
 		submitting = true;
+		startOperation(buildSubmitOperationSteps());
+		setOperationStep('save', 18, '프로젝트 정보를 저장하는 중입니다.');
 		const result = await createProject(input);
 		if (!result.ok || !result.projectId) {
+			failOperation();
 			submitting = false;
 			error = result.message;
 			return;
 		}
+		if (bodyImageFiles.length > 0) {
+			setOperationStep('body-image-upload', 34, '본문 이미지를 업로드하는 중입니다.');
+			const bodyImageResult = await uploadProjectBodyImages(result.projectId, bodyImageFiles);
+			if (!bodyImageResult.ok || bodyImageResult.urls.length !== bodyImageFiles.length) {
+				failOperation();
+				submitting = false;
+				error = `${bodyImageResult.message} 프로젝트는 등록되었습니다.`;
+				await goto(`/projects/${result.projectId}`);
+				return;
+			}
+			bodyHtml = replacePendingBodyImages(bodyHtml, bodyImageFiles, bodyImageResult.urls);
+			syncProjectBodyInput();
+			const bodyUpdateResult = await saveProjectBody(result.projectId);
+			if (!bodyUpdateResult.ok) {
+				failOperation();
+				submitting = false;
+				error = `${bodyUpdateResult.message} 프로젝트는 등록되었습니다.`;
+				await goto(`/projects/${result.projectId}`);
+				return;
+			}
+			releaseBodyImageFiles();
+		}
 		if (thumbnailFile) {
+			setOperationStep('thumbnail-upload', 42, '썸네일 이미지를 업로드하는 중입니다.');
 			const uploadResult = await uploadProjectThumbnail(result.projectId, thumbnailFile);
 			if (!uploadResult.ok) {
+				failOperation();
 				submitting = false;
 				error = `${uploadResult.message} 프로젝트는 등록되었습니다.`;
 				await goto(`/projects/${result.projectId}`);
@@ -82,8 +172,10 @@
 			}
 		}
 		if (pbixFile) {
+			setOperationStep('pbix-publish', 62, 'PBIX 파일을 Power BI Workspace에 게시하는 중입니다.');
 			const publishResult = await publishProjectPbix(result.projectId, pbixFile);
 			if (!publishResult.ok) {
+				failOperation();
 				submitting = false;
 				error = `${publishResult.message} 프로젝트는 등록되었습니다.`;
 				await goto(`/projects/${result.projectId}`);
@@ -91,19 +183,68 @@
 			}
 		}
 		if (input.thumbnail_mode === 'capture') {
+			setOperationStep('thumbnail-capture', 82, '프로젝트 대표 썸네일을 자동 캡처 중입니다.');
 			const captureResult = await captureProjectThumbnail(result.projectId);
 			if (!captureResult.ok) {
+				failOperation();
 				submitting = false;
 				error = `${captureResult.message} 프로젝트는 등록되었습니다.`;
 				await goto(`/projects/${result.projectId}`);
 				return;
 			}
 		}
+		setOperationStep('finish', 100, '프로젝트 등록 요청이 완료되었습니다.');
 		submitting = false;
 		message = result.message;
+		clearDraft({ keepMessage: true });
 		await goto(`/projects/${result.projectId}`);
 	}
 
+	function buildSubmitOperationSteps(): OperationStep[] {
+		const steps: OperationStep[] = [{ id: 'save', label: '프로젝트 정보를 저장합니다.', status: 'pending' }];
+		if (bodyImageFiles.length > 0) {
+			steps.push({ id: 'body-image-upload', label: '본문 이미지를 업로드합니다.', status: 'pending' });
+		}
+		if (thumbnailFile) {
+			steps.push({ id: 'thumbnail-upload', label: '썸네일 이미지를 업로드합니다.', status: 'pending' });
+		}
+		if (pbixFile) {
+			steps.push({ id: 'pbix-publish', label: 'PBIX 파일을 Power BI Workspace에 게시합니다.', status: 'pending' });
+		}
+		if (input.thumbnail_mode === 'capture') {
+			steps.push({ id: 'thumbnail-capture', label: '대표 썸네일을 자동 캡처합니다.', status: 'pending' });
+		}
+		steps.push({ id: 'finish', label: '프로젝트 등록 요청을 완료합니다.', status: 'pending' });
+		return steps;
+	}
+
+	function startOperation(steps: OperationStep[]) {
+		operationProgress = 10;
+		operationSteps = steps;
+	}
+
+
+	function failOperation(detail = '작업 처리 중 문제가 발생했습니다.') {
+		const activeIndex = operationSteps.findIndex((step) => step.status === 'active');
+		const fallbackIndex = operationSteps.findIndex((step) => step.status === 'pending');
+		const failedIndex = activeIndex >= 0 ? activeIndex : fallbackIndex;
+		if (failedIndex < 0) {
+			return;
+		}
+		operationProgress = Math.max(operationProgress, 10);
+		operationSteps = operationSteps.map((step, index) =>
+			index === failedIndex ? { ...step, status: 'error', detail } : step
+		);
+	}
+	function setOperationStep(id: string, progress: number, detail: string) {
+		const activeIndex = operationSteps.findIndex((step) => step.id === id);
+		operationProgress = progress;
+		operationSteps = operationSteps.map((step, index) => ({
+			...step,
+			detail: step.id === id ? detail : step.detail,
+			status: activeIndex < 0 ? step.status : index < activeIndex ? 'done' : step.id === id ? 'active' : 'pending'
+		}));
+	}
 	function selectThumbnail(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 		if (thumbnailPreviewUrl) {
@@ -117,6 +258,135 @@
 		pbixFile = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 	}
 
+	function selectBodyImage(file: File, objectUrl: string) {
+		bodyImageFiles = [...bodyImageFiles, { file, objectUrl }];
+	}
+
+	function releaseBodyImageFiles() {
+		for (const image of bodyImageFiles) {
+			URL.revokeObjectURL(image.objectUrl);
+		}
+		bodyImageFiles = [];
+	}
+
+	async function saveProjectBody(projectId: string) {
+		return updateProject(projectId, input);
+	}
+
+	function emptyInput(): ProjectSubmitInput {
+		return {
+			title: '',
+			one_liner: '',
+			tags: '',
+			platform: 'other',
+			problem: '',
+			dataset: '',
+			process: '',
+			insights: '',
+			power_bi_url: '',
+			report_url: '',
+			github_url: '',
+			thumbnail_url: '',
+			thumbnail_mode: 'auto_cover',
+			delete_thumbnail: false,
+			delete_pbix: false,
+			is_public: true
+		};
+	}
+
+	function restoreDraft() {
+		if (!draftStorageKey) {
+			return;
+		}
+		const rawDraft = localStorage.getItem(draftStorageKey);
+		if (!rawDraft) {
+			return;
+		}
+		try {
+			const draft = JSON.parse(rawDraft);
+			input = { ...emptyInput(), ...draft, is_public: true };
+			bodyHtml = typeof draft.project_body === 'string' && draft.project_body.trim() ? draft.project_body : bodyHtml;
+		} catch {
+			localStorage.removeItem(draftStorageKey);
+		}
+	}
+
+	function clearDraft(options: { keepMessage?: boolean } = {}) {
+		if (draftStorageKey) {
+			localStorage.removeItem(draftStorageKey);
+		}
+		skipNextDraftSave = true;
+		if (thumbnailPreviewUrl) {
+			URL.revokeObjectURL(thumbnailPreviewUrl);
+		}
+		input = emptyInput();
+		bodyHtml = PROJECT_BODY_TEMPLATE;
+		releaseBodyImageFiles();
+		thumbnailFile = null;
+		thumbnailPreviewUrl = null;
+		pbixFile = null;
+		error = '';
+		if (!options.keepMessage) {
+			message = '';
+		}
+	}
+
+	function draftPayload(value: ProjectSubmitInput, projectBody: string) {
+		return {
+			title: value.title,
+			one_liner: value.one_liner,
+			tags: value.tags,
+			platform: value.platform,
+			problem: value.problem,
+			dataset: value.dataset,
+			process: value.process,
+			insights: value.insights,
+			project_body: projectBody,
+			power_bi_url: value.power_bi_url,
+			report_url: value.report_url,
+			github_url: value.github_url,
+			thumbnail_url: value.thumbnail_url,
+			thumbnail_mode: value.thumbnail_mode,
+			delete_thumbnail: false,
+			delete_pbix: false,
+			is_public: true
+		};
+	}
+
+
+	function updateProjectBody(html: string) {
+		bodyHtml = html;
+		const sections = parseProjectBody(html);
+		input.problem = sections.problem;
+		input.dataset = sections.dataset;
+		input.process = sections.process;
+		input.insights = sections.insights;
+	}
+	function previewTags(tags: string, platform: ProjectSubmitInput['platform']) {
+		const rawTags = tags
+			.replaceAll('#', '')
+			.split(',')
+			.map((tag) => tag.trim())
+			.filter(Boolean);
+		const uniqueTags = [...new Set(rawTags)];
+		if (platform === 'other') {
+			return uniqueTags.slice(0, 5);
+		}
+		const platformLabel = platformOptions.find((option) => option.key === platform)?.label ?? '';
+		const platformAliases = new Set([
+			platformLabel,
+			platform,
+			platform === 'datastudio' ? 'Data Studio' : '',
+			platform === 'datastudio' ? 'Looker Studio' : '',
+			platform === 'powerbi' ? 'PowerBI' : '',
+			platform === 'powerbi' ? 'Power BI' : ''
+		].map(normalizeTag));
+		return [platformLabel, ...uniqueTags.filter((tag) => !platformAliases.has(normalizeTag(tag)))].slice(0, 5);
+	}
+
+	function normalizeTag(value: string) {
+		return value.trim().toLowerCase().replaceAll(' ', '');
+	}
 </script>
 
 <svelte:head>
@@ -124,15 +394,13 @@
 	<meta name="description" content="FOLIO에 데이터 분석 프로젝트를 등록합니다." />
 </svelte:head>
 
-<section class="submit-hero page-image-hero">
-	<div class="page-image-hero-copy">
-		<div class="page-image-hero-eyebrow">Submit</div>
+<section class="submit-hero submit-preview-hero">
+	<div>
+		<div class="eyebrow">Submit</div>
 		<h1>새 프로젝트 등록</h1>
 		<p>당신의 데이터 분석 프로젝트를 포트폴리오로 공개하세요.</p>
 	</div>
-	<div class="page-image-hero-visual">
-		<img src="/hero-submit.webp" alt="데이터 분석 프로젝트 등록 화면 일러스트" />
-	</div>
+	<ProjectHeroThumbnailPreview project={previewProject} />
 </section>
 
 {#if authChecked && !isAuthenticated}
@@ -147,121 +415,29 @@
 		<div class="auth-message success">{message}</div>
 	{/if}
 	{#if error}
-		<div class="auth-message error">{error}</div>
+		<div id="project-form-error" class="auth-message error" role="alert" aria-live="assertive">{error}</div>
 	{/if}
 
-	<section class="project-form-section">
-		<header>
-			<h2>기본 정보</h2>
-			<p>프로젝트를 한눈에 이해할 수 있는 정보를 입력하세요.</p>
-		</header>
-		<div class="form-grid two">
-			<label>
-				<span>프로젝트명 *</span>
-				<input bind:value={input.title} maxlength="48" placeholder="예: 서울시 청년 취업 데이터 분석" />
-			</label>
-			<label>
-				<span>프로젝트 한 줄 소개</span>
-				<input bind:value={input.one_liner} maxlength="56" placeholder="핵심 메시지를 한 문장으로 적어주세요." />
-			</label>
-			<label>
-				<span>플랫폼</span>
-				<select bind:value={input.platform}>
-					{#each platformOptions as option}
-						<option value={option.key}>{option.label}</option>
-					{/each}
-				</select>
-			</label>
-			<label>
-				<span>태그</span>
-				<input bind:value={input.tags} placeholder="공공데이터, 시각화, 취업" />
-			</label>
-		</div>
-	</section>
+	<OperationProgress progress={operationProgress} steps={operationSteps} />
 
-	<section class="project-form-section">
-		<header>
-			<h2>산출물 링크</h2>
-			<p>공개 프로젝트에서 연결할 외부 산출물을 입력하세요.</p>
-		</header>
-		<div class="form-grid two">
-			<label>
-				<span>Embed Code</span>
-				<input bind:value={input.power_bi_url} placeholder="https://... 또는 iframe 코드" />
-			</label>
-			{#if input.platform === 'powerbi'}
-				<label>
-					<span>PBIX 파일</span>
-					<input type="file" accept=".pbix" onchange={selectPbix} />
-				</label>
-			{/if}
-			<label>
-				<span>GitHub URL</span>
-				<input bind:value={input.github_url} placeholder="https://github.com/..." />
-			</label>
-			<label>
-				<span>Web App URL</span>
-				<input bind:value={input.report_url} placeholder="https://..." />
-			</label>
-			<div class="inline-controls">
-				<label class="switch-row">
-					<input type="checkbox" bind:checked={input.is_public} />
-					<span>프로젝트 공개</span>
-				</label>
-			</div>
-		</div>
-		<div class="thumbnail-row">
-			<label>
-				<span>썸네일 설정</span>
-				<select bind:value={input.thumbnail_mode}>
-					<option value="auto_cover">기본 커버</option>
-					<option value="capture">자동 캡처</option>
-					<option value="upload">이미지 업로드</option>
-					<option value="manual_url">URL 입력</option>
-				</select>
-			</label>
-			{#if input.thumbnail_mode === 'upload'}
-				<label>
-					<span>썸네일 이미지</span>
-					<input type="file" accept="image/jpeg,image/png,image/webp" onchange={selectThumbnail} />
-				</label>
-			{/if}
-			{#if input.thumbnail_mode === 'manual_url'}
-				<label>
-					<span>썸네일 URL</span>
-					<input bind:value={input.thumbnail_url} placeholder="https://..." />
-				</label>
-			{/if}
-		</div>
-	</section>
+	<div class="project-form-intro">
+		<strong>프로젝트 정보를 작성해 주세요.</strong>
+		<span>작성 내용은 이 브라우저에 자동 임시 저장됩니다.</span>
+		<small><b>*</b> 필수 입력</small>
+	</div>
+
+	<ProjectFormOverview bind:input {platformOptions} onSelectThumbnail={selectThumbnail} onSelectPbix={selectPbix} />
 
 	<section class="project-form-section">
 		<header>
 			<h2>프로젝트 내용</h2>
-			<p>분석의 배경과 과정, 핵심 인사이트를 기록하세요.</p>
+			<p>섹션 제목을 유지하면 상세 화면에서 분석 흐름이 깔끔하게 나뉩니다.</p>
 		</header>
-		<div class="form-grid two">
-			<label>
-				<span>문제 정의 *</span>
-				<textarea bind:value={input.problem} placeholder="어떤 문제를 해결하려 했나요?"></textarea>
-			</label>
-			<label>
-				<span>사용 데이터</span>
-				<textarea bind:value={input.dataset} placeholder="어떤 데이터를 사용했나요?"></textarea>
-			</label>
-			<label>
-				<span>분석 및 시각화</span>
-				<textarea bind:value={input.process} placeholder="어떤 분석 과정을 거쳤나요?"></textarea>
-			</label>
-			<label>
-				<span>주요 관찰 포인트 *</span>
-				<textarea bind:value={input.insights} placeholder="가장 중요한 결과와 배운 점은 무엇인가요?"></textarea>
-			</label>
-		</div>
+		<ProjectBodyEditor value={bodyHtml} onChange={updateProjectBody} onImageFile={selectBodyImage} />
 	</section>
 
 	<div class="project-form-actions">
-		<a class="button-link" href="/">취소</a>
+		<button class="secondary-action" type="button" onclick={() => clearDraft()}>초안 지우기</button>
 		<button type="submit" disabled={submitting}>{submitting ? '등록 중...' : '프로젝트 등록하기'}</button>
 	</div>
 </form>

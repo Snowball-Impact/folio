@@ -3,14 +3,14 @@
 	import { onMount } from 'svelte';
 	import { currentProfile, currentSession, updateProfile, type AuthProfile } from '$lib/auth';
 	import { deleteProject, listMyProjects } from '$lib/projects';
-	import { formatCount, formatDate, platformLabel } from '$lib/format';
+	import { formatCount } from '$lib/format';
 	import type { ProjectCard } from '$lib/types';
 
 	let profile = $state<AuthProfile | null>(null);
 	let projects = $state<ProjectCard[]>([]);
 	let loading = $state(true);
 	let deleting = $state(false);
-	let deleteConfirmId = $state<string | null>(null);
+	let deleteDialogProject = $state<ProjectCard | null>(null);
 	let editingProfile = $state(false);
 	let profileName = $state('');
 	let profileOrganization = $state('');
@@ -18,18 +18,20 @@
 	let profileSaving = $state(false);
 	let message = $state('');
 	let error = $state('');
+	let needsLogin = $state(false);
 
 	const stats = $derived({
 		projectCount: projects.length,
+		publicCount: projects.filter((project) => project.is_public).length,
 		viewCount: projects.reduce((total, project) => total + project.view_count, 0),
-		likeCount: projects.reduce((total, project) => total + project.like_count, 0),
-		commentCount: projects.reduce((total, project) => total + project.comment_count, 0)
+		likeCount: projects.reduce((total, project) => total + project.like_count, 0)
 	});
 
 	onMount(async () => {
 		const session = await currentSession();
 		if (!session) {
-			await goto('/login?next=/my');
+			needsLogin = true;
+			loading = false;
 			return;
 		}
 		profile = await currentProfile(session.user);
@@ -44,23 +46,34 @@
 		error = result.error;
 		loading = false;
 	}
-
-	async function removeProject(projectId: string) {
+	function openDeleteDialog(project: ProjectCard) {
+		deleteDialogProject = project;
 		message = '';
 		error = '';
-		if (deleteConfirmId !== projectId) {
-			deleteConfirmId = projectId;
+	}
+
+	function closeDeleteDialog() {
+		if (!deleting) {
+			deleteDialogProject = null;
+		}
+	}
+
+	async function confirmProjectDeletion() {
+		if (!deleteDialogProject) {
 			return;
 		}
+		message = '';
+		error = '';
 		deleting = true;
-		const result = await deleteProject(projectId);
+		const projectTitle = deleteDialogProject.title;
+		const result = await deleteProject(deleteDialogProject.id);
 		deleting = false;
 		if (!result.ok) {
 			error = result.message;
 			return;
 		}
-		deleteConfirmId = null;
-		message = result.message;
+		deleteDialogProject = null;
+		message = result.message || `${projectTitle} 프로젝트를 삭제했습니다.`;
 		await refreshProjects();
 	}
 
@@ -121,41 +134,18 @@
 	</div>
 </section>
 
-<section class="profile-overview">
-	<div class="profile-summary">
-		<strong>{profile?.name ?? '사용자'}</strong>
-		<span>{profile?.email}</span>
-		{#if profile?.organization}
-			<em>{profile.organization}</em>
-		{/if}
-		<p class:empty={!profile?.bio}>{profile?.bio || '아직 자기소개가 없습니다.'}</p>
-		<button type="button" onclick={startProfileEdit}>프로필 편집</button>
-	</div>
-	<div class="stats-grid" aria-label="내 프로젝트 통계">
-		<div>
-			<span>프로젝트</span>
-			<strong>{formatCount(stats.projectCount)}</strong>
+{#if needsLogin}
+	<section class="profile-overview profile-login-required">
+		<div class="comments-empty notification-login-required">
+			<span>마이 페이지를 이용하려면 로그인이 필요합니다.</span>
+			<a class="button-link" href="/login?next=/my">로그인하기</a>
 		</div>
-		<div>
-			<span>조회</span>
-			<strong>{formatCount(stats.viewCount)}</strong>
-		</div>
-		<div>
-			<span>좋아요</span>
-			<strong>{formatCount(stats.likeCount)}</strong>
-		</div>
-		<div>
-			<span>댓글</span>
-			<strong>{formatCount(stats.commentCount)}</strong>
-		</div>
-	</div>
-</section>
-
-{#if editingProfile}
+	</section>
+{:else if editingProfile}
 	<section class="profile-edit-card">
 		<form class="project-form" onsubmit={saveProfile}>
 			<header>
-				<div class="eyebrow">Edit Profile</div>
+				<div class="eyebrow">EDIT PROFILE</div>
 				<h2>프로필 정보 수정</h2>
 				<p>포트폴리오 방문자에게 보여줄 기본 정보를 관리합니다.</p>
 			</header>
@@ -173,82 +163,134 @@
 				<span>자기소개</span>
 				<textarea bind:value={profileBio} maxlength="300" placeholder="관심 분야와 데이터 분석 관점을 소개해 보세요."></textarea>
 			</label>
+			<p class="form-caption">자기소개는 최대 300자까지 입력할 수 있습니다.</p>
 			<div class="project-form-actions">
 				<button type="button" class="secondary-action" onclick={() => (editingProfile = false)}>취소</button>
 				<button type="submit" disabled={profileSaving}>{profileSaving ? '저장 중...' : '변경사항 저장'}</button>
 			</div>
 		</form>
 	</section>
-{/if}
-`r`n
-<section class="portfolio-section">
-	<div class="section-header">
-		<div>
-			<h2>내 프로젝트</h2>
-			<p>등록한 프로젝트를 확인하고 수정하거나 삭제할 수 있습니다.</p>
+{:else}
+	<section class="profile-overview">
+		<div class="profile-summary">
+			<dl class="profile-fields">
+				<div>
+					<dt>작성자</dt>
+					<dd class="profile-name">{profile?.name ?? profile?.email ?? '사용자'}</dd>
+				</div>
+				<div>
+					<dt>소속</dt>
+					<dd class:empty={!profile?.organization}>{profile?.organization || '소속을 추가해 나를 더 잘 소개해 보세요'}</dd>
+				</div>
+				<div>
+					<dt>이메일</dt>
+					<dd class="profile-email">{profile?.email}</dd>
+				</div>
+			</dl>
+			<div class="profile-about">
+				<p class:empty={!profile?.bio}>{profile?.bio || '아직 자기소개가 없습니다. 어떤 관점으로 데이터를 바라보는지 들려주세요.'}</p>
+			</div>
+			<div class="profile-stats" aria-label="내 프로젝트 통계">
+				<span><small>전체 프로젝트</small><strong>{formatCount(stats.projectCount)}</strong></span>
+				<span><small>공개 프로젝트</small><strong>{formatCount(stats.publicCount)}</strong></span>
+				<span><small>누적 조회</small><strong>{formatCount(stats.viewCount)}</strong></span>
+				<span><small>총 좋아요</small><strong>{formatCount(stats.likeCount)}</strong></span>
+			</div>
+			<button type="button" onclick={startProfileEdit}>프로필 편집</button>
 		</div>
-		<a class="button-link primary" href="/submit">프로젝트 등록</a>
-	</div>
+	</section>
 
-	{#if message}
-		<div class="auth-message success">{message}</div>
-	{/if}
-	{#if error}
-		<div class="auth-message error">{error}</div>
-	{/if}
-
-	{#if loading}
-		<div class="comments-empty">내 프로젝트를 불러오는 중입니다.</div>
-	{:else if projects.length === 0}
-		<div class="comments-empty">
-			<strong>아직 등록한 프로젝트가 없습니다.</strong>
-			<span>첫 프로젝트를 등록하면 이곳에서 관리할 수 있습니다.</span>
+	<section class="portfolio-section">
+		<div class="section-header">
+			<div>
+				<h2>내 프로젝트</h2>
+				<p>등록한 프로젝트를 확인하고 수정하거나 삭제할 수 있습니다.</p>
+			</div>
 		</div>
-	{:else}
-		<div class="portfolio-list">
-			{#each projects as project}
-				<article class="portfolio-card">
-					<div>
-						<div class="portfolio-title-line">
-							<strong>{project.title}</strong>
-							<span class:private={!project.is_public}>{project.is_public ? '공개' : '비공개'}</span>
-							{#if project.status === 'processing'}
-								<span>처리 중</span>
-							{:else if project.status === 'failed'}
-								<span class="private">게시 실패</span>
+
+		{#if message}
+			<div class="auth-message success">{message}</div>
+		{/if}
+		{#if error}
+			<div class="auth-message error">{error}</div>
+		{/if}
+
+		{#if loading}
+			<div class="comments-empty">내 프로젝트를 불러오는 중입니다.</div>
+		{:else if projects.length === 0}
+			<div class="comments-empty profile-empty-projects">
+				<strong>아직 등록한 프로젝트가 없습니다.</strong>
+				<span>첫 프로젝트를 등록하면 이곳에서 관리할 수 있습니다.</span>
+				<a class="button-link primary" href="/submit">프로젝트 등록</a>
+			</div>
+		{:else}
+			<div class="portfolio-list">
+				{#each projects as project}
+					<article class="portfolio-card">
+						<div>
+							<div class="portfolio-title-line">
+								<strong>{project.title}</strong>
+								{#if project.has_unread_comments}
+									<span class="portfolio-unread-badge" aria-label="안 본 댓글 있음">NEW</span>
+								{/if}
+								{#if project.status === 'processing'}
+									<span>처리 중</span>
+								{:else if project.status === 'failed'}
+									<span class="private">게시 실패</span>
+								{/if}
+							</div>
+							{#if project.one_liner}
+								<p>{project.one_liner}</p>
 							{/if}
+							<div class="portfolio-card-footer">
+								<div class="tags">
+									{#each project.tags as tag}
+										<span class="tag">#{tag}</span>
+									{/each}
+								</div>
+								<div class="card-meta portfolio-card-meta">
+									<span title="조회수" aria-label={`조회수 ${formatCount(project.view_count)}`}>
+										<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path><circle cx="12" cy="12" r="2.7"></circle></svg>
+										{formatCount(project.view_count)}
+									</span>
+									<span title="좋아요" aria-label={`좋아요 ${formatCount(project.like_count)}`}>
+										<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21l8.8-8.4a5.5 5.5 0 0 0 0-7.8Z"></path></svg>
+										{formatCount(project.like_count)}
+									</span>
+									<span title="댓글" aria-label={`댓글 ${formatCount(project.comment_count)}`}>
+										<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4Z"></path></svg>
+										{formatCount(project.comment_count)}
+									</span>
+									<span title={project.is_public ? '공개' : '비공개'} aria-label={`공개 상태 ${project.is_public ? '공개' : '비공개'}`}>
+										<svg viewBox="0 0 24 24" aria-hidden="true">{#if project.is_public}<circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path>{:else}<rect x="5" y="10" width="14" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path>{/if}</svg>
+									</span>
+								</div>
+							</div>
 						</div>
-						<p>{project.one_liner ?? '프로젝트 소개가 없습니다.'}</p>
-						<div class="tags">
-							{#each project.tags.slice(0, 5) as tag}
-								<span class="tag">#{tag}</span>
-							{/each}
+						<div class="portfolio-actions">
+							<a class="button-link" href={`/projects/${project.id}`}>보기</a>
+							<a class="button-link" href={`/projects/${project.id}/edit`}>수정</a>
+					<button type="button" disabled={deleting} onclick={() => openDeleteDialog(project)}>삭제</button>
 						</div>
-						<div class="card-meta">
-							<span>{platformLabel(project.platform_key, project.project_type)}</span>
-							<span>등록일 {formatDate(project.created_at)}</span>
-							<span>조회 {formatCount(project.view_count)}</span>
-							<span>좋아요 {formatCount(project.like_count)}</span>
-							<span>댓글 {formatCount(project.comment_count)}</span>
-						</div>
-					</div>
-					<div class="portfolio-actions">
-						<a class="button-link" href={`/projects/${project.id}`}>보기</a>
-						<a class="button-link" href={`/projects/${project.id}/edit`}>수정</a>
-						<button
-							type="button"
-							class:danger={deleteConfirmId === project.id}
-							disabled={deleting}
-							onclick={() => removeProject(project.id)}
-						>
-							{deleteConfirmId === project.id ? '삭제 확인' : '삭제'}
-						</button>
-						{#if deleteConfirmId === project.id}
-							<button type="button" onclick={() => (deleteConfirmId = null)}>취소</button>
-						{/if}
-					</div>
-				</article>
-			{/each}
+					</article>
+				{/each}
+			</div>
+		{/if}
+	</section>
+{/if}
+{#if deleteDialogProject}
+	<div class="my-delete-dialog-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeDeleteDialog(); }}>
+		<div class="my-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description">
+			<header>
+				<div class="eyebrow">Delete Project</div>
+				<h2 id="delete-dialog-title">프로젝트 삭제</h2>
+			</header>
+			<p id="delete-dialog-description"><strong>‘{deleteDialogProject.title || '제목 없는 프로젝트'}’</strong> 프로젝트를 삭제할까요?</p>
+			<span>삭제한 프로젝트는 복구할 수 없습니다.</span>
+			<div class="my-delete-dialog-actions">
+				<button type="button" class="secondary-action" disabled={deleting} onclick={closeDeleteDialog}>취소</button>
+				<button type="button" class="danger" disabled={deleting} onclick={confirmProjectDeletion}>{deleting ? '삭제 중...' : '삭제하기'}</button>
+			</div>
 		</div>
-	{/if}
-</section>
+	</div>
+{/if}

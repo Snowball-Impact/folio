@@ -453,6 +453,7 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - **모든 작업은 GitHub 이슈로 관리한다** (버그·기능·완료된 작업 기록 포함). 처리 흐름(분석 → 범위 확인 → 구현 → 검증 → 코멘트 → 명시적 승인 후 닫기)은 `docs/ENGINEERING_PLAYBOOK.md` 14번 섹션 참고.
 - 기본 협업 스타일은 **Ponytail + Caveman**이다. 코드는 Ponytail처럼 최소 동작 변경, 기존 패턴·stdlib·native 우선, 불필요한 dependency/abstraction 제거를 기준으로 짠다. 사용자 보고는 Caveman처럼 짧게, 결론 먼저, 개조식으로, 군더더기 없이 하되 보안·검증·배포 리스크는 생략하지 않는다.
 - 단순 CSS/문구 변경은 검증 생략.
+- 같은 화면의 단순 UI 변경은 여러 건을 한 작업 묶음으로 처리하고, 묶음 종료 시 `npm.cmd run check` 또는 관련 표적 테스트를 한 번만 실행한다. CSS 한 줄마다 브라우저 캡처를 반복하지 않는다. 인증·권한·DB·라우팅·파일/외부 공급자 흐름은 변경 규모와 관계없이 검증한다.
 - Python 구조 변경은 관련 파일만 Read 후 수정.
 - Streamlit 전역 CSS 오염 주의 — 컨테이너 key 기반 스코프 우선.
 - 인증 및 상태 변경 동작은 `navigate()`와 Streamlit 버튼 사용. 공개 카드 링크만 예외.
@@ -464,6 +465,7 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - 버그를 추론할 때는 앱 코드뿐 아니라 **Streamlit 프레임워크 자체의 알려진 동작/한계**도 항상 초기 가설에 넣는다 (`st.columns()`의 내부 ResizeObserver, 위젯 버전별 API 변경, 서드파티 컴포넌트 iframe 타이밍 등).
 - 로그인 등 실제 인증 세션이 있어야 확인되는 UI는, 계정이 없어도 `get_current_user()`를 몽키패치해서 두 상태를 나란히 렌더링·비교할 수 있다 → `tools/probe_header_auth_states.py` 참고.
 - 캡처 스크립트: `tools/capture_streamlit_scroll.py` (의존: selenium, Pillow → `requirements-dev.txt`).
+- Streamlit 인증 캡처는 로그인 직후의 초기 로딩 셸과 정착 후 상태를 분리한다. `capture_streamlit_scroll.py --login`은 `target_initial`과 `target_settled`를 출력하며, 상세 인증·iframe 판정은 `--settle-seconds` 이후의 `target_settled` 및 embed 진단을 기준으로 한다.
 - 페이지 전환 CLS 측정 스크립트: `tools/measure_transition_cls.py` (Selenium, `scrollTop`/`scrollHeight`/헤더·히어로 좌표를 시간대별로 기록).
 - 인증 상태별 UI 비교 스크립트: `tools/probe_header_auth_states.py` (`get_current_user()` 몽키패치로 로그인 세션 없이 logged_in/logged_out 헤더를 나란히 렌더링).
 
@@ -935,6 +937,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - 공개 Home 기본 진입은 쿠키 복원보다 첫 렌더 속도를 우선해 CookieManager를 마운트하지 않는다. 새 브라우저 세션의 저장된 로그인 쿠키 복원은 상세/보호/인증 흐름으로 들어갈 때 수행된다. 기본 홈에서 CookieManager iframe과 ready 대기 rerun을 제거하는 목적이다.
 - 런칭 모드는 Power BI-first다. Tableau/Looker Studio/Streamlit 레퍼런스 분류와 수집 데이터는 유지하되, UI 노출 플랫폼은 `VISIBLE_REFERENCE_PLATFORM_KEYS = ("powerbi",)`로 제한한다. 홈 콘텐츠 유형 필터는 숨기고 Power BI로 고정하며, 상단 독립 `레퍼런스` 메뉴는 숨긴다. Power BI 메뉴의 공식 레퍼런스 링크와 직접 `Reference` URL은 Power BI 레퍼런스만 보여준다.
 - 로컬 브라우저 검증 중 8501에 여러 Streamlit 리스너가 생기며 캡처가 최신 코드와 맞지 않는 상태를 확인했다. 서버 검증이 10초 이상 애매하면 추가 서버를 띄우지 말고 `netstat -ano | Select-String ':8501'`로 리스너 수를 확인한다.
+- 2026-08-28 외부 iframe 재검증에서 `streamlit run folio_app/app.py`를 직접 실행하면 정식 루트 `app.py`의 페이지 설정/세션 진입을 건너뛰어 `data-test-script-state=notRunning` 빈 화면이 남을 수 있음을 확인했다. 원본 캡처는 반드시 루트 `app.py`를 실행한다. 또한 전역 `iframe[title="st.iframe"]:not([src])` 선택자는 `components.html()`의 정상 대시보드까지 숨길 수 있으므로, 0 높이 속성이 확인된 스크립트 전용 iframe만 숨긴다.
 
 검증:
 

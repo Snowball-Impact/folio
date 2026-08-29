@@ -2,6 +2,8 @@
 
 이 문서는 Streamlit 기반 FOLIO MVP를 SvelteKit으로 단계 이전하면서 얻은 교훈을 기록한다. 목적은 구현 기록을 자랑하는 것이 아니라, 다음 전환·배포·검증 작업에서 같은 판단을 더 빠르고 차분하게 반복하기 위한 것이다.
 
+> Historical note: 2026-08-24 항목 일부는 당시 `adapter-node` 전환 상태를 기록한다. 현재 코드는 `@sveltejs/adapter-cloudflare`와 Wrangler Pages runtime을 사용한다. 현재 실행 포트와 검증 명령은 `docs/SVELTE_DEVELOPMENT_ENVIRONMENT.md`를 기준으로 한다.
+
 ## 2026-08-24 중간 정리
 
 ### 현재 도달점
@@ -161,7 +163,7 @@ Streamlit은 화면 선언, 서버 상태, 렌더링, 사용자 이벤트를 한
 
 1. 새 Svelte 화면을 만들기 전에 route별 데이터 계약을 먼저 문서화한다.
 2. Supabase schema나 RPC를 바꾸면 원격 patch 적용과 `npm.cmd run smoke:supabase`를 완료 조건에 넣는다.
-3. 서버 secret을 쓰는 기능이면 `adapter-node` 런타임과 private env availability를 먼저 확인한다.
+3. 서버 secret을 쓰는 기능이면 현재 배포 adapter(`adapter-cloudflare`)와 private env availability를 먼저 확인한다.
 4. `.env` 이름이 Streamlit legacy와 Svelte public/private 규칙 사이에서 맞는지 확인한다.
 5. `npm.cmd run verify`를 마지막 gate로 사용한다.
 6. 인증·업로드·PBIX·SMTP·캡처는 자동 smoke와 별개로 실제 계정 staging QA를 남긴다.

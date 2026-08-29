@@ -290,6 +290,24 @@ Remaining differences:
 
 Priority: Medium-low for visual parity, high for production content/legal accuracy.
 
+## Submit/Edit Follow-Up Lesson: State Parity Gap
+
+The first submit/edit comparison under-detected UIUX gaps because it treated the form as static layout parity. The original Streamlit form should be audited as a stateful workflow, not a screenshot-only surface.
+
+Required future comparison matrix for submit/edit:
+
+| Workflow area | Required parity check |
+| --- | --- |
+| Hero preview | Title, one-liner, tags, thumbnail, counters, and visibility/status respond to current form state. |
+| Thumbnail modes | `auto_cover`, `upload`, `manual_url`, and `capture` each have visible UI state and a clear preview/result expectation. |
+| Platform/PBIX | Power BI selection changes both validation and PBIX upload affordance without hiding the primary Embed Code path. |
+| Overview form | Basic info and resource links remain one structural group with a clear left/right relationship on desktop and stacked grouping on mobile. |
+| Rich body editor | Formatting controls, section template, parsed payload fields, and saved detail rendering stay aligned. |
+| Validation/error state | Required fields and mode-specific errors are visible near the affected workflow, not only as a page-level failure. |
+| Edit-specific state | Existing project values, existing thumbnail, public/private setting, and replacement uploads are distinguishable from a new submit draft. |
+
+Concrete lesson from the 2026-08-25 submit work: the Svelte hero initially reused a generic `ProjectCard`, which looked structurally close but missed the explicit thumbnail-preview UX. The fix was to add a dedicated hero thumbnail preview that exposes the selected thumbnail mode and renders uploaded/URL/default/capture-pending states.
+
 ## Step 4. Cross-Cutting UX Risks
 
 ### Risk 1. Svelte Is Cleaner But Less Compact

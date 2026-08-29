@@ -85,6 +85,56 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	return json({ thumbnail_url: publicUrl });
 };
 
+
+export const DELETE: RequestHandler = async ({ params, request }) => {
+	const projectId = params.id;
+	if (!projectId) {
+		return json({ error: '프로젝트 ID가 없습니다.' }, { status: 400 });
+	}
+
+	const accessToken = bearerToken(request);
+	if (!accessToken) {
+		return json({ error: '로그인 후 썸네일을 삭제할 수 있습니다.' }, { status: 401 });
+	}
+
+	const userClient = getSupabaseUserClient(accessToken);
+	const serviceClient = getSupabaseServerClient();
+	if (!userClient || !serviceClient) {
+		return json({ error: '썸네일 삭제 서버 환경 변수가 설정되지 않았습니다.' }, { status: 503 });
+	}
+
+	const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
+	const user = userData.user;
+	if (userError || !user) {
+		return json({ error: '로그인 세션을 확인하지 못했습니다.' }, { status: 401 });
+	}
+
+	const { data: project, error: projectError } = await serviceClient
+		.from('projects')
+		.select('id,author_id')
+		.eq('id', projectId)
+		.eq('author_id', user.id)
+		.maybeSingle();
+	if (projectError || !project) {
+		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+	}
+
+	const bucketName = env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_BUCKET;
+	await removeOldThumbnails(serviceClient.storage.from(bucketName), projectId, '');
+	const { error: updateError } = await serviceClient
+		.from('projects')
+		.update({
+			thumbnail_url: null,
+			thumbnail_mode: 'auto_cover'
+		})
+		.eq('id', projectId)
+		.eq('author_id', user.id);
+	if (updateError) {
+		return json({ error: '프로젝트 썸네일 연결을 삭제하지 못했습니다.' }, { status: 502 });
+	}
+
+	return json({ ok: true, message: '기존 썸네일을 삭제했습니다.' });
+};
 async function safeFormData(request: Request) {
 	try {
 		return await request.formData();

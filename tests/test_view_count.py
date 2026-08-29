@@ -128,8 +128,8 @@ class VisitorIdentityTests(unittest.TestCase):
     @patch("folio_app.app.get_current_user", return_value=None)
     @patch("folio_app.app.st.session_state", new_callable=dict)
     @patch("folio_app.app.st.query_params", {"page": "Home", "project_id": "project-id"})
-    def test_project_detail_can_skip_cookie_manager_for_public_render(self, _session_state, _current_user) -> None:
-        self.assertTrue(_can_skip_cookie_manager_for_public_detail())
+    def test_project_detail_keeps_cookie_manager_for_auth_restore(self, _session_state, _current_user) -> None:
+        self.assertFalse(_can_skip_cookie_manager_for_public_detail())
         self.assertFalse(_can_skip_cookie_manager_for_public_home())
 
     @patch("folio_app.app.get_current_user", return_value={"id": "user-id"})
