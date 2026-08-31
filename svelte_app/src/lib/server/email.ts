@@ -170,11 +170,12 @@ function smtpReader(reader: ReadableStreamDefaultReader<Uint8Array>) {
 				if (match) {
 					buffer = '';
 					const code = Number(match[1]);
+					const response = sanitizeSmtpResponse(lines.join('\n'));
 					if (expectedCode && code !== expectedCode) {
-						throw new Error(`${label} expected ${expectedCode}, got ${code}.`);
+						throw new Error(`${label} expected ${expectedCode}, got ${code}: ${response}`);
 					}
 					if (!expectedCode && code >= 400) {
-						throw new Error(`${label} failed with ${code}.`);
+						throw new Error(`${label} failed with ${code}: ${response}`);
 					}
 					return lines.join('\n');
 				}
@@ -254,6 +255,14 @@ function appUrl() {
 function smtpTimeoutMs() {
 	const configured = Number(env.SMTP_TIMEOUT_MS || DEFAULT_SMTP_TIMEOUT_MS);
 	return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_SMTP_TIMEOUT_MS;
+}
+
+function sanitizeSmtpResponse(response: string) {
+	return response
+		.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email]')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.slice(0, 500);
 }
 
 async function withTimeout<T>(promise: Promise<T>, label: string) {
