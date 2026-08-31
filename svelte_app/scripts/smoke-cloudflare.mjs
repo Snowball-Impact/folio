@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { mkdirSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 const host = process.env.CLOUDFLARE_SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.CLOUDFLARE_SMOKE_PORT || 8788);
@@ -110,9 +112,19 @@ function stopServer(child) {
 	});
 }
 function sanitizedEnv() {
-	return Object.fromEntries(
+	const runtimeEnv = Object.fromEntries(
 		Object.entries(process.env).filter(([key, value]) => key && !key.startsWith('=') && value !== undefined)
 	);
+	const runtimeRoot = resolve(process.cwd(), '..', '.runtime');
+	const xdgConfigHome = join(runtimeRoot, 'xdg-config');
+	const miniflareRegistryPath = join(runtimeRoot, 'miniflare-registry');
+	mkdirSync(xdgConfigHome, { recursive: true });
+	mkdirSync(miniflareRegistryPath, { recursive: true });
+	return {
+		...runtimeEnv,
+		XDG_CONFIG_HOME: xdgConfigHome,
+		MINIFLARE_REGISTRY_PATH: miniflareRegistryPath
+	};
 }
 function captureOutput(chunk) {
 	output += chunk.toString();

@@ -9,7 +9,12 @@ console.log('Security smoke passed for source and Cloudflare client bundle check
 
 function assertSecretNamesAreServerOnly() {
 	const clientFiles = listFiles('src', (path) => path.endsWith('.svelte') || path.endsWith('.ts'));
-	const forbiddenNames = ['SUPABASE_SERVICE_ROLE_KEY', 'POWERBI_CLIENT_SECRET', 'SMTP_PASSWORD'];
+	const forbiddenNames = [
+		'SUPABASE_SERVICE_ROLE_KEY',
+		'POWERBI_CLIENT_SECRET',
+		'SMTP_PASSWORD',
+		'CLOUDFLARE_BROWSER_RENDERING_API_TOKEN'
+	];
 	const offenders = [];
 	for (const file of clientFiles) {
 		if (file.includes(join('src', 'lib', 'server')) || file.endsWith('+server.ts')) {
@@ -32,7 +37,8 @@ function assertClientBundleDoesNotContainPrivateEnvValues() {
 	const candidates = [
 		process.env.SUPABASE_SERVICE_ROLE_KEY,
 		process.env.POWERBI_CLIENT_SECRET,
-		process.env.SMTP_PASSWORD
+		process.env.SMTP_PASSWORD,
+		process.env.CLOUDFLARE_BROWSER_RENDERING_API_TOKEN
 	]
 		.map((value) => value?.trim())
 		.filter((value) => value && value.length >= 8);

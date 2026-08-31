@@ -74,7 +74,7 @@ import type { ProjectSubmitInput } from '$lib/types';
 							<label>
 								<span>PBIX 파일 업로드</span>
 								<input type="file" accept=".pbix" onchange={onSelectPbix} />
-								<small>최대 100MB / 파일 · PBIX</small>
+								<small>Cloudflare MVP 기본 최대 50MB / 파일 · PBIX</small>
 							</label>
 							<p class="pbix-upload-warning">개인정보, 사내 데이터, 비공개 고객 정보가 포함된 PBIX는 업로드하지 마세요.</p>
 						</div>
@@ -150,7 +150,7 @@ import type { ProjectSubmitInput } from '$lib/types';
 				{/if}
 
 				{#if input.thumbnail_mode === 'capture'}
-					<small>Embed Code 또는 Web App URL 기준으로 대표 이미지를 생성합니다.</small>
+					<small>배포 환경에서 캡처 런타임을 명시적으로 켠 경우에만 대표 이미지를 생성합니다.</small>
 				{/if}
 			</div>
 		</div>

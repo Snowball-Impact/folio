@@ -21,10 +21,14 @@ POWERBI_CLIENT_ID=your-client-id
 POWERBI_CLIENT_SECRET=your-client-secret
 POWERBI_WORKSPACE_ID=your-workspace-id
 POWERBI_API_BASE_URL=https://api.powerbi.com/v1.0/myorg
-PBIX_MAX_UPLOAD_MB=100
+PBIX_MAX_UPLOAD_MB=50
 POWERBI_IMPORT_POLL_SECONDS=100
 POWERBI_CAPTURE_READY_WAIT_SECONDS=10
 THUMBNAIL_STORAGE_BUCKET=project-thumbnails
+THUMBNAIL_CAPTURE_ENABLED=true
+THUMBNAIL_CAPTURE_PROVIDER=cloudflare
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_BROWSER_RENDERING_API_TOKEN=
 CHROME_BINARY_PATH=
 SMTP_HOST=
 SMTP_PORT=587
@@ -83,6 +87,16 @@ npm run preview:cloudflare
 npm run deploy:cloudflare
 ```
 
+Cloudflare Pages Git integration settings:
+
+```text
+Root directory: svelte_app
+Build command: npm run build
+Build directory: .svelte-kit/cloudflare
+```
+
+For first Cloudflare staging, keep `PBIX_MAX_UPLOAD_MB=50` unless larger-file import memory behavior has been verified. Use `THUMBNAIL_CAPTURE_PROVIDER=cloudflare` with Cloudflare Browser Run credentials for automatic thumbnail capture. SMTP through raw TCP/TLS should be treated as staging validation work; in-app notifications do not depend on SMTP success.
+
 ## Current Scope
 
 - Home calls `home_project_snapshot` with `p_platform_key='powerbi'`.
@@ -100,12 +114,12 @@ npm run deploy:cloudflare
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, requests best-effort SMTP email notifications through a server endpoint, and marks project comment notifications/read state when the author opens the detail page.
-- Automatic thumbnail capture requires Playwright and Chromium in the server runtime; without them the endpoint returns a safe setup error.
+- Automatic thumbnail capture uses Cloudflare Browser Run when `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`. Local Playwright remains available with `THUMBNAIL_CAPTURE_PROVIDER=local` for non-Cloudflare runtimes.
 
 ## Deployment Runtime
 
 The spike now uses `@sveltejs/adapter-cloudflare` because the chosen deployment target is Cloudflare Workers/Pages. It is not a static-only deployment: project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints still require server runtime access to private environment variables.
 
-Automatic thumbnail capture is not Cloudflare-compatible as currently implemented because it depends on local Playwright/Chromium. For Cloudflare staging, use manual URL/upload thumbnails or replace capture with Cloudflare Browser Run before enabling it.
+Automatic thumbnail capture on Cloudflare requires Browser Run. Set `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN`; keep local Playwright/Chromium only for non-Cloudflare runtimes.
 
 Use [../docs/svelte/CLOUDFLARE_DEPLOYMENT.md](../docs/svelte/CLOUDFLARE_DEPLOYMENT.md) for the Cloudflare deployment plan, [../docs/svelte/SVELTE_E2E_READINESS.md](../docs/svelte/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md](../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.

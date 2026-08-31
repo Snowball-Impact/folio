@@ -70,7 +70,8 @@ export const POST: RequestHandler = async ({ params, request }) => {
 			comment
 		});
 		return json(result, { status: result.ok ? 200 : 202 });
-	} catch {
+	} catch (error) {
+		console.warn('Failed to send comment email notification', error);
 		return json({ ok: false, skipped: false, message: '이메일 알림 발송에 실패했습니다.' }, { status: 202 });
 	}
 };

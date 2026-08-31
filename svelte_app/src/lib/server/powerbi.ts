@@ -5,7 +5,7 @@ import type { PowerBIEmbedConfig } from '$lib/types';
 
 const POWERBI_SCOPE = 'https://analysis.windows.net/powerbi/api/.default';
 const DEFAULT_POWERBI_API_BASE_URL = 'https://api.powerbi.com/v1.0/myorg';
-const DEFAULT_PBIX_MAX_UPLOAD_MB = 100;
+const DEFAULT_PBIX_MAX_UPLOAD_MB = 50;
 const DEFAULT_IMPORT_POLL_SECONDS = 100;
 const IMPORT_SUCCEEDED_STATES = new Set(['succeeded', 'completed']);
 const IMPORT_FAILED_STATES = new Set(['failed']);

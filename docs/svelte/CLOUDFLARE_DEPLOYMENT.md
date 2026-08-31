@@ -17,7 +17,7 @@ Cloudflare Pages 가이드도 SvelteKit preset의 build directory를 `.svelte-ki
 - Request body max depends on Cloudflare account plan: Free/Pro 100 MB, Business 200 MB, Enterprise 500 MB by default.
 - Worker compressed size is 3 MB on Free and 10 MB on Paid.
 - SvelteKit Cloudflare builds target `.svelte-kit/cloudflare`.
-- Browser automation on Cloudflare should use Browser Run with `@cloudflare/playwright` and a browser binding, not local Chromium from the filesystem.
+- Browser automation on Cloudflare should use Browser Run Quick Actions or `@cloudflare/playwright` with a browser binding, not local Chromium from the filesystem.
 
 Sources:
 
@@ -34,6 +34,9 @@ Completed locally:
 - `@sveltejs/adapter-cloudflare` is installed and active.
 - `wrangler` is installed as a dev dependency.
 - `svelte_app/wrangler.jsonc` defines `pages_build_output_dir=.svelte-kit/cloudflare`, `compatibility_date=2025-12-01`, and `nodejs_compat`.
+- SvelteKit adapter settings live in `svelte_app/svelte.config.js`; `vite.config.ts` only wires the Vite plugin.
+- Cloudflare MVP defaults lower `PBIX_MAX_UPLOAD_MB` to 50 and use `THUMBNAIL_CAPTURE_PROVIDER=cloudflare` for automatic capture.
+- Local Cloudflare preview and smoke pin Wrangler registry/log paths to repository-local `.runtime/` to avoid Windows profile `EPERM` failures.
 - `npm.cmd run build` creates `.svelte-kit/cloudflare`.
 - `npm.cmd run smoke:cloudflare` starts local `wrangler pages dev`, checks `/`, `/powerbi`, `/references/powerbi`, and verifies anonymous protected POST endpoints return 401.
 - Power BI curation CSV files are bundled through Vite raw imports instead of runtime filesystem reads.
@@ -44,7 +47,7 @@ Still requires staging validation:
 - Cloudflare project creation and dashboard env/secrets.
 - Real Cloudflare preview/deploy URL smoke.
 - Auth redirect URL configuration in Supabase.
-- PBIX, thumbnail capture, and SMTP decisions under Workers constraints.
+- Real Cloudflare preview/deploy URL smoke for PBIX, thumbnail capture, and SMTP under Workers constraints.
 ## Compatibility Audit
 
 | Area | Current implementation | Cloudflare fit | Action |
@@ -56,7 +59,7 @@ Still requires staging validation:
 | Thumbnail upload | `await file.arrayBuffer()` then Supabase Storage upload | Works for small files; memory-sensitive | Keep 5 MB limit, verify on Workers |
 | PBIX upload | FormData file upload then Power BI Import | High risk at 100 MB due request body/account limit and 128 MB memory | Lower MVP limit for Cloudflare or stream/offload to separate service |
 | PBIX polling | Long network wait loop | Possible on Paid, risky on Free | Prefer async job/short polling, document no-go on Free |
-| Thumbnail capture | Dynamic import `playwright`, local Chromium/`CHROME_BINARY_PATH` | Not compatible as-is | Replace with Cloudflare Browser Run or disable capture on Cloudflare MVP |
+| Thumbnail capture | Cloudflare Browser Run REST screenshot provider, local Playwright fallback | Compatible with Browser Run credentials | Configure Browser Run token/account; keep local Playwright only outside Cloudflare |
 | SMTP email | `node:net`, `node:tls` custom SMTP socket | Needs Workers TCP/TLS validation | Prefer HTTP email provider API for Cloudflare MVP |
 | Smoke tests | `wrangler pages dev` smoke | Compatible locally | Use `npm.cmd run smoke:cloudflare` and `npm.cmd run verify` |
 
@@ -92,7 +95,7 @@ Scope:
 Explicitly out of scope unless proven compatible:
 
 - PBIX 100 MB import
-- Local Playwright/Chromium thumbnail capture
+- Local Playwright/Chromium thumbnail capture on Cloudflare
 - Raw SMTP socket email
 
 Exit criteria:
@@ -113,7 +116,7 @@ PBIX:
 
 Thumbnail capture:
 
-- Option A: Replace local Playwright with Cloudflare Browser Run.
+- Option A: Use the implemented Cloudflare Browser Run REST screenshot provider.
 - Option B: Move capture to a separate Node/Container worker.
 - Option C: Disable capture and keep manual URL/upload modes.
 
@@ -138,8 +141,8 @@ For first Cloudflare staging, ship this scope:
 
 Hold or feature-flag this scope:
 
-- PBIX import over 25 MB
-- Thumbnail capture
+- PBIX import over 50 MB
+- Local Playwright/Chromium thumbnail capture on Cloudflare
 - SMTP email delivery
 
 This gives us a deployable Cloudflare app without pretending Workers is a normal long-running Node server.
@@ -158,6 +161,9 @@ Public/non-secret:
 - `PBIX_MAX_UPLOAD_MB`
 - `POWERBI_IMPORT_POLL_SECONDS`
 - `POWERBI_CAPTURE_READY_WAIT_SECONDS`
+- `THUMBNAIL_CAPTURE_ENABLED`
+- `THUMBNAIL_CAPTURE_PROVIDER`
+- `CLOUDFLARE_ACCOUNT_ID`
 - `SMTP_PORT`
 - `SMTP_FROM_NAME`
 - `SMTP_USE_TLS`
@@ -169,6 +175,7 @@ Secrets:
 - `POWERBI_CLIENT_ID`
 - `POWERBI_CLIENT_SECRET`
 - `POWERBI_WORKSPACE_ID`
+- `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN`
 - `SMTP_HOST`
 - `SMTP_USERNAME`
 - `SMTP_PASSWORD`
@@ -222,4 +229,4 @@ npx wrangler deploy
 2. Done: replace Power BI content runtime filesystem reads with Vite raw CSV imports.
 3. Done: run Cloudflare build and fix local runtime content loading errors.
 4. Add Cloudflare-specific deploy instructions to `svelte_app/README.md`.
-5. Decide whether first Cloudflare staging disables PBIX/capture/SMTP or implements Cloudflare-native replacements.
+5. Validate Cloudflare Browser Run thumbnail capture on a real preview URL with configured Browser Rendering credentials.

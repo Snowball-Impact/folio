@@ -24,7 +24,7 @@
 		"smoke:cloudflare": "node scripts/smoke-cloudflare.mjs",
 		"smoke:supabase": "node scripts/smoke-supabase.mjs",
 		"smoke:security": "node scripts/smoke-security.mjs",
-		"preview:cloudflare": "wrangler pages dev .svelte-kit/cloudflare --ip=127.0.0.1 --port=8788",
+		"preview:cloudflare": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File ..\\tools\\start_cloudflare_preview.ps1",
 		"deploy:cloudflare": "wrangler pages deploy .svelte-kit/cloudflare",
 		"verify": "npm.cmd run check && npm.cmd run build && npm.cmd run performance:budget && npm.cmd run smoke && npm.cmd run smoke:supabase && npm.cmd run smoke:security"
 	},

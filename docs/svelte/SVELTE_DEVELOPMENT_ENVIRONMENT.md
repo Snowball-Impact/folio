@@ -12,7 +12,7 @@
 | Svelte 일반 개발 | SvelteKit + Vite | `npm.cmd run dev -- --host 127.0.0.1 --port 5173` | 빠른 컴포넌트 개발 |
 | Svelte 관리형 개발 | SvelteKit + Cloudflare adapter + local Wrangler paths | `npm.cmd run dev:managed -- --Port 5174` | Windows에서 UIUX 검증 |
 | Svelte Playwright UIUX | Playwright + Chromium, 독립 browser context | `npm.cmd run test:ui` | Svelte DOM·기능·데스크톱/모바일 캡처 |
-| Cloudflare preview | Wrangler Pages runtime | `npm.cmd run preview:cloudflare` / `127.0.0.1:8788` | 배포 runtime smoke |
+| Cloudflare preview | Wrangler Pages runtime + local Wrangler paths | `npm.cmd run preview:cloudflare` / `127.0.0.1:8788` | 배포 runtime smoke |
 
 현재 Svelte의 배포 adapter는 `@sveltejs/adapter-cloudflare`다. `adapter-node`는 과거 마이그레이션 기록에 등장하는 historical state이며 현재 실행 기준이 아니다.
 
@@ -36,7 +36,7 @@ npm.cmd install
 npm.cmd run dev:managed -- --Port 5174
 ```
 
-`dev:managed`는 `XDG_CONFIG_HOME`과 `MINIFLARE_REGISTRY_PATH`를 저장소 내부 `.runtime/`으로 지정한다. 사용자 프로필의 Wrangler registry/log에 쓰다가 발생하는 Windows `EPERM`을 피하기 위한 실행 경로다.
+`dev:managed`, `preview:cloudflare`, Cloudflare smoke는 `XDG_CONFIG_HOME`과 `MINIFLARE_REGISTRY_PATH`를 저장소 내부 `.runtime/`으로 지정한다. 사용자 프로필의 Wrangler registry/log에 쓰다가 발생하는 Windows `EPERM`을 피하기 위한 실행 경로다.
 
 ## 검증 단계
 

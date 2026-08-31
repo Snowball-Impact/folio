@@ -6,6 +6,7 @@ const THUMBNAIL_WIDTH = 960;
 const THUMBNAIL_HEIGHT = 540;
 const CAPTURE_TIMEOUT_MS = 18_000;
 const DEFAULT_CAPTURE_SETTLE_SECONDS = 10;
+const CLOUDFLARE_SCREENSHOT_ENDPOINT = 'https://api.cloudflare.com/client/v4/accounts/{accountId}/browser-rendering/screenshot';
 
 type PlaywrightModule = {
 	chromium: {
@@ -38,6 +39,24 @@ export async function captureProjectThumbnail(projectId: string, sourceUrl: stri
 		throw new ThumbnailCaptureError('캡처할 URL을 찾지 못했습니다.', 400);
 	}
 
+	if (!isThumbnailCaptureEnabled()) {
+		throw new ThumbnailCaptureError('자동 썸네일 캡처가 비활성화되어 있습니다.', 503);
+	}
+
+	if (thumbnailCaptureProvider() === 'cloudflare') {
+		const pngBytes = await captureWithCloudflareBrowserRun(normalizedUrl);
+		return uploadCapturedThumbnail(projectId, pngBytes);
+	}
+
+	if (thumbnailCaptureProvider() !== 'local') {
+		throw new ThumbnailCaptureError('지원하지 않는 썸네일 캡처 방식입니다.', 503);
+	}
+
+	const pngBytes = await captureWithLocalPlaywright(normalizedUrl);
+	return uploadCapturedThumbnail(projectId, pngBytes);
+}
+
+async function captureWithLocalPlaywright(normalizedUrl: string) {
 	const playwright = await loadPlaywright();
 	const browser = await playwright.chromium.launch(launchOptions());
 	try {
@@ -56,10 +75,55 @@ export async function captureProjectThumbnail(projectId: string, sourceUrl: stri
 			type: 'png',
 			fullPage: false
 		});
-		return uploadCapturedThumbnail(projectId, pngBytes);
+		return pngBytes;
 	} finally {
 		await browser.close();
 	}
+}
+
+async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
+	const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
+	const apiToken = env.CLOUDFLARE_BROWSER_RENDERING_API_TOKEN?.trim();
+	if (!accountId || !apiToken) {
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 환경 변수가 설정되지 않았습니다.', 503);
+	}
+
+	const response = await fetch(cloudflareScreenshotUrl(accountId), {
+		method: 'POST',
+		headers: {
+			Authorization: `Bearer ${apiToken}`,
+			'Content-Type': 'application/json'
+		},
+		body: JSON.stringify({
+			html: fullscreenIframeCaptureHtml(normalizedUrl),
+			cacheTTL: 0,
+			actionTimeout: CAPTURE_TIMEOUT_MS,
+			waitForTimeout: Math.min(captureSettleMs(), 60_000),
+			viewport: {
+				width: THUMBNAIL_WIDTH,
+				height: THUMBNAIL_HEIGHT
+			},
+			screenshotOptions: {
+				type: 'png',
+				fullPage: false
+			}
+		})
+	});
+
+	if (!response.ok) {
+		throw new ThumbnailCaptureError(await cloudflareErrorMessage(response), response.status >= 500 ? 502 : response.status);
+	}
+
+	const contentType = response.headers.get('content-type') ?? '';
+	if (contentType.includes('application/json')) {
+		return pngBytesFromCloudflareJson(await response.json().catch(() => null));
+	}
+
+	const bytes = new Uint8Array(await response.arrayBuffer());
+	if (bytes.length === 0) {
+		throw new ThumbnailCaptureError('Cloudflare Browser Run이 빈 스크린샷을 반환했습니다.', 502);
+	}
+	return bytes;
 }
 
 async function uploadCapturedThumbnail(projectId: string, bytes: Uint8Array) {
@@ -120,6 +184,18 @@ function captureSettleMs() {
 	return Math.max(Number(env.POWERBI_CAPTURE_READY_WAIT_SECONDS ?? DEFAULT_CAPTURE_SETTLE_SECONDS), 0) * 1000;
 }
 
+function isThumbnailCaptureEnabled() {
+	return env.THUMBNAIL_CAPTURE_ENABLED !== 'false';
+}
+
+function thumbnailCaptureProvider() {
+	const provider = env.THUMBNAIL_CAPTURE_PROVIDER?.trim().toLowerCase();
+	if (provider) {
+		return provider;
+	}
+	return env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_BROWSER_RENDERING_API_TOKEN ? 'cloudflare' : 'local';
+}
+
 function normalizeCaptureUrl(value: string) {
 	let rawValue = value.trim();
 	if (!rawValue) {
@@ -138,8 +214,12 @@ function normalizeCaptureUrl(value: string) {
 }
 
 function fullscreenIframeCaptureUrl(url: string) {
+	return `data:text/html;charset=utf-8,${encodeURIComponent(fullscreenIframeCaptureHtml(url))}`;
+}
+
+function fullscreenIframeCaptureHtml(url: string) {
 	const escapedUrl = cacheBustedCaptureSourceUrl(url).replaceAll('"', '%22');
-	const html = `<!doctype html>
+	return `<!doctype html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -153,7 +233,6 @@ iframe { border: 0; height: 100vh; inset: 0; position: fixed; width: 100vw; }
 <iframe src="${escapedUrl}" allowfullscreen></iframe>
 </body>
 </html>`;
-	return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 
 function cacheBustedCaptureSourceUrl(value: string) {
@@ -185,4 +264,37 @@ function safeStorageName(value: string) {
 function cacheBustedUrl(url: string) {
 	const separator = url.includes('?') ? '&' : '?';
 	return `${url}${separator}v=${Date.now()}`;
+}
+
+function cloudflareScreenshotUrl(accountId: string) {
+	return CLOUDFLARE_SCREENSHOT_ENDPOINT.replace('{accountId}', encodeURIComponent(accountId));
+}
+
+async function cloudflareErrorMessage(response: Response) {
+	const fallback = 'Cloudflare Browser Run 썸네일 캡처에 실패했습니다.';
+	const payload = await response.json().catch(() => null);
+	if (!payload || typeof payload !== 'object') {
+		return fallback;
+	}
+	const errors: unknown[] = 'errors' in payload && Array.isArray(payload.errors) ? payload.errors : [];
+	const message = errors
+		.map((error: unknown) => (error && typeof error === 'object' && 'message' in error ? String(error.message) : ''))
+		.find(Boolean);
+	return message ? `${fallback} ${message}` : fallback;
+}
+
+function pngBytesFromCloudflareJson(payload: unknown) {
+	if (!payload || typeof payload !== 'object') {
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 응답을 확인할 수 없습니다.', 502);
+	}
+	const record = payload as { result?: unknown; screenshot?: unknown };
+	const screenshot = typeof record.screenshot === 'string'
+		? record.screenshot
+		: record.result && typeof record.result === 'object' && 'screenshot' in record.result
+			? (record.result as { screenshot?: unknown }).screenshot
+			: null;
+	if (typeof screenshot !== 'string' || !screenshot) {
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 스크린샷 응답이 비어 있습니다.', 502);
+	}
+	return Uint8Array.from(Buffer.from(screenshot, 'base64'));
 }

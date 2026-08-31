@@ -24,6 +24,7 @@ type SendCommentEmailInput = {
 };
 
 type SmtpSocket = net.Socket | tls.TLSSocket;
+const DEFAULT_SMTP_TIMEOUT_MS = 8000;
 
 export function isEmailConfigured() {
 	return Boolean(env.SMTP_HOST && env.SMTP_FROM_EMAIL);
@@ -82,13 +83,13 @@ async function sendSmtpMessage(to: string, message: string) {
 		: net.connect({ host, port });
 	const reader = smtpReader(socket);
 	try {
-		await reader.expect();
-		await command(socket, reader, `EHLO ${smtpClientName()}`);
+		await reader.expect(undefined, 'SMTP greeting');
+		await command(socket, reader, `EHLO ${smtpClientName()}`, undefined, 'SMTP EHLO');
 		if (shouldUseStartTls(port)) {
-			await command(socket, reader, 'STARTTLS');
+			await command(socket, reader, 'STARTTLS', undefined, 'SMTP STARTTLS');
 			socket = tls.connect({ socket, servername: host });
 			const tlsReader = smtpReader(socket);
-			await command(socket, tlsReader, `EHLO ${smtpClientName()}`);
+			await command(socket, tlsReader, `EHLO ${smtpClientName()}`, undefined, 'SMTP TLS EHLO');
 			await authenticate(socket, tlsReader);
 			await sendEnvelope(socket, tlsReader, from, to, message);
 			return;
@@ -101,12 +102,12 @@ async function sendSmtpMessage(to: string, message: string) {
 }
 
 async function sendEnvelope(socket: SmtpSocket, reader: ReturnType<typeof smtpReader>, from: string, to: string, message: string) {
-	await command(socket, reader, `MAIL FROM:<${from}>`);
-	await command(socket, reader, `RCPT TO:<${to}>`);
-	await command(socket, reader, 'DATA', 354);
+	await command(socket, reader, `MAIL FROM:<${from}>`, undefined, 'SMTP MAIL FROM');
+	await command(socket, reader, `RCPT TO:<${to}>`, undefined, 'SMTP RCPT TO');
+	await command(socket, reader, 'DATA', 354, 'SMTP DATA');
 	socket.write(`${message}\r\n.\r\n`);
-	await reader.expect();
-	await command(socket, reader, 'QUIT', 221);
+	await reader.expect(undefined, 'SMTP message body');
+	await command(socket, reader, 'QUIT', 221, 'SMTP QUIT');
 }
 
 async function authenticate(socket: SmtpSocket, reader: ReturnType<typeof smtpReader>) {
@@ -116,15 +117,25 @@ async function authenticate(socket: SmtpSocket, reader: ReturnType<typeof smtpRe
 		return;
 	}
 	const token = Buffer.from(`\0${username}\0${password}`).toString('base64');
-	await command(socket, reader, `AUTH PLAIN ${token}`, 235);
+	await command(socket, reader, `AUTH PLAIN ${token}`, 235, 'SMTP AUTH');
 }
 
 function smtpReader(socket: SmtpSocket) {
 	let buffer = '';
 	socket.setEncoding('utf8');
 	return {
-		expect(expectedCode?: number) {
+		expect(expectedCode?: number, label = 'SMTP command') {
 			return new Promise<string>((resolve, reject) => {
+				const timer = setTimeout(() => {
+					cleanup();
+					socket.destroy(new Error(`${label} timed out after ${smtpTimeoutMs()}ms.`));
+					reject(new Error(`${label} timed out after ${smtpTimeoutMs()}ms.`));
+				}, smtpTimeoutMs());
+				const cleanup = () => {
+					clearTimeout(timer);
+					socket.off('data', onData);
+					socket.off('error', onError);
+				};
 				const onData = (chunk: string) => {
 					buffer += chunk;
 					const lines = buffer.split(/\r?\n/).filter(Boolean);
@@ -133,22 +144,21 @@ function smtpReader(socket: SmtpSocket) {
 					if (!match) {
 						return;
 					}
-					socket.off('data', onData);
-					socket.off('error', onError);
+					cleanup();
 					const code = Number(match[1]);
 					if (expectedCode && code !== expectedCode) {
-						reject(new Error(`SMTP expected ${expectedCode}, got ${code}.`));
+						reject(new Error(`${label} expected ${expectedCode}, got ${code}.`));
 						return;
 					}
 					if (!expectedCode && code >= 400) {
-						reject(new Error(`SMTP command failed with ${code}.`));
+						reject(new Error(`${label} failed with ${code}.`));
 						return;
 					}
 					buffer = '';
 					resolve(lines.join('\n'));
 				};
 				const onError = (error: Error) => {
-					socket.off('data', onData);
+					cleanup();
 					reject(error);
 				};
 				socket.on('data', onData);
@@ -158,9 +168,15 @@ function smtpReader(socket: SmtpSocket) {
 	};
 }
 
-async function command(socket: SmtpSocket, reader: ReturnType<typeof smtpReader>, value: string, expectedCode?: number) {
+async function command(
+	socket: SmtpSocket,
+	reader: ReturnType<typeof smtpReader>,
+	value: string,
+	expectedCode?: number,
+	label?: string
+) {
 	socket.write(`${value}\r\n`);
-	return reader.expect(expectedCode);
+	return reader.expect(expectedCode, label);
 }
 
 function buildMessage({ to, subject, text, html }: { to: string; subject: string; text: string; html: string }) {
@@ -206,6 +222,11 @@ function smtpClientName() {
 
 function appUrl() {
 	return env.APP_URL || 'http://localhost:5173';
+}
+
+function smtpTimeoutMs() {
+	const configured = Number(env.SMTP_TIMEOUT_MS || DEFAULT_SMTP_TIMEOUT_MS);
+	return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_SMTP_TIMEOUT_MS;
 }
 
 function escapeHtml(value: string) {
