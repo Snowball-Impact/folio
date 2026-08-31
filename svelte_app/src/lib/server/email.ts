@@ -1,6 +1,4 @@
 import { env } from '$env/dynamic/private';
-import net from 'node:net';
-import tls from 'node:tls';
 
 type ProfileRecord = {
 	email: string | null;
@@ -23,7 +21,26 @@ type SendCommentEmailInput = {
 	comment: CommentRecord;
 };
 
-type SmtpSocket = net.Socket | tls.TLSSocket;
+type Socket = {
+	readable: ReadableStream<Uint8Array>;
+	writable: WritableStream<Uint8Array>;
+	opened: Promise<unknown>;
+	close(): Promise<void>;
+	startTls(): Socket;
+};
+
+type SocketModule = {
+	connect(
+		address: { hostname: string; port: number },
+		options?: { secureTransport?: 'off' | 'on' | 'starttls' }
+	): Socket;
+};
+
+type SmtpSession = {
+	socket: Socket;
+	reader: ReturnType<typeof smtpReader>;
+	writer: WritableStreamDefaultWriter<Uint8Array>;
+};
 const DEFAULT_SMTP_TIMEOUT_MS = 8000;
 
 export function isEmailConfigured() {
@@ -78,105 +95,115 @@ async function sendSmtpMessage(to: string, message: string) {
 		throw new Error('SMTP from email is missing.');
 	}
 
-	let socket: SmtpSocket = shouldUseDirectTls(port)
-		? tls.connect({ host, port, servername: host })
-		: net.connect({ host, port });
-	const reader = smtpReader(socket);
+	const { connect } = await loadCloudflareSockets();
+	let session = createSmtpSession(
+		connect(
+			{ hostname: host, port },
+			{ secureTransport: shouldUseDirectTls(port) ? 'on' : shouldUseStartTls(port) ? 'starttls' : 'off' }
+		)
+	);
 	try {
-		await reader.expect(undefined, 'SMTP greeting');
-		await command(socket, reader, `EHLO ${smtpClientName()}`, undefined, 'SMTP EHLO');
+		await withTimeout(session.socket.opened, 'SMTP connect');
+		await session.reader.expect(undefined, 'SMTP greeting');
+		await command(session, `EHLO ${smtpClientName()}`, undefined, 'SMTP EHLO');
 		if (shouldUseStartTls(port)) {
-			await command(socket, reader, 'STARTTLS', undefined, 'SMTP STARTTLS');
-			socket = tls.connect({ socket, servername: host });
-			const tlsReader = smtpReader(socket);
-			await command(socket, tlsReader, `EHLO ${smtpClientName()}`, undefined, 'SMTP TLS EHLO');
-			await authenticate(socket, tlsReader);
-			await sendEnvelope(socket, tlsReader, from, to, message);
+			await command(session, 'STARTTLS', undefined, 'SMTP STARTTLS');
+			session.reader.releaseLock();
+			session.writer.releaseLock();
+			session = createSmtpSession(session.socket.startTls());
+			await withTimeout(session.socket.opened, 'SMTP TLS connect');
+			await command(session, `EHLO ${smtpClientName()}`, undefined, 'SMTP TLS EHLO');
+			await authenticate(session);
+			await sendEnvelope(session, from, to, message);
 			return;
 		}
-		await authenticate(socket, reader);
-		await sendEnvelope(socket, reader, from, to, message);
+		await authenticate(session);
+		await sendEnvelope(session, from, to, message);
 	} finally {
-		socket.end();
+		session.reader.releaseLock();
+		session.writer.releaseLock();
+		await session.socket.close().catch(() => undefined);
 	}
 }
 
-async function sendEnvelope(socket: SmtpSocket, reader: ReturnType<typeof smtpReader>, from: string, to: string, message: string) {
-	await command(socket, reader, `MAIL FROM:<${from}>`, undefined, 'SMTP MAIL FROM');
-	await command(socket, reader, `RCPT TO:<${to}>`, undefined, 'SMTP RCPT TO');
-	await command(socket, reader, 'DATA', 354, 'SMTP DATA');
-	socket.write(`${message}\r\n.\r\n`);
-	await reader.expect(undefined, 'SMTP message body');
-	await command(socket, reader, 'QUIT', 221, 'SMTP QUIT');
+async function loadCloudflareSockets() {
+	const moduleName = 'cloudflare:sockets';
+	return (await import(/* @vite-ignore */ moduleName)) as SocketModule;
 }
 
-async function authenticate(socket: SmtpSocket, reader: ReturnType<typeof smtpReader>) {
+async function sendEnvelope(session: SmtpSession, from: string, to: string, message: string) {
+	await command(session, `MAIL FROM:<${from}>`, undefined, 'SMTP MAIL FROM');
+	await command(session, `RCPT TO:<${to}>`, undefined, 'SMTP RCPT TO');
+	await command(session, 'DATA', 354, 'SMTP DATA');
+	await writeSmtp(session, `${message}\r\n.\r\n`, 'SMTP message write');
+	await session.reader.expect(undefined, 'SMTP message body');
+	await command(session, 'QUIT', 221, 'SMTP QUIT');
+}
+
+async function authenticate(session: SmtpSession) {
 	const username = env.SMTP_USERNAME?.trim();
 	const password = env.SMTP_PASSWORD ?? '';
 	if (!username && !password) {
 		return;
 	}
 	const token = Buffer.from(`\0${username}\0${password}`).toString('base64');
-	await command(socket, reader, `AUTH PLAIN ${token}`, 235, 'SMTP AUTH');
+	await command(session, `AUTH PLAIN ${token}`, 235, 'SMTP AUTH');
 }
 
-function smtpReader(socket: SmtpSocket) {
-	let buffer = '';
-	socket.setEncoding('utf8');
+function createSmtpSession(socket: Socket): SmtpSession {
 	return {
-		expect(expectedCode?: number, label = 'SMTP command') {
-			return new Promise<string>((resolve, reject) => {
-				const timer = setTimeout(() => {
-					cleanup();
-					socket.destroy(new Error(`${label} timed out after ${smtpTimeoutMs()}ms.`));
-					reject(new Error(`${label} timed out after ${smtpTimeoutMs()}ms.`));
-				}, smtpTimeoutMs());
-				const cleanup = () => {
-					clearTimeout(timer);
-					socket.off('data', onData);
-					socket.off('error', onError);
-				};
-				const onData = (chunk: string) => {
-					buffer += chunk;
-					const lines = buffer.split(/\r?\n/).filter(Boolean);
-					const lastLine = lines.at(-1) ?? '';
-					const match = lastLine.match(/^(\d{3})\s/);
-					if (!match) {
-						return;
-					}
-					cleanup();
+		socket,
+		reader: smtpReader(socket.readable.getReader()),
+		writer: socket.writable.getWriter()
+	};
+}
+
+function smtpReader(reader: ReadableStreamDefaultReader<Uint8Array>) {
+	let buffer = '';
+	const decoder = new TextDecoder();
+	return {
+		async expect(expectedCode?: number, label = 'SMTP command') {
+			while (true) {
+				const lines = buffer.split(/\r?\n/).filter(Boolean);
+				const lastLine = lines.at(-1) ?? '';
+				const match = lastLine.match(/^(\d{3})\s/);
+				if (match) {
+					buffer = '';
 					const code = Number(match[1]);
 					if (expectedCode && code !== expectedCode) {
-						reject(new Error(`${label} expected ${expectedCode}, got ${code}.`));
-						return;
+						throw new Error(`${label} expected ${expectedCode}, got ${code}.`);
 					}
 					if (!expectedCode && code >= 400) {
-						reject(new Error(`${label} failed with ${code}.`));
-						return;
+						throw new Error(`${label} failed with ${code}.`);
 					}
-					buffer = '';
-					resolve(lines.join('\n'));
-				};
-				const onError = (error: Error) => {
-					cleanup();
-					reject(error);
-				};
-				socket.on('data', onData);
-				socket.once('error', onError);
-			});
+					return lines.join('\n');
+				}
+
+				const result = await withTimeout(reader.read(), label);
+				if (result.done) {
+					throw new Error(`${label} ended before SMTP response.`);
+				}
+				buffer += decoder.decode(result.value, { stream: true });
+			}
+		},
+		releaseLock() {
+			reader.releaseLock();
 		}
 	};
 }
 
 async function command(
-	socket: SmtpSocket,
-	reader: ReturnType<typeof smtpReader>,
+	session: SmtpSession,
 	value: string,
 	expectedCode?: number,
 	label?: string
 ) {
-	socket.write(`${value}\r\n`);
-	return reader.expect(expectedCode, label);
+	await writeSmtp(session, `${value}\r\n`, `${label ?? 'SMTP command'} write`);
+	return session.reader.expect(expectedCode, label);
+}
+
+async function writeSmtp(session: SmtpSession, value: string, label: string) {
+	await withTimeout(session.writer.write(new TextEncoder().encode(value)), label);
 }
 
 function buildMessage({ to, subject, text, html }: { to: string; subject: string; text: string; html: string }) {
@@ -227,6 +254,22 @@ function appUrl() {
 function smtpTimeoutMs() {
 	const configured = Number(env.SMTP_TIMEOUT_MS || DEFAULT_SMTP_TIMEOUT_MS);
 	return Number.isFinite(configured) && configured > 0 ? configured : DEFAULT_SMTP_TIMEOUT_MS;
+}
+
+async function withTimeout<T>(promise: Promise<T>, label: string) {
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			promise,
+			new Promise<never>((_, reject) => {
+				timer = setTimeout(() => reject(new Error(`${label} timed out after ${smtpTimeoutMs()}ms.`)), smtpTimeoutMs());
+			})
+		]);
+	} finally {
+		if (timer) {
+			clearTimeout(timer);
+		}
+	}
 }
 
 function escapeHtml(value: string) {
