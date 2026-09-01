@@ -19,12 +19,27 @@
 	let message = $state('');
 	let error = $state('');
 	let needsLogin = $state(false);
+	const MY_PROJECTS_PAGE_SIZE = 5;
+	let projectPageIndex = $state(0);
 
 	const stats = $derived({
 		projectCount: projects.length,
 		publicCount: projects.filter((project) => project.is_public).length,
 		viewCount: projects.reduce((total, project) => total + project.view_count, 0),
 		likeCount: projects.reduce((total, project) => total + project.like_count, 0)
+	});
+	const projectTotalPages = $derived(Math.max(Math.ceil(projects.length / MY_PROJECTS_PAGE_SIZE), 1));
+	const visibleProjects = $derived(
+		projects.slice(projectPageIndex * MY_PROJECTS_PAGE_SIZE, projectPageIndex * MY_PROJECTS_PAGE_SIZE + MY_PROJECTS_PAGE_SIZE)
+	);
+
+	$effect(() => {
+		if (projectPageIndex > projectTotalPages - 1) {
+			projectPageIndex = projectTotalPages - 1;
+		}
+		if (projectPageIndex < 0) {
+			projectPageIndex = 0;
+		}
 	});
 
 	onMount(async () => {
@@ -44,7 +59,12 @@
 		const result = await listMyProjects();
 		projects = result.projects;
 		error = result.error;
+		projectPageIndex = 0;
 		loading = false;
+	}
+
+	function moveProjectPage(direction: -1 | 1) {
+		projectPageIndex = Math.min(Math.max(projectPageIndex + direction, 0), projectTotalPages - 1);
 	}
 	function openDeleteDialog(project: ProjectCard) {
 		deleteDialogProject = project;
@@ -225,7 +245,7 @@
 			</div>
 		{:else}
 			<div class="portfolio-list">
-				{#each projects as project}
+				{#each visibleProjects as project}
 					<article class="portfolio-card">
 						<div>
 							<div class="portfolio-title-line">
@@ -275,6 +295,13 @@
 					</article>
 				{/each}
 			</div>
+			{#if projects.length > MY_PROJECTS_PAGE_SIZE}
+				<div class="news-pagination portfolio-pagination" aria-label="내 프로젝트 페이지">
+					<button type="button" onclick={() => moveProjectPage(-1)} disabled={projectPageIndex <= 0} aria-label="이전 내 프로젝트">‹</button>
+					<div class="news-page-indicator">{projectPageIndex + 1} / {projectTotalPages}</div>
+					<button type="button" onclick={() => moveProjectPage(1)} disabled={projectPageIndex >= projectTotalPages - 1} aria-label="다음 내 프로젝트">›</button>
+				</div>
+			{/if}
 		{/if}
 	</section>
 {/if}

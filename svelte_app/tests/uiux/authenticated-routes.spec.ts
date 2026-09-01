@@ -1,4 +1,4 @@
-import { expect, test, type Dialog, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { testEnv } from './test-env';
@@ -9,13 +9,22 @@ const detailProjectId = testEnv('PLAYWRIGHT_PROJECT_ID');
 const mutationProjectId = testEnv('PLAYWRIGHT_MUTATION_PROJECT_ID');
 const pbixSafeProjectId = testEnv('PLAYWRIGHT_PBIX_SAFE_PROJECT_ID');
 const pbixLiveProjectId = testEnv('PLAYWRIGHT_PBIX_LIVE_PROJECT_ID');
-const imageSrc = new URL('/snowball-impact.webp', process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5174').toString();
 
 const authenticatedRoutes = [
 	{ name: 'my', route: '/my', readySelector: '.profile-overview, .profile-edit-card, .portfolio-section' },
 	{ name: 'notifications', route: '/notifications', readySelector: '.notifications-panel' },
 	{ name: 'submit', route: '/submit', readySelector: '.project-form' }
 ];
+
+async function openPrimaryNavigation(page: Page) {
+	const nav = page.locator('nav.nav');
+	const mobileToggle = page.getByRole('button', { name: '메뉴', exact: true });
+	if (await mobileToggle.isVisible()) {
+		await mobileToggle.click();
+		await expect(nav).toHaveClass(/open/);
+	}
+	await expect(nav).toBeVisible({ timeout: 15_000 });
+}
 
 test.describe('authenticated FOLIO UIUX routes @auth', () => {
 	test.skip(!email || !password, 'FOLIO_TEST_ID/FOLIO_TEST_PW 또는 test_id/test_pw가 필요합니다.');
@@ -120,6 +129,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await expect(page.locator('.notifications-panel')).toBeVisible({ timeout: 15_000 });
 		await waitForAuthenticatedContent(page, 'notifications');
 
+		await openPrimaryNavigation(page);
 		const trigger = page.locator('button.notification-link');
 		const popover = page.locator('.notification-submenu');
 		await expect(trigger).toHaveAttribute('aria-expanded', 'false');
@@ -136,7 +146,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 
 	test(`Power BI menu opens and closes with the trigger @auth`, async ({ page }) => {
 		await signIn(page, '/');
-		await expect(page.locator('nav.nav')).toBeVisible({ timeout: 15_000 });
+		await openPrimaryNavigation(page);
 
 		const trigger = page.locator('button.nav-menu-trigger');
 		const popover = page.locator('.powerbi-menu .nav-submenu');
@@ -188,6 +198,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 			await route.continue();
 		});
 
+		await openPrimaryNavigation(page);
 		const trigger = page.locator('button.notification-link');
 		await trigger.click();
 		const popover = page.locator('.notification-submenu');
@@ -315,6 +326,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.reload();
 		await expect(page.locator('.portfolio-section')).toBeVisible({ timeout: 15_000 });
 		await waitForAuthenticatedContent(page, 'my');
+		await openPrimaryNavigation(page);
 		await page.locator('button.notification-link').click();
 		await page
 			.locator('.notification-submenu .notification-preview')
@@ -445,6 +457,103 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.screenshot({ path: testInfo.outputPath('my-same-fixture.png'), fullPage: true });
 	});
 
+	test(`my-page paginates projects with the Power BI hub control pattern @auth`, async ({ page }, testInfo) => {
+		const authorId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+		const projects = Array.from({ length: 12 }, (_, index) => {
+			const number = index + 1;
+			return {
+				id: `aaaaaaaa-aaaa-4aaa-8aaa-${String(number).padStart(12, '0')}`,
+				author_id: authorId,
+				title: `페이지네이션 프로젝트 ${number}`,
+				one_liner: `내 프로젝트 ${number}번째 항목입니다.`,
+				problem: 'mock problem',
+				dataset: 'mock dataset',
+				process: 'mock process',
+				insights: 'mock insights',
+				tags: ['powerbi', `page-${number}`],
+				thumbnail_url: null,
+				thumbnail_mode: 'auto_cover',
+				power_bi_url: null,
+				report_url: null,
+				github_url: null,
+				platform_key: 'powerbi',
+				project_type: 'powerbi',
+				status: 'published',
+				embed_status: 'external_only',
+				is_public: number % 3 !== 0,
+				view_count: number,
+				created_at: `2026-08-${String(28 - index).padStart(2, '0')}T09:00:00.000Z`,
+				updated_at: `2026-08-${String(28 - index).padStart(2, '0')}T09:00:00.000Z`
+			};
+		});
+
+		await page.route('**/rest/v1/profiles*', async (route) => {
+			if (route.request().method() !== 'GET') return route.continue();
+			await route.fulfill({
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					id: authorId,
+					email: 'ggmaeng@gmail.com',
+					name: '맹광국',
+					organization: '스노우볼 임팩트',
+					bio: null
+				})
+			});
+		});
+		await page.route('**/rest/v1/projects*', async (route) => {
+			if (route.request().method() !== 'GET') return route.continue();
+			await route.fulfill({
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify(projects)
+			});
+		});
+		await page.route('**/rest/v1/public_profiles*', (route) =>
+			route.fulfill({
+				status: 200,
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify([{ id: authorId, name: '맹광국', organization: '스노우볼 임팩트' }])
+			})
+		);
+		await page.route('**/rest/v1/likes*', (route) =>
+			route.fulfill({ status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify([]) })
+		);
+		await page.route('**/rest/v1/comments*', (route) =>
+			route.fulfill({ status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify([]) })
+		);
+		await page.route('**/rest/v1/project_comment_reads*', (route) =>
+			route.fulfill({ status: 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify([]) })
+		);
+
+		await signIn(page, '/my');
+		await expect(page.locator('.portfolio-section')).toBeVisible({ timeout: 15_000 });
+		await waitForAuthenticatedContent(page, 'my');
+		await expect(page.locator('.portfolio-card')).toHaveCount(5);
+		await expect(page.locator('.portfolio-card').first()).toContainText('페이지네이션 프로젝트 1');
+		await expect(page.locator('.portfolio-card').last()).toContainText('페이지네이션 프로젝트 5');
+		const pagination = page.locator('.portfolio-pagination');
+		await expect(pagination).toBeVisible();
+		await expect(pagination.locator('.news-page-indicator')).toHaveText('1 / 3');
+		await expect(pagination.getByRole('button', { name: '이전 내 프로젝트' })).toBeDisabled();
+
+		await pagination.getByRole('button', { name: '다음 내 프로젝트' }).click();
+		await expect(pagination.locator('.news-page-indicator')).toHaveText('2 / 3');
+		await expect(page.locator('.portfolio-card').first()).toContainText('페이지네이션 프로젝트 6');
+		await expect(page.locator('.portfolio-card').last()).toContainText('페이지네이션 프로젝트 10');
+
+		await pagination.getByRole('button', { name: '다음 내 프로젝트' }).click();
+		await expect(pagination.locator('.news-page-indicator')).toHaveText('3 / 3');
+		await expect(page.locator('.portfolio-card')).toHaveCount(2);
+		await expect(page.locator('.portfolio-card').first()).toContainText('페이지네이션 프로젝트 11');
+		await expect(pagination.getByRole('button', { name: '다음 내 프로젝트' })).toBeDisabled();
+
+		await pagination.getByRole('button', { name: '이전 내 프로젝트' }).click();
+		await expect(pagination.locator('.news-page-indicator')).toHaveText('2 / 3');
+		await expect(page.locator('.portfolio-card')).toHaveCount(5);
+		await page.screenshot({ path: testInfo.outputPath('my-project-pagination.png'), fullPage: true });
+	});
+
 	test(`submit controls preserve preview and draft states @auth`, async ({ page }, testInfo) => {
 		await signIn(page, '/submit');
 		await expect(page.locator('form.project-form')).toBeVisible({ timeout: 15_000 });
@@ -473,12 +582,12 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.locator('.platform-panel input[type="radio"][value="other"]').check();
 		await page.screenshot({ path: testInfo.outputPath('submit-empty-baseline.png'), fullPage: true });
 		const formatSelect = page.locator('.rich-editor-format-select');
-		await expect(page.locator('.rich-editor-toolbar-group')).toHaveCount(7);
+		await expect(page.locator('.rich-editor-toolbar-group')).toHaveCount(4);
 		expect(
 			await page.locator('.rich-editor-toolbar-group').evaluateAll((groups) =>
 				groups.map((group) => group.getAttribute('aria-label'))
 			)
-		).toEqual(['글자 서식', '색상', '목록과 정렬', '문단 형식과 크기', '고급 블록 서식', '링크와 이미지', '글꼴']);
+		).toEqual(['글자 서식', '목록과 정렬', '문단 형식', '링크와 이미지']);
 		const toolbarButton = page.locator('.rich-editor-toolbar button').first();
 		const toolbarButtonStyle = await toolbarButton.evaluate((button) => ({
 			borderStyle: getComputedStyle(button).borderStyle,
@@ -489,71 +598,26 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await toolbarButton.hover();
 		await expect.poll(() => toolbarButton.evaluate((button) => getComputedStyle(button).color)).toBe('rgb(20, 89, 200)');
 		await expect(formatSelect).toHaveValue('paragraph');
-		await expect(formatSelect.locator('option')).toHaveText(['Normal', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+		await expect(formatSelect.locator('option')).toHaveText(['Normal', 'H2', 'H3']);
 		await page.locator('.rich-editor .tiptap h2').first().click();
 		await expect(formatSelect).toHaveValue('heading2');
 		await formatSelect.selectOption('heading3');
 		await expect(page.locator('.rich-editor .tiptap h3').first()).toBeVisible();
-		await formatSelect.selectOption('heading1');
-		await expect(page.locator('.rich-editor .tiptap h1').first()).toBeVisible();
-		await formatSelect.selectOption('heading6');
-		await expect(page.locator('.rich-editor .tiptap h6').first()).toBeVisible();
 		await formatSelect.selectOption('heading2');
 		await expect(page.locator('.rich-editor .tiptap h2').first()).toBeVisible();
 		const editorContent = page.locator('.rich-editor .tiptap');
 		await editorContent.click();
 		await page.keyboard.press('Control+a');
-		const colorSelect = page.locator('.rich-editor-color-select');
-		await expect(colorSelect).toHaveValue('#8a98ad');
-		await colorSelect.selectOption('#1459c8');
-		await expect(editorContent.locator('span[style*="color"]').first()).toBeVisible();
-		const highlightSelect = page.locator('.rich-editor-highlight-select');
-		await expect(highlightSelect).toHaveValue('default');
-		await highlightSelect.selectOption('#fff2a8');
-		await expect(editorContent.locator('mark').first()).toBeVisible();
-		const fontSelect = page.locator('.rich-editor-font-select');
-		await expect(fontSelect).toHaveValue('default');
-		await fontSelect.selectOption('serif');
-		await expect(editorContent.locator('span[style*="font-family"]').first()).toBeVisible();
-		const sizeSelect = page.locator('.rich-editor-size-select');
-		await expect(sizeSelect).toHaveValue('default');
-		await sizeSelect.selectOption('1.5em');
-		await expect(editorContent.locator('span[style*="font-size: 1.5em"]').first()).toBeVisible();
-		await editorContent.locator('h2').first().selectText();
-		await page.getByTitle('들여쓰기').click();
-		await expect(editorContent.locator('[data-indent="1"]')).toHaveCount(1);
-		await page.getByTitle('내어쓰기').click();
-		await expect(editorContent.locator('[data-indent]')).toHaveCount(0);
+		await page.getByTitle('글머리 목록').click();
+		await expect(editorContent.locator('ul li').first()).toBeVisible();
+		await page.getByTitle('글머리 목록').click();
 		await editorContent.click();
 		await page.keyboard.press('Control+a');
-		await page.getByTitle('위첨자').click();
-		await expect(editorContent.locator('sup').first()).toBeVisible();
-		await page.getByTitle('아래첨자').click();
-		await expect(editorContent.locator('sub').first()).toBeVisible();
+		await page.getByTitle('가운데 정렬').click();
+		await expect(editorContent.locator('[style*="text-align: center"]').first()).toBeVisible();
 		await editorContent.click();
 		await page.keyboard.press('Control+End');
-		let imagePrompt = 0;
-		const handleImageDialog = async (dialog: Dialog) => {
-			expect(dialog.type()).toBe('prompt');
-			if (imagePrompt++ === 0) {
-				expect(dialog.message()).toContain('이미지 URL');
-				await dialog.accept(imageSrc);
-				return;
-			}
-			expect(dialog.message()).toContain('이미지 설명');
-			await dialog.accept('분석 결과 차트');
-		};
-		page.on('dialog', handleImageDialog);
-		await page.getByTitle('이미지 삽입').click();
-		await expect(editorContent.locator(`img[src="${imageSrc}"]`)).toHaveAttribute('alt', '분석 결과 차트');
-		page.off('dialog', handleImageDialog);
-		page.once('dialog', async (dialog) => {
-			expect(dialog.type()).toBe('prompt');
-			expect(dialog.message()).toContain('수식 입력');
-			await dialog.accept('x^2 + y^2 = z^2');
-		});
-		await page.getByTitle('수식 삽입').click();
-		await expect(editorContent.locator('[data-type="inline-math"][data-latex="x^2 + y^2 = z^2"]')).toBeVisible();
+		await expect(page.getByTitle('링크')).toBeVisible();
 		const bodyImageInput = page.locator('[data-body-image-input]');
 		await bodyImageInput.setInputFiles(resolve(process.cwd(), '..', 'artifacts', 'test1_thumbnail.jpg'));
 		await expect(editorContent.locator('img[alt="test1_thumbnail.jpg"]')).toHaveCount(1);
@@ -573,7 +637,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await expect(page.locator('.hero-thumbnail-preview img')).toHaveAttribute('src', 'https://example.com/thumbnail.png');
 
 		await page.locator('input[type="radio"][value="capture"]').check();
-		await expect(page.getByText('Embed Code 또는 Web App URL 기준으로 대표 이미지를 생성합니다.')).toBeVisible();
+		await expect(page.getByText('입력한 산출물 화면을 캡처해 프로젝트 대표 이미지로 사용합니다.')).toBeVisible();
 
 		await page.locator('input[type="radio"][value="powerbi"]').check();
 		const pbixInput = page.locator('input[type="file"][accept=".pbix"]');
@@ -584,12 +648,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.locator('summary', { hasText: '본문 미리보기' }).click();
 		const bodyPreview = page.locator('.rich-editor-preview-content');
 		await expect(bodyPreview).toBeVisible();
-		await expect(bodyPreview.locator('h2')).toHaveCount(4);
-		await expect(bodyPreview.locator('span[style*="color"]').first()).toBeVisible();
-		await expect(bodyPreview.locator(`img[src="${imageSrc}"]`)).toHaveAttribute('alt', '분석 결과 차트');
 		await expect(bodyPreview.locator('img[alt="test1_thumbnail.jpg"]')).toHaveCount(1);
-		await expect(bodyPreview.locator('[data-type="inline-math"]')).toBeVisible();
-		await expect(bodyPreview.locator('.katex')).toBeVisible();
 		await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
 		await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
 		await page.screenshot({ path: testInfo.outputPath('submit-controls.png'), fullPage: true });
@@ -687,13 +746,12 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		expect(editState.scrollWidth - editState.clientWidth).toBeLessThanOrEqual(3);
 		const editFormatSelect = page.locator('.rich-editor-format-select');
 		await expect(editFormatSelect).toBeVisible();
-		await expect(editFormatSelect.locator('option')).toHaveText(['Normal', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+		await expect(editFormatSelect.locator('option')).toHaveText(['Normal', 'H2', 'H3']);
 		await page.locator('.rich-editor .tiptap h2').first().click();
 		await expect(editFormatSelect).toHaveValue('heading2');
-		await expect(page.locator('.rich-editor-size-select')).toBeVisible();
-		await expect(page.locator('.rich-editor-size-select option')).toHaveText(['Normal', 'Small', 'Large', 'Huge']);
-		await page.locator('.rich-editor-format-select').selectOption('heading6');
-		await expect(page.locator('.rich-editor .tiptap h6').first()).toBeVisible();
+		await expect(page.locator('.rich-editor-size-select')).toHaveCount(0);
+		await page.locator('.rich-editor-format-select').selectOption('heading3');
+		await expect(page.locator('.rich-editor .tiptap h3').first()).toBeVisible();
 		await page.locator('.rich-editor-format-select').selectOption('heading2');
 		if (editState.hasExistingPbixDelete) {
 			const deletePbix = page.locator('.platform-panel .delete-option-row input[type="checkbox"]');
@@ -983,6 +1041,17 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 				body: JSON.stringify({ ok: true, message: 'PBIX 교체 게시 완료 mock' })
 			});
 		});
+		await page.route(`**/api/projects/${projectId}/thumbnail-capture`, async (route) => {
+			if (route.request().method() !== 'POST') {
+				await route.continue();
+				return;
+			}
+			await route.fulfill({
+				status: 200,
+				contentType: 'application/json',
+				body: JSON.stringify({ thumbnail_url: 'https://example.com/pbix-replacement-thumbnail.png' })
+			});
+		});
 
 		await page.getByRole('button', { name: '수정 완료', exact: true }).click();
 		await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(projectId)}$`), { timeout: 15_000 });
@@ -1122,6 +1191,21 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 			const powerBIReport = document.querySelector<HTMLElement>('.powerbi-report');
 			const powerBIFrame = document.querySelector<HTMLIFrameElement>('.powerbi-report iframe');
 			const dashboardFrame = document.querySelector<HTMLIFrameElement>('.dashboard-frame');
+			const resourceActionNodes = [...document.querySelectorAll<HTMLElement>('.visual-panel > .actions .button-link')];
+			const describeAction = (node: HTMLElement) => {
+				const style = getComputedStyle(node);
+				return {
+					label: node.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+					tagName: node.tagName.toLowerCase(),
+					disabled: node.hasAttribute('disabled') || node.getAttribute('aria-disabled') === 'true',
+					backgroundColor: style.backgroundColor,
+					borderColor: style.borderColor,
+					color: style.color,
+					fontSize: style.fontSize,
+					fontWeight: style.fontWeight,
+					minHeight: style.minHeight
+				};
+			};
 			const describeFrame = (frame: HTMLIFrameElement | null) =>
 				frame
 					? (() => {
@@ -1160,6 +1244,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 					return summary ? getComputedStyle(summary).color : null;
 				})(),
 				visualPanel: Boolean(document.querySelector('#project-output')),
+			resourceActions: resourceActionNodes.map(describeAction),
 			iframes: document.querySelectorAll('iframe').length,
 			powerBIStatus: powerBIShell?.dataset.powerbiStatus ?? null,
 			powerBIShellHeight: powerBIShell?.getBoundingClientRect().height ?? 0,
@@ -1196,6 +1281,20 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 			}
 			await expect(detailMetrics.detailCardSummaryColor).toBe('rgba(255, 255, 255, 0.78)');
 		}
+		await expect(detailMetrics.resourceActions.map((action) => action.label)).toEqual([
+			'대시보드 열기 ↗',
+			'보고서 보기 ↗',
+			'GitHub 보기 ↗'
+		]);
+		await expect(detailMetrics.resourceActions).toHaveLength(3);
+		await expect(detailMetrics.resourceActions[0]).toMatchObject({
+			backgroundColor: detailMetrics.resourceActions[1]?.backgroundColor,
+			borderColor: detailMetrics.resourceActions[1]?.borderColor,
+			color: detailMetrics.resourceActions[1]?.color,
+			fontSize: detailMetrics.resourceActions[1]?.fontSize,
+			fontWeight: detailMetrics.resourceActions[1]?.fontWeight,
+			minHeight: detailMetrics.resourceActions[1]?.minHeight
+		});
 		const actionOrder = await page.locator('.detail-action-group > *').evaluateAll((nodes) =>
 			nodes.map((node) => node.textContent?.replace(/\s+/g, ' ').trim() ?? '')
 		);

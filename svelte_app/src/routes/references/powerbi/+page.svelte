@@ -11,10 +11,7 @@
 	const visibleProjects = $derived(projects.slice(0, visibleCount));
 	const remainingCount = $derived(Math.max(projects.length - visibleCount, 0));
 	const referencePlatforms = [
-		{ key: 'powerbi', label: 'Power BI', href: '/references/powerbi' },
-		{ key: 'tableau', label: 'Tableau', href: '/references/tableau' },
-		{ key: 'datastudio', label: 'Data Studio', href: '/references/datastudio' },
-		{ key: 'streamlit', label: 'Streamlit', href: '/references/streamlit' }
+		{ key: 'powerbi', label: 'Power BI', href: '/references/powerbi' }
 	];
 	const sortItems: Array<{ key: ReferenceSort; label: string }> = [
 		{ key: 'latest', label: '최신순' },
@@ -58,16 +55,18 @@
 	</div>
 </section>
 
-<section class="reference-toolbar" aria-label="레퍼런스 정렬">
-	<span>정렬</span>
-	<nav>
-		{#each sortItems as item}
-			<a class:active={item.key === data.sort} href={`/references/${data.platform.key}?sort=${item.key}`}>
-				{item.label}
-			</a>
-		{/each}
-	</nav>
-</section>
+{#if projects.length > 0}
+	<section class="reference-toolbar" aria-label="레퍼런스 정렬">
+		<span>정렬</span>
+		<nav>
+			{#each sortItems as item}
+				<a class:active={item.key === data.sort} href={`/references/${data.platform.key}?sort=${item.key}`}>
+					{item.label}
+				</a>
+			{/each}
+		</nav>
+	</section>
+{/if}
 
 {#if data.error}
 	<div class="notice">{data.error}</div>
@@ -89,5 +88,5 @@
 		<div class="reference-end">모든 레퍼런스를 불러왔습니다.</div>
 	{/if}
 {:else}
-	<div class="empty-panel">아직 표시할 레퍼런스가 없습니다.</div>
+	<div class="empty-panel">아직 표시할 Power BI 레퍼런스가 없습니다. 공개 레퍼런스가 준비되면 이곳에서 바로 살펴볼 수 있습니다.</div>
 {/if}

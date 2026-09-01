@@ -42,13 +42,11 @@
 	);
 
 	const dashboardUrl = $derived(normalizePowerBIEmbedUrl(project.power_bi_url));
-	const resourceLinks = $derived(
-		[
-			dashboardUrl ? ['대시보드 열기 ↗', dashboardUrl] : null,
-			project.report_url ? ['보고서 보기 ↗', project.report_url] : null,
-			project.github_url ? ['GitHub 보기 ↗', project.github_url] : null
-		].filter((item): item is [string, string] => Boolean(item))
-	);
+	const resourceActions = $derived([
+		{ label: '대시보드 열기 ↗', url: dashboardUrl },
+		{ label: '보고서 보기 ↗', url: project.report_url },
+		{ label: 'GitHub 보기 ↗', url: project.github_url }
+	]);
 
 	const shouldLoadPowerBIEmbed = $derived(
 		project.status === 'published' && project.project_type === 'powerbi'
@@ -56,13 +54,7 @@
 	const hasDashboardUrl = $derived(Boolean(dashboardUrl));
 	const hasExternalResource = $derived(Boolean(project.report_url || project.github_url));
 	const canRenderDashboardFrame = $derived(hasDashboardUrl);
-	const hasVisualOutput = $derived(
-		project.status === 'processing' ||
-		project.status === 'failed' ||
-		shouldLoadPowerBIEmbed ||
-		hasDashboardUrl ||
-		hasExternalResource
-	);
+	const hasVisualOutput = $derived(true);
 	const isTableauOutput = $derived(
 		project.platform_key === 'tableau' ||
 		project.project_type === 'tableau' ||
@@ -332,15 +324,19 @@
 		{:else}
 			<div class="embed-empty">표시할 대시보드가 없습니다.</div>
 		{/if}
-		{#if resourceLinks.length > 0}
-			<div class="actions">
-				{#each resourceLinks as [label, url], index}
-					<a class:primary={index === 0} class="button-link" href={url} target="_blank" rel="noreferrer">
-						{label}
+		<div class="actions" aria-label="외부 산출물 링크">
+			{#each resourceActions as action}
+				{#if action.url}
+					<a class="button-link" href={action.url} target="_blank" rel="noreferrer">
+						{action.label}
 					</a>
-				{/each}
-			</div>
-		{/if}
+				{:else}
+					<button type="button" class="button-link" disabled aria-disabled="true">
+						{action.label}
+					</button>
+				{/if}
+			{/each}
+		</div>
 	</section>
 {/if}
 

@@ -150,7 +150,7 @@ import type { ProjectSubmitInput } from '$lib/types';
 				{/if}
 
 				{#if input.thumbnail_mode === 'capture'}
-					<small>배포 환경에서 캡처 런타임을 명시적으로 켠 경우에만 대표 이미지를 생성합니다.</small>
+					<small>입력한 산출물 화면을 캡처해 프로젝트 대표 이미지로 사용합니다.</small>
 				{/if}
 			</div>
 		</div>

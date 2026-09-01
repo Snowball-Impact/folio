@@ -189,7 +189,7 @@
 				type="search"
 				name="q"
 				value={filters.search}
-				placeholder="프로젝트명, 태그, 작성자, 소속, 등록일로 검색"
+				placeholder="프로젝트명, 태그, 작성자 검색"
 				aria-label="프로젝트 검색"
 			/>
 			{#if filters.tag}
@@ -218,16 +218,19 @@
 	title="새로 공개된 프로젝트"
 	description="최근 등록된 Power BI 프로젝트를 먼저 살펴보세요."
 	projects={snapshot.recent_projects}
+	emptyMessage="아직 공개된 프로젝트가 없습니다. 첫 프로젝트를 등록해 갤러리를 열어보세요."
 />
 
 <ProjectRail
 	title="조회수가 높은 프로젝트"
 	description="많이 열린 프로젝트를 빠르게 훑어보세요."
 	projects={snapshot.viewed_projects}
+	emptyMessage="조회수 순위는 프로젝트가 공개되면 자동으로 채워집니다."
 />
 
 <ProjectRail
 	title="좋아요를 받은 프로젝트"
 	description="반응이 쌓인 프로젝트를 이어서 확인해보세요."
 	projects={snapshot.liked_projects}
+	emptyMessage="좋아요를 받은 프로젝트가 아직 없습니다. 좋은 시각화에 첫 반응을 남겨보세요."
 />

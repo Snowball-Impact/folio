@@ -121,7 +121,7 @@
 - P2 build 후 보안 smoke: 클라이언트 번들 91개 검사 통과
 - P2 route 실측: 공개 6개 라우트 모두 HTTP 200; JS 약 5.1~5.5MB, CSS 약 134KB, LCP 76~1112ms, CLS 최대 0.0265, long task 0건. 샌드박스에서 보인 약 7초 `networkidle`은 외부 데이터 접근 제한에 따른 현상으로 외부 접근 서버에서 재검증함
 - P2 Power BI 실측: 공개 PBIX fixture `7553d519-b395-464a-bd57-3b33100e2df1`에서 iframe 1개, 프레임 내부 리소스 38개/약 6.56MB, 상세 전체 약 7.34MB, iframe 포함 load 약 2.35초
-- 측정 명령: `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:5179'; npm.cmd run measure:routes` (`MEASURE_ROUTES`, `MEASURE_WAIT_UNTIL`, `MEASURE_SETTLE_MS`로 대상과 대기 기준 선택 가능)
+- 측정 명령: `$env:PLAYWRIGHT_BASE_URL='http://127.0.0.1:5179'; npm.cmd run measure:routes` (`MEASURE_ROUTES`, `MEASURE_WAIT_UNTIL`, `MEASURE_SETTLE_MS`, `MEASURE_SAMPLE_MS`, `MEASURE_TRANSITIONS=1`로 대상·대기·마일스톤·전환 CLS 기준 선택 가능)
 - P2 종료 판단: 현재 코드 구조상 Tiptap/KaTeX/Power BI SDK는 화면 조건에 따라 지연 로드되고, 추가 최적화는 실제 배포 RUM 또는 Power BI 사용량 데이터가 있을 때 진행
 - P3-1 성능 예산: `npm.cmd run performance:budget` 통과. 최대 클라이언트 청크 `252.57KB / 300KB`, 전역 CSS `95.20KB / 105KB`, KaTeX CSS `28.69KB / 35KB`
 - P3-2 수식 회귀: 인증 제출 화면에서 실제 `.katex` DOM 렌더링 확인, desktop/mobile 각 1 passed
@@ -164,6 +164,17 @@
   - [x] endpoint payload/CORS/개인정보 경계 문서화
   - [ ] 실제 배포 RUM endpoint에서 LCP/CLS/INP와 iframe 초기화 시간 수집 검증
   - [x] Power BI 외부 요청 실패·지연 상태를 RUM 운영 payload로 전달하도록 구현
+
+## 후속 TODO
+
+- [x] Svelte UIUX 검증 도구를 Playwright 기준으로 정리한다.
+  - 현재 표준 실행 경로는 `svelte_app/package.json`의 `test:ui`, `test:ui:auth`, `capture:ui`와 `svelte_app/playwright.config.ts`다.
+  - Svelte 수동 캡처는 `svelte_app/scripts/capture-ui.mjs`를 사용한다.
+  - Selenium 기반 Svelte 과거 캡처·프로브 스크립트는 `tools/legacy_selenium/`로 분리했다.
+  - `requirements-dev.txt`의 `selenium`은 Streamlit/외부 갤러리 수집 legacy 도구 때문에 현재 유지한다.
+- [x] Svelte UIUX 디자인 시스템과 화면별 QA 기준을 문서화한다.
+  - 기준 문서: `docs/svelte/SVELTE_UIUX_DESIGN_SYSTEM.md`
+  - font/size/spacing/control/card-list token, 화면별 QA checklist, Playwright 검증 루틴을 한 문서로 고정했다.
 
 ## 인수인계 요약
 

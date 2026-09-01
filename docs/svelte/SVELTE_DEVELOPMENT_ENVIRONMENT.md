@@ -89,6 +89,22 @@ npm.cmd run test:ui
 
 현재 기본 프로젝트는 데스크톱 `1440x1000`과 모바일 `390x844`이며, `/`, `/my`, `/notifications`, `/submit`을 각각 실행한다. 결과는 `artifacts/playwright/report/`, `artifacts/playwright/test-results/`에 저장한다. Playwright의 기본 `baseURL`은 `http://127.0.0.1:5174`이므로, 관리형 서버가 다른 포트로 실행되면 테스트 명령과 캡처 보고서에 같은 `PLAYWRIGHT_BASE_URL`을 반드시 지정한다.
 
+수동 UI 캡처가 필요하면 Selenium 대신 Svelte 앱의 Playwright 캡처 스크립트를 사용한다.
+
+```powershell
+npm.cmd run capture:ui -- --base-url http://127.0.0.1:5174 --out-dir ..\artifacts\playwright\manual-captures
+npm.cmd run capture:ui -- --viewport mobile --route powerbi-news=/powerbi
+```
+
+라우트 성능 측정도 Playwright 기준으로 실행한다. 기본 출력은 라우트별 JSON lines이며 navigation, web vitals, 리소스 용량, milestone, 수평 overflow, 주요 요소 개수를 함께 기록한다.
+
+```powershell
+npm.cmd run measure:routes
+$env:MEASURE_ROUTES = '/,/powerbi,/submit'
+$env:MEASURE_TRANSITIONS = '1'
+npm.cmd run measure:routes
+```
+
 예를 들어 5174가 이미 사용 중이라 5176에서 서버를 실행했다면 다음처럼 연결 대상을 고정한다.
 
 ```powershell
@@ -111,7 +127,7 @@ npx.cmd playwright test tests/uiux/authenticated-routes.spec.ts --grep '@mutatio
 npx.cmd playwright test tests/uiux/authenticated-routes.spec.ts --grep '@mutation-pbix-live' --project=desktop --project=mobile
 ```
 
-`PLAYWRIGHT_MUTATION_PROJECT_ID` 썸네일 테스트는 기존 썸네일이 없는 `auto_cover` fixture에서만 실행되며, 업로드 후 auto-cover로 복구한다. PBIX 안전 테스트는 게시 실패 응답을 mock하므로 Workspace를 변경하지 않는다. 실제 PBIX 성공 재게시 테스트는 격리된 Power BI Workspace에서 별도로 수행한다.
+일반 UIUX 회귀에서 PBIX 파일 선택, 미리보기 상태, multipart 전달 여부를 확인할 때는 별도 fixture ID 없이 `artifacts/test.pbix`를 사용한다. `PLAYWRIGHT_MUTATION_PROJECT_ID` 썸네일 테스트는 기존 썸네일이 없는 `auto_cover` fixture에서만 실행되며, 업로드 후 auto-cover로 복구한다. PBIX 안전 테스트는 게시 실패 응답을 mock하므로 Workspace를 변경하지 않는다. 실제 PBIX 성공 재게시 테스트는 격리된 Power BI Workspace에서 별도로 수행한다.
 
 PBIX 교체 성공의 클라이언트 orchestration은 별도의 비변경 인증 테스트에서도 확인한다. 이 테스트는 기존 Embed URL·`supported` 상태를 유지한 프로젝트 수정 payload, `artifacts/test.pbix` multipart 전달, 성공 응답 후 상세 이동을 mock으로 검증한다. 실제 성공 검증은 `PLAYWRIGHT_PBIX_LIVE_PROJECT_ID`를 명시한 경우에만 수행하며, 테스트 계정 소유 fixture와 복구 계획을 확인한 뒤 실행한다. 실제 Import 완료와 새 report 메타데이터 반영은 2026-08-28 테스트 계정 fixture에서 `succeeded`로 확인했다.
 

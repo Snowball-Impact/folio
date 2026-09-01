@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '$lib/supabase';
 import { currentSession } from '$lib/auth';
 import { buildProjectPayload, normalizePowerBIEmbedUrl, validateProjectInput } from '$lib/projectInput';
+import { normalizeHomeTag, normalizePopularHomeTags, popularTagsFromTagLists, projectTagsInclude } from '$lib/projectTags';
 export { normalizePowerBIEmbedUrl } from '$lib/projectInput';
 import type {
 	HomeSnapshot,
@@ -115,13 +116,18 @@ async function loadFilteredHomeSnapshot(platformKey: PlatformKey | null, search:
 		};
 	}
 
-	const { data, error } = await supabase
+	let query = supabase
 		.from('projects')
 		.select(projectListColumns)
 		.eq('is_public', true)
 		.eq('status', 'published')
-		.order('created_at', { ascending: false })
-		.limit(HOME_FILTER_FETCH_LIMIT);
+		.order('created_at', { ascending: false });
+
+	if (selectedTag && !search) {
+		query = query.contains('tags', [selectedTag]);
+	}
+
+	const { data, error } = await query.limit(HOME_FILTER_FETCH_LIMIT);
 
 	if (error) {
 		return {
@@ -553,13 +559,8 @@ async function attachPublicProjectMetadata(projects: ProjectCard[]) {
 	});
 }
 
-function normalizeHomeTag(value: string | undefined) {
-	const tag = String(value ?? '').trim();
-	return tag && tag !== '전체' ? tag : '';
-}
-
 function projectMatchesTag(project: ProjectCard, selectedTag: string) {
-	return !selectedTag || project.tags.includes(selectedTag);
+	return projectTagsInclude(project.tags, selectedTag);
 }
 
 function projectMatchesSearch(project: ProjectCard, search: string) {
@@ -584,28 +585,11 @@ function projectMatchesSearch(project: ProjectCard, search: string) {
 }
 
 function popularTagsFromProjects(projects: ProjectCard[], limit = HOME_TAG_LIMIT) {
-	const counts = new Map<string, number>();
-	for (const project of projects) {
-		for (const tag of project.tags) {
-			if (isExcludedHomeTag(tag)) {
-				continue;
-			}
-			counts.set(tag, (counts.get(tag) ?? 0) + 1);
-		}
-	}
-	return [...counts.entries()]
-		.sort((first, second) => second[1] - first[1] || first[0].localeCompare(second[0], 'ko-KR'))
-		.slice(0, limit)
-		.map(([tag]) => tag);
+	return popularTagsFromTagLists(projects.map((project) => project.tags), limit);
 }
 
 function normalizeHomePopularTags(tags: string[], limit = HOME_TAG_LIMIT) {
-	return tags.filter((tag) => !isExcludedHomeTag(tag)).slice(0, limit);
-}
-
-function isExcludedHomeTag(tag: string) {
-	const normalized = tag.trim().toLowerCase().replaceAll(' ', '');
-	return ['powerbi', 'pbi', 'reference', 'references', '레퍼런스', '참고', '전체', 'all'].includes(normalized);
+	return normalizePopularHomeTags(tags, limit);
 }
 function sortReferenceProjects(projects: ProjectCard[], sort: ReferenceSort) {
 	if (sort === 'likes') {

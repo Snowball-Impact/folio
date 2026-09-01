@@ -6,11 +6,13 @@
 	let {
 		title,
 		description,
-		projects
+		projects,
+		emptyMessage = '표시할 프로젝트가 아직 없습니다.'
 	} = $props<{
 		title: string;
 		description: string;
 		projects: ProjectCardType[];
+		emptyMessage?: string;
 	}>();
 
 	let railElement = $state<HTMLDivElement | null>(null);
@@ -168,6 +170,6 @@
 			</div>
 		</div>
 	{:else}
-		<div class="empty-panel">표시할 프로젝트가 아직 없습니다.</div>
+		<div class="empty-panel">{emptyMessage}</div>
 	{/if}
 </section>

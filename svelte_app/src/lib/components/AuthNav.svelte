@@ -18,6 +18,7 @@
 	let notifications = $state<NotificationItem[]>([]);
 	let powerBiOpen = $state(false);
 	let notificationOpen = $state(false);
+	let mobileNavOpen = $state(false);
 	let powerBiMenuElement = $state<HTMLDivElement | null>(null);
 	let notificationMenuElement = $state<HTMLDivElement | null>(null);
 	let notificationSubmenuElement = $state<HTMLDivElement | null>(null);
@@ -40,6 +41,7 @@
 			if (event.key === 'Escape') {
 				powerBiOpen = false;
 				notificationOpen = false;
+				mobileNavOpen = false;
 			}
 		};
 		document.addEventListener('click', closeOnOutsideClick);
@@ -126,6 +128,22 @@
 		}
 	}
 
+	function toggleMobileNav(event: MouseEvent) {
+		event.preventDefault();
+		event.stopPropagation();
+		mobileNavOpen = !mobileNavOpen;
+		if (!mobileNavOpen) {
+			powerBiOpen = false;
+			notificationOpen = false;
+		}
+	}
+
+	function closeMobileNav() {
+		mobileNavOpen = false;
+		powerBiOpen = false;
+		notificationOpen = false;
+	}
+
 	function positionNotificationPopover() {
 		if (!notificationSubmenuElement) {
 			return;
@@ -169,12 +187,24 @@
 		unreadCount = 0;
 		notifications = [];
 		powerBiOpen = false;
+		mobileNavOpen = false;
 	}
 </script>
 
-<nav class="nav" aria-label="주요 메뉴">
-	<a class:active={isPathActive('/')} aria-current={isPathActive('/') ? 'page' : undefined} href="/">홈 갤러리</a>
-	<a class:active={isPathActive('/about')} aria-current={isPathActive('/about') ? 'page' : undefined} href="/about">서비스 소개</a>
+<button
+	type="button"
+	class="mobile-nav-toggle"
+	aria-expanded={mobileNavOpen}
+	aria-controls="primary-navigation"
+	onclick={toggleMobileNav}
+>
+	<span aria-hidden="true"></span>
+	메뉴
+</button>
+
+<nav id="primary-navigation" class="nav" class:open={mobileNavOpen} aria-label="주요 메뉴">
+	<a class:active={isPathActive('/')} aria-current={isPathActive('/') ? 'page' : undefined} href="/" onclick={closeMobileNav}>홈 갤러리</a>
+	<a class:active={isPathActive('/about')} aria-current={isPathActive('/about') ? 'page' : undefined} href="/about" onclick={closeMobileNav}>서비스 소개</a>
 	<div bind:this={powerBiMenuElement} class="nav-menu powerbi-menu" class:open={powerBiOpen}>
 		<button
 			type="button"
@@ -188,28 +218,33 @@
 			Power BI <span class="nav-caret" aria-hidden="true"></span>
 		</button>
 		<div class="nav-submenu" aria-label="Power BI 콘텐츠 메뉴">
-			<a class:active={isPowerBiTopicActive('news')} href="/powerbi">업데이트 소식</a>
-			<a class:active={isPowerBiTopicActive('community')} href="/powerbi?topic=community">커뮤니티 소식</a>
-			<a class:active={isPowerBiTopicActive('learning')} href="/powerbi?topic=learning">학습 콘텐츠</a>
-			<a class:active={isPowerBiTopicActive('certifications')} href="/powerbi?topic=certifications">자격증</a>
-			<a class:active={pathname === '/references/powerbi'} href="/references/powerbi">레퍼런스</a>
+			<a class:active={isPowerBiTopicActive('news')} href="/powerbi" onclick={closeMobileNav}>업데이트 소식</a>
+			<a class:active={isPowerBiTopicActive('community')} href="/powerbi?topic=community" onclick={closeMobileNav}>커뮤니티 소식</a>
+			<a class:active={isPowerBiTopicActive('learning')} href="/powerbi?topic=learning" onclick={closeMobileNav}>학습 콘텐츠</a>
+			<a class:active={isPowerBiTopicActive('certifications')} href="/powerbi?topic=certifications" onclick={closeMobileNav}>자격증</a>
+			<a class:active={pathname === '/references/powerbi'} href="/references/powerbi" onclick={closeMobileNav}>레퍼런스</a>
 		</div>
 	</div>
-	<a class:active={isPathActive('/submit')} aria-current={isPathActive('/submit') ? 'page' : undefined} href="/submit">프로젝트 등록</a>
+	<a class:active={isPathActive('/submit')} aria-current={isPathActive('/submit') ? 'page' : undefined} href="/submit" onclick={closeMobileNav}>프로젝트 등록</a>
 	{#if session}
-		<a class:active={isPathActive('/my')} aria-current={isPathActive('/my') ? 'page' : undefined} href="/my">마이 페이지</a>
+		<a class:active={isPathActive('/my')} aria-current={isPathActive('/my') ? 'page' : undefined} href="/my" onclick={closeMobileNav}>마이 페이지</a>
 		<button type="button" onclick={handleSignOut}>로그아웃</button>
 		<div bind:this={notificationMenuElement} class="nav-menu notification-menu" class:open={notificationOpen}>
 			<button
 				type="button"
 				class="notification-link"
 				class:active={isPathActive('/notifications')}
+				aria-label="알림"
 				aria-current={isPathActive('/notifications') ? 'page' : undefined}
 				aria-expanded={notificationOpen}
 				aria-haspopup="menu"
 				onclick={toggleNotifications}
 			>
-				알림 <span class="nav-caret" aria-hidden="true"></span>
+				<svg class="notification-icon" viewBox="0 0 24 24" aria-hidden="true">
+					<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+					<path d="M13.73 21a2 2 0 0 1-3.46 0" />
+				</svg>
+				<span class="sr-only">알림</span>
 				{#if unreadCount > 0}
 					<span aria-label={`${unreadCount}개 새 알림`}>N</span>
 				{/if}
@@ -243,6 +278,6 @@
 			</div>
 		</div>
 	{:else}
-		<a class:active={isPathActive('/login')} aria-current={isPathActive('/login') ? 'page' : undefined} href="/login">로그인</a>
+		<a class:active={isPathActive('/login')} aria-current={isPathActive('/login') ? 'page' : undefined} href="/login" onclick={closeMobileNav}>로그인</a>
 	{/if}
 </nav>
