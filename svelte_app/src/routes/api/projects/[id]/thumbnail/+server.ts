@@ -33,17 +33,23 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const formData = await safeFormData(request);
 	const file = formData?.get('thumbnail');
 	if (!(file instanceof File)) {
-		return json({ error: '썸네일 파일을 선택하세요.' }, { status: 400 });
+		return json({ error: '썸네일 파일을 선택하세요.', error_code: 'THUMBNAIL_FILE_MISSING' }, { status: 400 });
 	}
 
 	const validationError = validateThumbnail(file);
 	if (validationError) {
-		return json({ error: validationError }, { status: 400 });
+		return json({ error: validationError, error_code: 'THUMBNAIL_FILE_INVALID' }, { status: 400 });
 	}
 
 	const extension = ALLOWED_TYPES.get(file.type) ?? 'jpg';
 	const bucketName = env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_BUCKET;
 	const path = `projects/${safeStorageName(projectId)}/thumbnail-${Date.now()}.${extension}`;
+	console.info('Thumbnail upload started', {
+		projectId,
+		bucketName,
+		size: file.size,
+		type: file.type
+	});
 	const bytes = new Uint8Array(await file.arrayBuffer());
 	const bucket = auth.serviceClient.storage.from(bucketName);
 	const { error: uploadError } = await bucket.upload(path, bytes, {
@@ -52,7 +58,12 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		upsert: true
 	});
 	if (uploadError) {
-		return json({ error: '썸네일 업로드에 실패했습니다.' }, { status: 502 });
+		console.error('Thumbnail storage upload failed', {
+			projectId,
+			bucketName,
+			message: uploadError.message
+		});
+		return json({ error: '썸네일 업로드에 실패했습니다.', error_code: 'THUMBNAIL_STORAGE_UPLOAD_FAILED' }, { status: 502 });
 	}
 
 	await removeOldThumbnails(bucket, projectId, path);
@@ -66,9 +77,15 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		.eq('id', projectId)
 		.eq('author_id', auth.user.id);
 	if (updateError) {
-		return json({ error: '프로젝트에 썸네일을 연결하지 못했습니다.' }, { status: 502 });
+		console.error('Thumbnail project update failed', {
+			projectId,
+			message: updateError.message
+		});
+		await bucket.remove([path]);
+		return json({ error: '프로젝트에 썸네일을 연결하지 못했습니다.', error_code: 'THUMBNAIL_PROJECT_UPDATE_FAILED' }, { status: 502 });
 	}
 
+	console.info('Thumbnail upload completed', { projectId, path });
 	return json({ thumbnail_url: publicUrl });
 };
 

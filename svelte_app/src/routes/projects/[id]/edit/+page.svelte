@@ -41,6 +41,7 @@
 	let bodyHtml = $state(PROJECT_BODY_TEMPLATE);
 	let operationProgress = $state(0);
 	let operationSteps = $state<OperationStep[]>([]);
+	let pendingProjectRedirect = $state('');
 	const projectId = $derived(page.params.id ?? '');
 
 	const previewProject = $derived<ProjectCardType>({
@@ -127,6 +128,7 @@
 			return;
 		}
 		submitting = true;
+		pendingProjectRedirect = '';
 		const result = await runProjectSaveWorkflow({
 			mode: 'edit',
 			projectId,
@@ -145,11 +147,14 @@
 		if (!result.ok) {
 			submitting = false;
 			error = result.message;
+			if (result.projectId) {
+				pendingProjectRedirect = `/projects/${result.projectId}`;
+			}
 			return;
 		}
 		submitting = false;
 		message = result.message;
-		await goto(`/projects/${result.projectId}`);
+		pendingProjectRedirect = `/projects/${result.projectId}`;
 	}
 
 
@@ -180,6 +185,21 @@
 			status: activeIndex < 0 ? step.status : index < activeIndex ? 'done' : step.id === id ? 'active' : 'pending'
 		}));
 	}
+
+	function clearOperation() {
+		operationProgress = 0;
+		operationSteps = [];
+	}
+
+	async function dismissOperationProgress() {
+		const redirectPath = pendingProjectRedirect;
+		clearOperation();
+		pendingProjectRedirect = '';
+		if (redirectPath) {
+			await goto(redirectPath);
+		}
+	}
+
 	function selectThumbnail(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 		if (thumbnailPreviewUrl) {
@@ -243,7 +263,7 @@
 			<div id="project-form-error" class="auth-message error" role="alert" aria-live="assertive">{error}</div>
 		{/if}
 
-		<OperationProgress progress={operationProgress} steps={operationSteps} />
+		<OperationProgress progress={operationProgress} steps={operationSteps} onDismiss={dismissOperationProgress} />
 
 		<ProjectFormOverview
 			bind:input

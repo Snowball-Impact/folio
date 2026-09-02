@@ -19,12 +19,15 @@ export async function publishProjectPbix(projectId: string, file: File) {
 		ok?: boolean;
 		message?: string;
 		error?: string;
+		error_code?: string;
+		upstream_status?: number | null;
+		upstream_code?: string | null;
 	};
 
 	if (!response.ok || payload.ok === false) {
 		return {
 			ok: false,
-			message: payload.error || payload.message || 'Power BI 게시에 실패했습니다.'
+			message: withErrorCode(payload.error || payload.message || 'Power BI 게시에 실패했습니다.', payload)
 		};
 	}
 
@@ -50,9 +53,10 @@ export async function unlinkProjectPbix(projectId: string) {
 		ok?: boolean;
 		message?: string;
 		error?: string;
+		error_code?: string;
 	};
 	if (!response.ok || payload.ok === false) {
-		return { ok: false, message: payload.error || payload.message || 'Power BI 연결 삭제에 실패했습니다.' };
+		return { ok: false, message: withErrorCode(payload.error || payload.message || 'Power BI 연결 삭제에 실패했습니다.', payload) };
 	}
 	return { ok: true, message: payload.message || '기존 Power BI 연결을 삭제했습니다.' };
 }
@@ -73,4 +77,11 @@ export async function projectPbixExists(projectId: string) {
 	}
 	const payload = (await response.json().catch(() => ({}))) as { exists?: boolean };
 	return Boolean(payload.exists);
+}
+
+function withErrorCode(message: string, payload: { error_code?: string; upstream_status?: number | null; upstream_code?: string | null }) {
+	const details = [payload.error_code, payload.upstream_status ? `HTTP ${payload.upstream_status}` : null, payload.upstream_code]
+		.filter(Boolean)
+		.join(' / ');
+	return details ? `${message} [${details}]` : message;
 }

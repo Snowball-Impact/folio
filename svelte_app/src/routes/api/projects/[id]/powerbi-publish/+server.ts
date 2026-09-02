@@ -12,7 +12,7 @@ export const GET: RequestHandler = async ({ params, request }) => {
 	if (!auth.ok) {
 		return authFailureResponse(auth, {
 			missingToken: '로그인 후 Power BI 게시본을 확인할 수 있습니다.',
-			unavailable: 'Power BI 게시본 확인 서버 환경 변수가 설정되지 않았습니다.',
+			unavailable: '서버 인증 환경 변수가 설정되지 않았습니다.',
 			invalidSession: '로그인 세션을 확인하지 못했습니다.'
 		});
 	}
@@ -45,7 +45,7 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	if (!auth.ok) {
 		return authFailureResponse(auth, {
 			missingToken: '로그인 후 PBIX를 게시할 수 있습니다.',
-			unavailable: 'PBIX 게시 서버 환경 변수가 설정되지 않았습니다.',
+			unavailable: '서버 인증 환경 변수가 설정되지 않았습니다.',
 			invalidSession: '로그인 세션을 확인하지 못했습니다.'
 		});
 	}
@@ -68,9 +68,17 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		return json(result, { status: result.ok ? 200 : 202 });
 	} catch (error) {
 		if (error instanceof PowerBIServiceError) {
-			return json({ error: error.message }, { status: error.status });
+			return json(
+				{
+					error: error.message,
+					error_code: error.code,
+					upstream_status: error.upstreamStatus,
+					upstream_code: error.upstreamCode
+				},
+				{ status: error.status }
+			);
 		}
-		return json({ error: 'Power BI 게시 중 오류가 발생했습니다.' }, { status: 500 });
+		return json({ error: 'Power BI 게시 중 오류가 발생했습니다.', error_code: 'PBI_UNKNOWN' }, { status: 500 });
 	}
 };
 
@@ -85,7 +93,7 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 	if (!auth.ok) {
 		return authFailureResponse(auth, {
 			missingToken: '로그인 후 Power BI 연결을 삭제할 수 있습니다.',
-			unavailable: 'Power BI 연결 삭제 서버 환경 변수가 설정되지 않았습니다.',
+			unavailable: '서버 인증 환경 변수가 설정되지 않았습니다.',
 			invalidSession: '로그인 세션을 확인하지 못했습니다.'
 		});
 	}

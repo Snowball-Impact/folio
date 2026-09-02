@@ -21,8 +21,8 @@
 - 앱 코드: `svelte_app/`
 - Svelte 설정: `svelte_app/vite.config.ts`
 - 의존성: `svelte_app/package.json`, `svelte_app/package-lock.json`
-- 원본 환경: 루트 `.env`
-- Svelte 환경: `svelte_app/.env` 또는 실행 환경 변수
+- 환경 파일: 저장소 루트 `.env`
+- Svelte 환경: 루트 `.env` 또는 실행 환경 변수. `svelte_app/.env`는 과거 호환용 fallback으로만 본다.
 - 샘플 PBIX: `artifacts/test.pbix`
 - 관리형 Wrangler 경로: 저장소 루트 `.runtime/`
 

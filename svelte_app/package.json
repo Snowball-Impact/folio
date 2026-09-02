@@ -17,7 +17,7 @@
 		"measure:routes": "node scripts/measure-route-performance.mjs",
 		"performance:budget": "node scripts/check-performance-budget.mjs",
 		"build": "vite build",
-		"preview": "vite preview",
+		"preview": "npm.cmd run preview:cloudflare",
 		"prepare": "svelte-kit sync || echo ''",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

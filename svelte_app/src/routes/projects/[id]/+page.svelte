@@ -71,10 +71,13 @@
 	const fromReferences = $derived(page.url.searchParams.get('from') === 'references');
 	const backHref = $derived(fromReferences ? `/references/${backPlatform}` : '/');
 	const backLabel = $derived(fromReferences ? '레퍼런스로 돌아가기' : '홈 갤러리로 돌아가기');
+	const isThumbnailCapture = $derived(page.url.searchParams.get('capture') === 'thumbnail');
 
 	onMount(async () => {
-		const visitorId = getOrCreateVisitorId();
-		recordProjectView(project.id, visitorId);
+		if (!isThumbnailCapture) {
+			const visitorId = getOrCreateVisitorId();
+			recordProjectView(project.id, visitorId);
+		}
 
 		const session = await currentSession();
 		authenticated = Boolean(session);
@@ -200,17 +203,20 @@
 	<meta name="description" content={project.one_liner ?? project.title} />
 </svelte:head>
 
-<section class="detail-hero project-detail-image-hero">
-	<div class="detail-hero-copy">
-		<div class="detail-hero-eyebrow">프로젝트 상세</div>
-		<h1>{project.title}</h1>
-		<p>{project.one_liner ?? '프로젝트 소개가 없습니다.'}</p>
-	</div>
-	<div class="detail-card-preview">
-		<ProjectCard {project} compact />
-	</div>
-</section>
+{#if !isThumbnailCapture}
+	<section class="detail-hero project-detail-image-hero">
+		<div class="detail-hero-copy">
+			<div class="detail-hero-eyebrow">프로젝트 상세</div>
+			<h1>{project.title}</h1>
+			<p>{project.one_liner ?? '프로젝트 소개가 없습니다.'}</p>
+		</div>
+		<div class="detail-card-preview">
+			<ProjectCard {project} compact />
+		</div>
+	</section>
+{/if}
 
+{#if !isThumbnailCapture}
 <section class="detail-footer-row" aria-label="프로젝트 메타 및 액션">
 	<div class="detail-meta" aria-label="프로젝트 메타 정보">
 		<span class="pill meta-line">작성자 {project.author.name ?? '작성자'}</span>
@@ -286,19 +292,23 @@
 		</div>
 	{/if}
 </section>
+{/if}
 
 
 {#if hasVisualOutput}
 	<section
 		id="project-output"
 		class="visual-panel"
+		class:thumbnail-capture-output={isThumbnailCapture}
 		class:tableau-output={isTableauOutput}
 		class:external-only-output={isExternalOnlyOutput}
 		class:embed-failed-output={isEmbedFailedOutput || project.status === 'failed'}
 	>
-		<div class="visual-panel-head">
-			<h2>대표 결과물</h2>
-		</div>
+		{#if !isThumbnailCapture}
+			<div class="visual-panel-head">
+				<h2>대표 결과물</h2>
+			</div>
+		{/if}
 		{#if project.status === 'processing'}
 			<div class="embed-empty embed-loading-state">Power BI 보고서를 게시하는 중입니다. 잠시 후 다시 확인하세요.</div>
 		{:else if project.status === 'failed'}
@@ -309,12 +319,16 @@
 				title={project.title}
 				onStatusChange={(status) => (powerBIStatus = status)}
 			/>
-			<p class="visual-caption">Power BI Embed Token은 요청 시 발급되며 저장하지 않습니다.</p>
+			{#if !isThumbnailCapture}
+				<p class="visual-caption">Power BI Embed Token은 요청 시 발급되며 저장하지 않습니다.</p>
+			{/if}
 		{:else if embedLoading && !dashboardUrl}
 			<div class="embed-empty embed-loading-state">Power BI 임베드 토큰을 확인하는 중입니다.</div>
 		{:else if canRenderDashboardFrame && dashboardUrl}
 			<iframe class="dashboard-frame" title={`${project.title} 대표 결과물`} src={dashboardUrl}></iframe>
-			<p class="visual-caption">화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.</p>
+			{#if !isThumbnailCapture}
+				<p class="visual-caption">화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.</p>
+			{/if}
 		{:else if project.embed_status === 'failed' || embedError}
 			<div class="embed-empty embed-failed-state">
 				{embedError || 'Power BI 보고서를 불러오지 못했습니다. 프로젝트 작성자는 마이페이지에서 상태를 확인하세요.'}
@@ -324,23 +338,25 @@
 		{:else}
 			<div class="embed-empty">표시할 대시보드가 없습니다.</div>
 		{/if}
-		<div class="actions" aria-label="외부 산출물 링크">
-			{#each resourceActions as action}
-				{#if action.url}
-					<a class="button-link" href={action.url} target="_blank" rel="noreferrer">
-						{action.label}
-					</a>
-				{:else}
-					<button type="button" class="button-link" disabled aria-disabled="true">
-						{action.label}
-					</button>
-				{/if}
-			{/each}
-		</div>
+		{#if !isThumbnailCapture}
+			<div class="actions" aria-label="외부 산출물 링크">
+				{#each resourceActions as action}
+					{#if action.url}
+						<a class="button-link" href={action.url} target="_blank" rel="noreferrer">
+							{action.label}
+						</a>
+					{:else}
+						<button type="button" class="button-link" disabled aria-disabled="true">
+							{action.label}
+						</button>
+					{/if}
+				{/each}
+			</div>
+		{/if}
 	</section>
 {/if}
 
-{#if reportSections.length > 0}
+{#if !isThumbnailCapture && reportSections.length > 0}
 	<article id="project-report" class="report">
 		<div class="report-head">
 			<h2>프로젝트 리포트</h2>
@@ -351,17 +367,19 @@
 			</section>
 		{/each}
 	</article>
-{:else}
+{:else if !isThumbnailCapture}
 	<div class="empty-panel">아직 작성된 프로젝트 설명이 없습니다.</div>
 {/if}
 
-<ProjectComments
-	projectId={project.id}
-	projectAuthorId={project.author_id}
-	projectTitle={project.title}
-	initialCommentCount={project.comment_count}
-/>
+{#if !isThumbnailCapture}
+	<ProjectComments
+		projectId={project.id}
+		projectAuthorId={project.author_id}
+		projectTitle={project.title}
+		initialCommentCount={project.comment_count}
+	/>
 
-<div class="detail-back-action-row">
-	<a class="button-link" href={backHref}>← {backLabel}</a>
-</div>
+	<div class="detail-back-action-row">
+		<a class="button-link" href={backHref}>← {backLabel}</a>
+	</div>
+{/if}

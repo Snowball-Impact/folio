@@ -24,6 +24,23 @@ export type OnboardingStatus = {
 
 const POLICY_ORDER: PolicyType[] = ['terms', 'privacy'];
 
+export async function getActivePolicyVersions() {
+	const supabase = getSupabaseClient();
+	if (!supabase) {
+		return { policies: [], error: 'Supabase 환경 변수가 설정되지 않았습니다.' };
+	}
+
+	const { data, error } = await supabase
+		.from('policy_versions')
+		.select('id,policy_type,version,title,content,content_url,summary,effective_at')
+		.eq('is_active', true)
+		.order('effective_at', { ascending: false });
+	if (error) {
+		return { policies: [], error: '정책 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.' };
+	}
+	return { policies: latestPoliciesByType(data), error: '' };
+}
+
 export async function getOnboardingStatus(): Promise<OnboardingStatus> {
 	const supabase = getSupabaseClient();
 	const session = await currentSession();
@@ -31,16 +48,12 @@ export async function getOnboardingStatus(): Promise<OnboardingStatus> {
 		return emptyStatus();
 	}
 
-	const { data: policyData, error: policyError } = await supabase
-		.from('policy_versions')
-		.select('id,policy_type,version,title,content,content_url,summary,effective_at')
-		.eq('is_active', true)
-		.order('effective_at', { ascending: false });
-	if (policyError) {
-		return errorStatus('온보딩 정보를 불러오지 못했습니다. 잠시 후 다시 시도하세요.');
+	const policyResult = await getActivePolicyVersions();
+	if (policyResult.error) {
+		return errorStatus(policyResult.error);
 	}
 
-	const policies = latestPoliciesByType(policyData);
+	const policies = policyResult.policies;
 	if (policies.length === 0) {
 		return {
 			required: false,

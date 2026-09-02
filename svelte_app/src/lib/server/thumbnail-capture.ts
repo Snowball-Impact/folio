@@ -8,6 +8,21 @@ const CAPTURE_TIMEOUT_MS = 18_000;
 const DEFAULT_CAPTURE_SETTLE_SECONDS = 10;
 const CLOUDFLARE_SCREENSHOT_ENDPOINT = 'https://api.cloudflare.com/client/v4/accounts/{accountId}/browser-rendering/screenshot';
 
+type ThumbnailCaptureErrorCode =
+	| 'CAPTURE_SOURCE_MISSING'
+	| 'CAPTURE_DISABLED'
+	| 'CAPTURE_PROVIDER_UNSUPPORTED'
+	| 'CAPTURE_CLOUDFLARE_CONFIG_MISSING'
+	| 'CAPTURE_CLOUDFLARE_LOCAL_URL'
+	| 'CAPTURE_CLOUDFLARE_FAILED'
+	| 'CAPTURE_CLOUDFLARE_REQUEST_FAILED'
+	| 'CAPTURE_CLOUDFLARE_EMPTY'
+	| 'CAPTURE_SUPABASE_CONFIG_MISSING'
+	| 'CAPTURE_UPLOAD_FAILED'
+	| 'CAPTURE_PROJECT_UPDATE_FAILED'
+	| 'CAPTURE_PLAYWRIGHT_MISSING'
+	| 'CAPTURE_RESPONSE_INVALID';
+
 type PlaywrightModule = {
 	chromium: {
 		launch: (options: Record<string, unknown>) => Promise<{
@@ -26,7 +41,8 @@ type PlaywrightModule = {
 export class ThumbnailCaptureError extends Error {
 	constructor(
 		message: string,
-		readonly status = 500
+		readonly status = 500,
+		readonly code: ThumbnailCaptureErrorCode = 'CAPTURE_CLOUDFLARE_FAILED'
 	) {
 		super(message);
 		this.name = 'ThumbnailCaptureError';
@@ -36,20 +52,27 @@ export class ThumbnailCaptureError extends Error {
 export async function captureProjectThumbnail(projectId: string, sourceUrl: string) {
 	const normalizedUrl = normalizeCaptureUrl(sourceUrl);
 	if (!normalizedUrl) {
-		throw new ThumbnailCaptureError('캡처할 URL을 찾지 못했습니다.', 400);
+		throw new ThumbnailCaptureError('캡처할 URL을 찾지 못했습니다.', 400, 'CAPTURE_SOURCE_MISSING');
 	}
 
 	if (!isThumbnailCaptureEnabled()) {
-		throw new ThumbnailCaptureError('자동 썸네일 캡처가 비활성화되어 있습니다.', 503);
+		throw new ThumbnailCaptureError('자동 썸네일 캡처가 비활성화되어 있습니다.', 503, 'CAPTURE_DISABLED');
 	}
 
 	if (thumbnailCaptureProvider() === 'cloudflare') {
+		if (isLoopbackUrl(normalizedUrl)) {
+			throw new ThumbnailCaptureError(
+				'Cloudflare 자동 캡처는 로컬 프리뷰 주소를 직접 캡처할 수 없습니다. 공개 배포 URL에서 캡처하거나 로컬 Playwright 캡처 설정을 사용하세요.',
+				400,
+				'CAPTURE_CLOUDFLARE_LOCAL_URL'
+			);
+		}
 		const pngBytes = await captureWithCloudflareBrowserRun(normalizedUrl);
 		return uploadCapturedThumbnail(projectId, pngBytes);
 	}
 
 	if (thumbnailCaptureProvider() !== 'local') {
-		throw new ThumbnailCaptureError('지원하지 않는 썸네일 캡처 방식입니다.', 503);
+		throw new ThumbnailCaptureError('지원하지 않는 썸네일 캡처 방식입니다.', 503, 'CAPTURE_PROVIDER_UNSUPPORTED');
 	}
 
 	const pngBytes = await captureWithLocalPlaywright(normalizedUrl);
@@ -85,10 +108,10 @@ async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
 	const accountId = env.CLOUDFLARE_ACCOUNT_ID?.trim();
 	const apiToken = env.CLOUDFLARE_BROWSER_RENDERING_API_TOKEN?.trim();
 	if (!accountId || !apiToken) {
-		throw new ThumbnailCaptureError('Cloudflare Browser Run 환경 변수가 설정되지 않았습니다.', 503);
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 환경 변수가 설정되지 않았습니다.', 503, 'CAPTURE_CLOUDFLARE_CONFIG_MISSING');
 	}
 
-	const response = await fetch(cloudflareScreenshotUrl(accountId), {
+	const response = await cloudflareFetch(cloudflareScreenshotUrl(accountId), {
 		method: 'POST',
 		headers: {
 			Authorization: `Bearer ${apiToken}`,
@@ -111,7 +134,11 @@ async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
 	});
 
 	if (!response.ok) {
-		throw new ThumbnailCaptureError(await cloudflareErrorMessage(response), response.status >= 500 ? 502 : response.status);
+		throw new ThumbnailCaptureError(
+			await cloudflareErrorMessage(response),
+			response.status >= 500 ? 502 : response.status,
+			'CAPTURE_CLOUDFLARE_FAILED'
+		);
 	}
 
 	const contentType = response.headers.get('content-type') ?? '';
@@ -121,7 +148,7 @@ async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
 
 	const bytes = new Uint8Array(await response.arrayBuffer());
 	if (bytes.length === 0) {
-		throw new ThumbnailCaptureError('Cloudflare Browser Run이 빈 스크린샷을 반환했습니다.', 502);
+		throw new ThumbnailCaptureError('Cloudflare Browser Run이 빈 스크린샷을 반환했습니다.', 502, 'CAPTURE_CLOUDFLARE_EMPTY');
 	}
 	return bytes;
 }
@@ -129,7 +156,7 @@ async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
 async function uploadCapturedThumbnail(projectId: string, bytes: Uint8Array) {
 	const serviceClient = getSupabaseServerClient();
 	if (!serviceClient) {
-		throw new ThumbnailCaptureError('Supabase 서버 환경 변수가 설정되지 않았습니다.', 503);
+		throw new ThumbnailCaptureError('Supabase 서버 환경 변수가 설정되지 않았습니다.', 503, 'CAPTURE_SUPABASE_CONFIG_MISSING');
 	}
 
 	const bucketName = env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_BUCKET;
@@ -141,7 +168,7 @@ async function uploadCapturedThumbnail(projectId: string, bytes: Uint8Array) {
 		upsert: true
 	});
 	if (uploadError) {
-		throw new ThumbnailCaptureError('캡처 썸네일 업로드에 실패했습니다.', 502);
+		throw new ThumbnailCaptureError('캡처 썸네일 업로드에 실패했습니다.', 502, 'CAPTURE_UPLOAD_FAILED');
 	}
 
 	await removeOldThumbnails(bucket, projectId, path);
@@ -154,7 +181,7 @@ async function uploadCapturedThumbnail(projectId: string, bytes: Uint8Array) {
 		})
 		.eq('id', projectId);
 	if (updateError) {
-		throw new ThumbnailCaptureError('프로젝트에 캡처 썸네일을 연결하지 못했습니다.', 502);
+		throw new ThumbnailCaptureError('프로젝트에 캡처 썸네일을 연결하지 못했습니다.', 502, 'CAPTURE_PROJECT_UPDATE_FAILED');
 	}
 
 	return publicUrl;
@@ -167,7 +194,7 @@ async function loadPlaywright(): Promise<PlaywrightModule> {
 		) => Promise<PlaywrightModule>;
 		return await dynamicImport('playwright');
 	} catch {
-		throw new ThumbnailCaptureError('서버 런타임에 Playwright가 설치되어 있지 않습니다.', 503);
+		throw new ThumbnailCaptureError('서버 런타임에 Playwright가 설치되어 있지 않습니다.', 503, 'CAPTURE_PLAYWRIGHT_MISSING');
 	}
 }
 
@@ -211,6 +238,11 @@ function normalizeCaptureUrl(value: string) {
 	} catch {
 		return null;
 	}
+}
+
+function isLoopbackUrl(value: string) {
+	const hostname = new URL(value).hostname.toLowerCase();
+	return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname.endsWith('.localhost');
 }
 
 function fullscreenIframeCaptureUrl(url: string) {
@@ -270,6 +302,19 @@ function cloudflareScreenshotUrl(accountId: string) {
 	return CLOUDFLARE_SCREENSHOT_ENDPOINT.replace('{accountId}', encodeURIComponent(accountId));
 }
 
+async function cloudflareFetch(input: string, init: RequestInit) {
+	try {
+		return await fetch(input, init);
+	} catch (error) {
+		const message = error instanceof Error ? ` ${error.message.replace(/\s+/g, ' ').trim().slice(0, 240)}` : '';
+		throw new ThumbnailCaptureError(
+			`Cloudflare Browser Run 요청에 실패했습니다.${message}`,
+			502,
+			'CAPTURE_CLOUDFLARE_REQUEST_FAILED'
+		);
+	}
+}
+
 async function cloudflareErrorMessage(response: Response) {
 	const fallback = 'Cloudflare Browser Run 썸네일 캡처에 실패했습니다.';
 	const payload = await response.json().catch(() => null);
@@ -285,7 +330,7 @@ async function cloudflareErrorMessage(response: Response) {
 
 function pngBytesFromCloudflareJson(payload: unknown) {
 	if (!payload || typeof payload !== 'object') {
-		throw new ThumbnailCaptureError('Cloudflare Browser Run 응답을 확인할 수 없습니다.', 502);
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 응답을 확인할 수 없습니다.', 502, 'CAPTURE_RESPONSE_INVALID');
 	}
 	const record = payload as { result?: unknown; screenshot?: unknown };
 	const screenshot = typeof record.screenshot === 'string'
@@ -294,7 +339,7 @@ function pngBytesFromCloudflareJson(payload: unknown) {
 			? (record.result as { screenshot?: unknown }).screenshot
 			: null;
 	if (typeof screenshot !== 'string' || !screenshot) {
-		throw new ThumbnailCaptureError('Cloudflare Browser Run 스크린샷 응답이 비어 있습니다.', 502);
+		throw new ThumbnailCaptureError('Cloudflare Browser Run 스크린샷 응답이 비어 있습니다.', 502, 'CAPTURE_CLOUDFLARE_EMPTY');
 	}
 	return Uint8Array.from(Buffer.from(screenshot, 'base64'));
 }

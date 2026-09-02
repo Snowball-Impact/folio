@@ -4,7 +4,8 @@ process.on('unhandledRejection', handleFatalError);
 process.on('uncaughtException', handleFatalError);
 
 
-loadDotEnv();
+loadDotEnv('../.env');
+loadDotEnv('.env');
 
 const required = process.env.SMOKE_SUPABASE_REQUIRED === 'true';
 const supabaseUrl = firstEnv('PUBLIC_SUPABASE_URL', 'SUPABASE_URL');
@@ -183,11 +184,11 @@ async function withSupabaseTimeout(builder, label) {
 	}
 }
 
-function loadDotEnv() {
-	if (!existsSync('.env')) {
+function loadDotEnv(path) {
+	if (!existsSync(path)) {
 		return;
 	}
-	const lines = readFileSync('.env', 'utf8').split(/\r?\n/);
+	const lines = readFileSync(path, 'utf8').split(/\r?\n/);
 	for (const line of lines) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith('#')) {

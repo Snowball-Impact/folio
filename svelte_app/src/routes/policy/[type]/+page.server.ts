@@ -1,4 +1,3 @@
-import { env } from '$env/dynamic/public';
 import { redirect } from '@sveltejs/kit';
 import { createClient } from '@supabase/supabase-js';
 import type { PageServerLoad } from './$types';
@@ -29,11 +28,11 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		throw redirect(301, `/policy/${policyType}`);
 	}
 
-	if (!env.PUBLIC_SUPABASE_URL || !env.PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
+	if (!import.meta.env.PUBLIC_SUPABASE_URL || !import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
 		return emptyPolicy(policyType, 'Supabase 공개 환경 변수가 없어 정책 본문을 불러오지 못했습니다.');
 	}
 
-	const supabase = createClient(env.PUBLIC_SUPABASE_URL, env.PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
+	const supabase = createClient(import.meta.env.PUBLIC_SUPABASE_URL, import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
 		auth: {
 			autoRefreshToken: false,
 			persistSession: false

@@ -1,7 +1,13 @@
 import { getSupabaseClient } from '$lib/supabase';
 import { currentSession } from '$lib/auth';
 import { buildProjectPayload, normalizePowerBIEmbedUrl, validateProjectInput } from '$lib/projectInput';
-import { normalizeHomeTag, normalizePopularHomeTags, popularTagsFromTagLists, projectTagsInclude } from '$lib/projectTags';
+import {
+	normalizeHomeTag,
+	normalizePopularHomeTags,
+	popularTagsFromTagLists,
+	popularTagStatsFromTagLists,
+	projectTagsInclude
+} from '$lib/projectTags';
 export { normalizePowerBIEmbedUrl } from '$lib/projectInput';
 import type {
 	HomeSnapshot,
@@ -63,6 +69,7 @@ export const REFERENCE_PLATFORMS = {
 const emptyHomeSnapshot: HomeSnapshot = {
 	total_project_count: 0,
 	popular_tags: [],
+	popular_tag_counts: [],
 	recent_projects: [],
 	viewed_projects: [],
 	liked_projects: []
@@ -102,7 +109,7 @@ export async function loadHomeSnapshot(
 	}
 
 	return {
-		snapshot: normalizeHomeSnapshot(data),
+		snapshot: await withHomeTagStats(normalizeHomeSnapshot(data), platformKey),
 		error: ''
 	};
 }
@@ -122,10 +129,6 @@ async function loadFilteredHomeSnapshot(platformKey: PlatformKey | null, search:
 		.eq('is_public', true)
 		.eq('status', 'published')
 		.order('created_at', { ascending: false });
-
-	if (selectedTag && !search) {
-		query = query.contains('tags', [selectedTag]);
-	}
 
 	const { data, error } = await query.limit(HOME_FILTER_FETCH_LIMIT);
 
@@ -154,6 +157,7 @@ async function loadFilteredHomeSnapshot(platformKey: PlatformKey | null, search:
 		snapshot: {
 			total_project_count: projects.length,
 			popular_tags: popularTagsFromProjects(projects),
+			popular_tag_counts: popularTagStatsFromProjects(projects),
 			recent_projects: filteredProjects.slice(0, HOME_RAIL_PROJECT_LIMIT),
 			viewed_projects: viewedProjects.slice(0, HOME_RAIL_PROJECT_LIMIT),
 			liked_projects: likedProjects.slice(0, HOME_RAIL_PROJECT_LIMIT)
@@ -467,9 +471,41 @@ function normalizeHomeSnapshot(value: unknown): HomeSnapshot {
 	return {
 		total_project_count: Number(payload.total_project_count ?? 0),
 		popular_tags: normalizeHomePopularTags(asStringArray(payload.popular_tags)),
+		popular_tag_counts: [],
 		recent_projects: asProjectArray(payload.recent_projects),
 		viewed_projects: asProjectArray(payload.viewed_projects),
 		liked_projects: asProjectArray(payload.liked_projects)
+	};
+}
+
+async function withHomeTagStats(snapshot: HomeSnapshot, platformKey: PlatformKey | null) {
+	const supabase = getSupabaseClient();
+	if (!supabase) {
+		return snapshot;
+	}
+
+	const { data, error } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('is_public', true)
+		.eq('status', 'published')
+		.order('created_at', { ascending: false })
+		.limit(HOME_FILTER_FETCH_LIMIT);
+	if (error) {
+		return {
+			...snapshot,
+			popular_tag_counts: snapshot.popular_tags.map((label) => ({ label, count: 0 }))
+		};
+	}
+
+	const projects = (Array.isArray(data) ? data : [])
+		.map(normalizeProject)
+		.filter((project) => !platformKey || referencePlatformForProject(project) === platformKey);
+	const popularTagCounts = popularTagStatsFromProjects(projects);
+	return {
+		...snapshot,
+		popular_tags: popularTagCounts.map((tag) => tag.label),
+		popular_tag_counts: popularTagCounts
 	};
 }
 
@@ -586,6 +622,10 @@ function projectMatchesSearch(project: ProjectCard, search: string) {
 
 function popularTagsFromProjects(projects: ProjectCard[], limit = HOME_TAG_LIMIT) {
 	return popularTagsFromTagLists(projects.map((project) => project.tags), limit);
+}
+
+function popularTagStatsFromProjects(projects: ProjectCard[], limit = HOME_TAG_LIMIT) {
+	return popularTagStatsFromTagLists(projects.map((project) => project.tags), limit);
 }
 
 function normalizeHomePopularTags(tags: string[], limit = HOME_TAG_LIMIT) {

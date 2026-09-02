@@ -38,6 +38,7 @@
 	let skipNextDraftSave = false;
 	let operationProgress = $state(0);
 	let operationSteps = $state<OperationStep[]>([]);
+	let pendingProjectRedirect = $state('');
 
 	const previewProject = $derived<ProjectCardType>({
 		id: 'submit-preview',
@@ -125,6 +126,7 @@
 			return;
 		}
 		submitting = true;
+		pendingProjectRedirect = '';
 		const result = await runProjectSaveWorkflow({
 			mode: 'create',
 			input,
@@ -143,14 +145,14 @@
 			submitting = false;
 			error = result.message;
 			if (result.projectSaved && result.projectId) {
-				await goto(`/projects/${result.projectId}`);
+				pendingProjectRedirect = `/projects/${result.projectId}`;
 			}
 			return;
 		}
 		submitting = false;
 		message = result.message;
+		pendingProjectRedirect = `/projects/${result.projectId}`;
 		clearDraft({ keepMessage: true });
-		await goto(`/projects/${result.projectId}`);
 	}
 
 	function startOperation(steps: OperationStep[]) {
@@ -180,6 +182,21 @@
 			status: activeIndex < 0 ? step.status : index < activeIndex ? 'done' : step.id === id ? 'active' : 'pending'
 		}));
 	}
+
+	function clearOperation() {
+		operationProgress = 0;
+		operationSteps = [];
+	}
+
+	async function dismissOperationProgress() {
+		const redirectPath = pendingProjectRedirect;
+		clearOperation();
+		pendingProjectRedirect = '';
+		if (redirectPath) {
+			await goto(redirectPath);
+		}
+	}
+
 	function selectThumbnail(event: Event) {
 		const file = (event.currentTarget as HTMLInputElement).files?.[0] ?? null;
 		if (thumbnailPreviewUrl) {
@@ -303,8 +320,6 @@
 		<div id="project-form-error" class="auth-message error" role="alert" aria-live="assertive">{error}</div>
 	{/if}
 
-	<OperationProgress progress={operationProgress} steps={operationSteps} />
-
 	<div class="project-form-intro">
 		<strong>프로젝트 정보를 작성해 주세요.</strong>
 		<span>작성 내용은 이 브라우저에 자동 임시 저장됩니다.</span>
@@ -320,6 +335,8 @@
 		</header>
 		<ProjectBodyEditor value={bodyHtml} onChange={updateProjectBody} onImageFile={selectBodyImage} />
 	</section>
+
+	<OperationProgress progress={operationProgress} steps={operationSteps} onDismiss={dismissOperationProgress} />
 
 	<div class="project-form-actions">
 		<button class="secondary-action" type="button" onclick={() => clearDraft()}>초안 지우기</button>

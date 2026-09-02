@@ -22,8 +22,16 @@ export async function GET({ params }) {
 		return json(config);
 	} catch (error) {
 		if (error instanceof PowerBIServiceError) {
-			return json({ error: error.message }, { status: error.status });
+			return json(
+				{
+					error: error.message,
+					error_code: error.code,
+					upstream_status: error.upstreamStatus,
+					upstream_code: error.upstreamCode
+				},
+				{ status: error.status }
+			);
 		}
-		return json({ error: 'Power BI Embed Token 발급 중 오류가 발생했습니다.' }, { status: 500 });
+		return json({ error: 'Power BI Embed Token 발급 중 오류가 발생했습니다.', error_code: 'PBI_UNKNOWN' }, { status: 500 });
 	}
 }

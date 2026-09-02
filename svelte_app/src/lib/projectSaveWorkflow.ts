@@ -1,6 +1,6 @@
 import type { OperationStep } from '$lib/components/OperationProgress.svelte';
 import { publishProjectPbix, unlinkProjectPbix } from '$lib/powerbi-publish';
-import { createProject, updateProject, type ProjectSubmitInput } from '$lib/projects';
+import { createProject, deleteProject, updateProject, type ProjectSubmitInput } from '$lib/projects';
 import { captureProjectThumbnail, deleteProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
 import {
 	replacePendingBodyImages,
@@ -41,6 +41,7 @@ export async function runProjectSaveWorkflow(
 	const { mode, input, projectId, bodyImageFiles, thumbnailFile, pbixFile } = options;
 	options.startOperation(buildProjectOperationSteps(options));
 	options.setOperationStep('save', 18, '프로젝트 정보를 저장하는 중입니다.');
+	await waitForProgressPaint();
 
 	const projectUpdateInput = projectInputForPbixReplacement(input, mode, Boolean(pbixFile));
 	const result = await saveProject(mode, projectId, projectUpdateInput);
@@ -54,14 +55,14 @@ export async function runProjectSaveWorkflow(
 		options.setOperationStep('body-image-upload', progress, '본문 이미지를 업로드하는 중입니다.');
 		const bodyImageResult = await uploadProjectBodyImages(savedProjectId, bodyImageFiles);
 		if (!bodyImageResult.ok || bodyImageResult.urls.length !== bodyImageFiles.length) {
-			return fail(options, bodyImageResult.message, savedProjectId);
+			return failAfterSavedProject(options, bodyImageResult.message, savedProjectId);
 		}
 		options.setBodyHtml(replacePendingBodyImages(options.bodyHtml, bodyImageFiles, bodyImageResult.urls));
 		options.syncProjectBodyInput();
 		const bodyUpdateInput = projectInputForPbixReplacement(input, mode, Boolean(pbixFile));
 		const bodyUpdateResult = await updateProject(savedProjectId, bodyUpdateInput);
 		if (!bodyUpdateResult.ok) {
-			return fail(options, bodyUpdateResult.message, savedProjectId);
+			return failAfterSavedProject(options, bodyUpdateResult.message, savedProjectId);
 		}
 		options.releaseBodyImageFiles();
 	}
@@ -87,7 +88,7 @@ export async function runProjectSaveWorkflow(
 		options.setOperationStep('thumbnail-upload', progress, '썸네일 이미지를 업로드하는 중입니다.');
 		const uploadResult = await uploadProjectThumbnail(savedProjectId, thumbnailFile);
 		if (!uploadResult.ok) {
-			return fail(options, uploadResult.message, savedProjectId);
+			return failAfterSavedProject(options, uploadResult.message, savedProjectId);
 		}
 	}
 
@@ -99,7 +100,7 @@ export async function runProjectSaveWorkflow(
 		options.setOperationStep('pbix-publish', progress, detail);
 		const publishResult = await publishProjectPbix(savedProjectId, pbixFile);
 		if (!publishResult.ok) {
-			return fail(options, publishResult.message, savedProjectId);
+			return failAfterSavedProject(options, publishResult.message, savedProjectId);
 		}
 	}
 
@@ -108,13 +109,22 @@ export async function runProjectSaveWorkflow(
 		options.setOperationStep('thumbnail-capture', progress, '프로젝트 대표 썸네일을 자동 캡처 중입니다.');
 		const captureResult = await captureProjectThumbnail(savedProjectId);
 		if (!captureResult.ok) {
-			return fail(options, captureResult.message, savedProjectId);
+			return failAfterSavedProject(options, captureResult.message, savedProjectId);
 		}
 	}
 
 	const finishDetail = mode === 'create' ? '프로젝트 등록 요청이 완료되었습니다.' : '프로젝트 수정 요청이 완료되었습니다.';
 	options.setOperationStep('finish', 100, finishDetail);
 	return { ok: true, projectId: savedProjectId, message: result.message };
+}
+
+function waitForProgressPaint() {
+	if (typeof requestAnimationFrame !== 'function') {
+		return Promise.resolve();
+	}
+	return new Promise<void>((resolve) => {
+		requestAnimationFrame(() => resolve());
+	});
 }
 
 function buildProjectOperationSteps(options: ProjectSaveWorkflowOptions): OperationStep[] {
@@ -163,11 +173,33 @@ function fail(
 	message: string,
 	projectId: string | null
 ): ProjectSaveWorkflowResult {
-	options.failOperation();
+	options.failOperation(message);
 	return {
 		ok: false,
 		projectId,
-		message: options.mode === 'create' && projectId ? `${message} 프로젝트는 등록되었습니다.` : message,
+		message,
 		projectSaved: Boolean(projectId)
 	};
+}
+
+async function rollbackCreatedProject(projectId: string) {
+	const result = await deleteProject(projectId);
+	return { ok: result.ok };
+}
+
+async function failAfterSavedProject(
+	options: ProjectSaveWorkflowOptions,
+	message: string,
+	projectId: string
+): Promise<ProjectSaveWorkflowResult> {
+	if (options.mode !== 'create') {
+		const partialProjectMessage = `${message} 프로젝트 정보는 저장되었지만 후속 작업이 완료되지 않았습니다. 다시 시도하거나 마이페이지에서 수정해 주세요.`;
+		return fail(options, partialProjectMessage, projectId);
+	}
+
+	const rollback = await rollbackCreatedProject(projectId);
+	const rollbackMessage = rollback.ok
+		? `${message} 프로젝트 등록을 취소했습니다.`
+		: `${message} 프로젝트 등록 취소도 완료하지 못했습니다. 마이페이지에서 삭제해 주세요.`;
+	return fail(options, rollbackMessage, rollback.ok ? null : projectId);
 }

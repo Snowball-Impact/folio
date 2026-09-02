@@ -1271,6 +1271,13 @@ summary:focus-visible {
 	padding-top: 42px;
 }
 
+.page-shell.thumbnail-capture-page {
+	width: 100%;
+	min-height: 100vh;
+	margin: 0;
+	padding: 0;
+}
+
 .auth-card {
 	width: min(460px, 100%);
 	padding: 28px;
@@ -1350,6 +1357,109 @@ summary:focus-visible {
 .auth-form button:disabled {
 	cursor: wait;
 	opacity: var(--control-disabled-opacity);
+}
+
+.signup-policy-panel {
+	display: grid;
+	gap: 12px;
+	margin-top: 2px;
+	padding: 16px;
+	border: 1px solid var(--folio-border);
+	border-radius: 8px;
+	background: #f8fbff;
+}
+
+.signup-policy-heading {
+	color: var(--folio-navy);
+	font-size: 14px;
+}
+
+.signup-policy-heading > div {
+	display: grid;
+	gap: 3px;
+}
+
+.signup-policy-heading strong {
+	font-weight: var(--font-weight-semibold);
+}
+
+.signup-policy-heading p,
+.signup-policy-panel > p {
+	margin: 0;
+	color: var(--folio-muted);
+	font-size: 13px;
+	font-weight: var(--font-weight-regular);
+	line-height: 1.55;
+}
+
+.signup-policy-heading p span {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 8px;
+	color: var(--folio-blue);
+	font-size: 12px;
+	font-weight: var(--font-weight-regular);
+	white-space: nowrap;
+}
+
+.signup-policy-panel .error-text {
+	color: #9c1d34;
+}
+
+.auth-form .signup-policy-check {
+	display: grid;
+	grid-template-columns: 18px minmax(0, 1fr) auto;
+	column-gap: 9px;
+	align-items: center;
+	min-height: 34px;
+	padding-top: 12px;
+	border-top: 1px solid rgba(188, 207, 236, 0.68);
+	color: var(--folio-navy);
+	font-size: 13px;
+	font-weight: var(--font-weight-regular);
+	line-height: 1.45;
+}
+
+.signup-policy-check > span {
+	display: flex;
+	min-width: 0;
+	gap: 8px;
+	align-items: baseline;
+	white-space: nowrap;
+}
+
+.signup-policy-check strong {
+	display: inline;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 13px;
+	font-weight: var(--font-weight-regular);
+}
+
+.signup-policy-check small {
+	display: inline;
+	flex: 0 0 auto;
+	margin-top: 0;
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: var(--font-weight-regular);
+	white-space: nowrap;
+}
+
+.signup-policy-check input {
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	accent-color: var(--folio-blue);
+}
+
+.signup-policy-check a {
+	align-self: center;
+	color: var(--folio-blue);
+	font-size: 12px;
+	font-weight: var(--font-weight-semibold);
+	white-space: nowrap;
 }
 
 .auth-message {
@@ -1616,20 +1726,41 @@ summary:focus-visible {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	gap: 7px;
 	min-height: 32px;
-	padding: 0 13px;
+	padding: 0 8px 0 13px;
 	border: 1px solid var(--folio-border);
 	border-radius: 999px;
 	background: #ffffff;
 	color: var(--folio-muted);
 	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
+	font-weight: var(--font-weight-regular);
+}
+
+.home-tag-list a small {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 22px;
+	height: 22px;
+	padding: 0 7px;
+	border-radius: 999px;
+	background: var(--folio-subtle);
+	color: var(--folio-muted);
+	font-size: 12px;
+	font-weight: var(--font-weight-regular);
 }
 
 .home-tag-list a:hover,
 .home-tag-list a.active {
 	border-color: var(--folio-blue);
 	background: var(--folio-blue);
+	color: #ffffff;
+}
+
+.home-tag-list a:hover small,
+.home-tag-list a.active small {
+	background: rgba(255, 255, 255, 0.18);
 	color: #ffffff;
 }
 
@@ -4390,14 +4521,26 @@ summary:focus-visible {
 	grid-template-columns: 220px minmax(0, 1fr);
 	gap: 14px;
 }
+.operation-progress-layer {
+	position: fixed;
+	z-index: 80;
+	inset: 0;
+	display: grid;
+	place-items: center;
+	padding: 24px;
+	background: rgba(11, 31, 63, 0.28);
+	backdrop-filter: blur(3px);
+}
+
 .operation-progress-panel {
 	display: grid;
 	gap: 12px;
-	padding: 16px;
+	width: min(520px, 100%);
+	padding: 20px;
 	border: 1px solid rgba(20, 89, 200, 0.2);
-	border-radius: 8px;
-	background: #f7fbff;
-	box-shadow: 0 12px 28px rgba(18, 45, 91, 0.06);
+	border-radius: 10px;
+	background: #ffffff;
+	box-shadow: 0 22px 54px rgba(11, 31, 63, 0.2);
 }
 
 .operation-progress-panel header {
@@ -4436,12 +4579,12 @@ summary:focus-visible {
 	margin: 0;
 	color: var(--folio-muted);
 	font-size: 13px;
-	font-weight: 700;
+	font-weight: var(--font-weight-regular);
 }
 
 .operation-progress-panel ol {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	grid-template-columns: 1fr;
 	gap: 8px;
 	margin: 0;
 	padding: 0;
@@ -4455,7 +4598,7 @@ summary:focus-visible {
 	min-width: 0;
 	color: var(--folio-muted);
 	font-size: var(--font-size-sm);
-	font-weight: var(--font-weight-semibold);
+	font-weight: var(--font-weight-regular);
 }
 
 .operation-progress-panel li span {
@@ -4500,6 +4643,30 @@ summary:focus-visible {
 .operation-progress-panel li.error span {
 	border-color: #c81438;
 	background: #c81438;
+}
+
+.operation-progress-actions {
+	display: flex;
+	justify-content: flex-end;
+	padding-top: 4px;
+}
+
+.operation-progress-actions button {
+	min-height: 36px;
+	padding: 0 16px;
+	border: 1px solid var(--button-primary-border);
+	border-radius: var(--control-radius);
+	background: var(--button-primary-bg);
+	color: var(--button-primary-color);
+	cursor: pointer;
+	font-size: var(--font-size-sm);
+	font-weight: var(--font-weight-semibold);
+}
+
+.operation-progress-actions button:hover {
+	border-color: var(--button-primary-hover-border);
+	background: var(--button-primary-hover-bg);
+	color: var(--button-primary-color);
 }
 .project-form-actions {
 	display: flex;
@@ -4616,7 +4783,8 @@ summary:focus-visible {
 	position: relative;
 	overflow: hidden;
 	width: 100%;
-	min-height: 640px;
+	height: var(--powerbi-report-height, clamp(560px, 72vh, 760px));
+	min-height: 560px;
 	border: 1px solid var(--folio-border);
 	border-radius: 8px;
 	background: var(--folio-subtle);
@@ -4625,8 +4793,34 @@ summary:focus-visible {
 .powerbi-report {
 	width: 100%;
 	height: 100%;
-	min-height: 640px;
 	background: white;
+}
+
+.powerbi-report iframe {
+	display: block;
+	width: 100% !important;
+	height: 100% !important;
+	min-height: 560px;
+	border: 0;
+}
+
+.visual-panel.thumbnail-capture-output {
+	width: 100%;
+	height: 100vh;
+	min-height: 540px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	background: #ffffff;
+}
+
+.visual-panel.thumbnail-capture-output .dashboard-frame,
+.visual-panel.thumbnail-capture-output .powerbi-shell {
+	height: 100vh;
+	min-height: 540px;
+	border: 0;
+	border-radius: 0;
 }
 
 .powerbi-overlay,
@@ -4678,16 +4872,20 @@ summary:focus-visible {
 	color: var(--folio-muted);
 }
 
-.visual-panel > .actions .button-link {
+.visual-panel > .actions .button-link,
+.visual-panel > .actions .button-link.primary {
 	flex: 1 1 180px;
 	min-height: 34px;
+	border-color: var(--button-secondary-border);
 	border-radius: 8px;
-	color: var(--folio-navy);
+	background: var(--button-secondary-bg);
+	color: var(--button-secondary-color);
 	font-size: 13px;
 	font-weight: var(--font-weight-semibold);
 }
 
-.visual-panel > .actions .button-link:hover:not(:disabled) {
+.visual-panel > .actions .button-link:hover:not(:disabled):not([aria-disabled='true']),
+.visual-panel > .actions .button-link.primary:hover:not(:disabled):not([aria-disabled='true']) {
 	border-color: rgba(20, 89, 200, 0.35);
 	background: rgba(20, 89, 200, 0.05);
 	color: var(--folio-blue);

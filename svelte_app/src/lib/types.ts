@@ -76,6 +76,7 @@ export type ProjectCard = {
 export type HomeSnapshot = {
 	total_project_count: number;
 	popular_tags: string[];
+	popular_tag_counts: { label: string; count: number }[];
 	recent_projects: ProjectCard[];
 	viewed_projects: ProjectCard[];
 	liked_projects: ProjectCard[];

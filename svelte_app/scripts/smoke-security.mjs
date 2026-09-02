@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-loadDotEnv();
+loadDotEnv('../.env');
+loadDotEnv('.env');
 
 assertSecretNamesAreServerOnly();
 assertClientBundleDoesNotContainPrivateEnvValues();
@@ -85,11 +86,11 @@ function listFiles(root, predicate) {
 	return files;
 }
 
-function loadDotEnv() {
-	if (!existsSync('.env')) {
+function loadDotEnv(path) {
+	if (!existsSync(path)) {
 		return;
 	}
-	const lines = readFileSync('.env', 'utf8').split(/\r?\n/);
+	const lines = readFileSync(path, 'utf8').split(/\r?\n/);
 	for (const line of lines) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith('#')) {

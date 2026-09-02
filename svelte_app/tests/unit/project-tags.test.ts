@@ -5,6 +5,7 @@ import {
 	isExcludedHomeTag,
 	normalizeHomeTag,
 	normalizePopularHomeTags,
+	popularTagStatsFromTagLists,
 	popularTagsFromTagLists,
 	projectTagsInclude
 } from '../../src/lib/projectTags.ts';
@@ -36,6 +37,23 @@ test('builds popular tags with platform exclusions and normalized counts', () =>
 	);
 	assert.equal(comparableProjectTag('#Power BI'), 'powerbi');
 	assert.equal(isExcludedHomeTag('Power BI'), true);
+});
+
+test('builds popular tag counts for home chips', () => {
+	assert.deepEqual(
+		popularTagStatsFromTagLists(
+			[
+				['시각화', '데이터 분석'],
+				['시각화', '데이터분석'],
+				['Power BI', '시각화']
+			],
+			3
+		),
+		[
+			{ label: '시각화', count: 3 },
+			{ label: '데이터 분석', count: 2 }
+		]
+	);
 });
 
 test('normalizes database popular tags without changing ranked order', () => {

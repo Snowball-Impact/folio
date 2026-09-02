@@ -118,11 +118,11 @@ import type { ProjectSubmitInput } from '$lib/types';
 						</label>
 						<label>
 							<input type="radio" bind:group={input.thumbnail_mode} value="manual_url" />
-							<span>URL 입력</span>
+							<span>썸네일 CDN URL</span>
 						</label>
 						<label>
 							<input type="radio" bind:group={input.thumbnail_mode} value="capture" />
-							<span>화면 캡처</span>
+							<span>임베드 대시보드 화면 자동 캡처</span>
 						</label>
 					</div>
 				</fieldset>
@@ -144,7 +144,7 @@ import type { ProjectSubmitInput } from '$lib/types';
 
 				{#if input.thumbnail_mode === 'manual_url'}
 					<label>
-						<span>썸네일 URL</span>
+						<span>썸네일 CDN URL</span>
 						<input bind:value={input.thumbnail_url} placeholder="https://..." />
 					</label>
 				{/if}

@@ -6,10 +6,10 @@ SvelteKit 기반 FOLIO Cloudflare 전환 앱입니다. 현재 범위는 공개 �
 
 ```powershell
 npm install
-Copy-Item .env.example .env
+Copy-Item ..\.env.example ..\.env
 ```
 
-`.env`에는 공개 Supabase 값과, 서버 전용 기능을 켤 때만 private 값을 넣습니다.
+환경 변수는 저장소 루트 `.env`에서 관리합니다. 공개 Supabase 값과, 서버 전용 기능을 켤 때만 private 값을 넣습니다.
 
 ```text
 PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
@@ -51,6 +51,8 @@ Windows UIUX 검증은 Wrangler 경로를 프로젝트 내부로 고정하는 ma
 npm.cmd run dev:managed -- --Port 5174
 ```
 
+`dev:managed`와 smoke 스크립트는 루트 `.env`를 먼저 읽습니다. 예전 `svelte_app/.env`가 남아 있더라도 루트 값이 우선됩니다.
+
 일반 개발 포트 `5173`, managed UIUX 검증 포트 `5174`, Cloudflare preview 포트 `8788`은 서로 다른 실행 단계입니다.
 
 Playwright 기반 Svelte UIUX 검증 환경은 Desktop Browser 연동과 독립적으로 실행됩니다.
@@ -87,6 +89,8 @@ npm run preview:cloudflare
 npm run deploy:cloudflare
 ```
 
+`preview:cloudflare` runs a fresh build before starting Wrangler so local preview does not serve stale build output.
+
 Cloudflare Pages Git integration settings:
 
 ```text
@@ -114,12 +118,12 @@ For first Cloudflare staging, keep `PBIX_MAX_UPLOAD_MB=50` unless larger-file im
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.
 - Project detail supports authenticated like/unlike against the `likes` table and falls back to a login prompt for anonymous visitors.
 - Project detail reads public comments, renders root comments with replies, lets authenticated users create root comments/replies/delete their own comments, creates in-app comment notifications for project authors, requests best-effort SMTP email notifications through a server endpoint, and marks project comment notifications/read state when the author opens the detail page.
-- Automatic thumbnail capture uses Cloudflare Browser Run when `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`. Local Playwright remains available with `THUMBNAIL_CAPTURE_PROVIDER=local` for non-Cloudflare runtimes.
+- Automatic thumbnail capture uses Cloudflare Browser Run when `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`. Local Playwright remains available with `THUMBNAIL_CAPTURE_PROVIDER=local` for non-Cloudflare runtimes. In local Cloudflare preview, Browser Run can call the remote screenshot API, but that remote browser cannot open `localhost` or `127.0.0.1` project detail URLs; use a deployed preview URL or a local Playwright runtime when validating automatic captures of embedded Power BI pages.
 
 ## Deployment Runtime
 
 The spike now uses `@sveltejs/adapter-cloudflare` because the chosen deployment target is Cloudflare Workers/Pages. It is not a static-only deployment: project submission, PBIX publishing, thumbnail upload/capture, and SMTP notification endpoints still require server runtime access to private environment variables.
 
-Automatic thumbnail capture on Cloudflare requires Browser Run. Set `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN`; keep local Playwright/Chromium only for non-Cloudflare runtimes.
+Automatic thumbnail capture on Cloudflare requires Browser Run. Set `THUMBNAIL_CAPTURE_PROVIDER=cloudflare`, `CLOUDFLARE_ACCOUNT_ID`, and `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN`; keep local Playwright/Chromium only for non-Cloudflare runtimes. A local preview URL is not a public capture target for Cloudflare Browser Run.
 
 Use [../docs/svelte/CLOUDFLARE_DEPLOYMENT.md](../docs/svelte/CLOUDFLARE_DEPLOYMENT.md) for the Cloudflare deployment plan, [../docs/svelte/SVELTE_E2E_READINESS.md](../docs/svelte/SVELTE_E2E_READINESS.md) as the staging and production go/no-go checklist, then run [../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md](../docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md) for manual staging QA.

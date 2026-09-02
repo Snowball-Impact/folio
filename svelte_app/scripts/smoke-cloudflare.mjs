@@ -1,12 +1,16 @@
 import { spawn } from 'node:child_process';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+
+loadDotEnv('../.env');
+loadDotEnv('.env');
 
 const host = process.env.CLOUDFLARE_SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.CLOUDFLARE_SMOKE_PORT || 8788);
 const baseUrl = `http://${host}:${port}`;
 const compatibilityDate = process.env.CLOUDFLARE_COMPATIBILITY_DATE || '2025-12-01';
 const compatibilityFlag = process.env.CLOUDFLARE_COMPATIBILITY_FLAG || 'nodejs_compat';
+const envFile = resolve(process.cwd(), '..', '.env');
 const startupTimeoutMs = Number(process.env.SMOKE_STARTUP_TIMEOUT_MS || 30000);
 const requestTimeoutMs = Number(process.env.SMOKE_REQUEST_TIMEOUT_MS || 10000);
 const routeRetryCount = Number(process.env.SMOKE_ROUTE_RETRIES || 1);
@@ -65,7 +69,8 @@ function startWrangler() {
 		`--compatibility-date=${compatibilityDate}`,
 		`--compatibility-flag=${compatibilityFlag}`,
 		`--ip=${host}`,
-		`--port=${port}`
+		`--port=${port}`,
+		...(existsSync(envFile) ? [`--env-file=${envFile}`] : [])
 	];
 	const child = spawn(command, isWindows ? ['/c', 'wrangler', ...args] : args, {
 		env: sanitizedEnv(),
@@ -86,6 +91,8 @@ function startWrangler() {
 function stopServer(child) {
 	if (process.platform !== 'win32') {
 		child.kill();
+		child.stdout?.destroy();
+		child.stderr?.destroy();
 		return Promise.resolve();
 	}
 	return new Promise((resolve) => {
@@ -95,11 +102,15 @@ function stopServer(child) {
 			if (settled) return;
 			settled = true;
 			clearTimeout(timeout);
+			child.stdout?.destroy();
+			child.stderr?.destroy();
+			child.unref();
 			resolve();
 		};
 		const killer = spawn('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
 			stdio: ['ignore', 'ignore', 'ignore']
 		});
+		killer.unref();
 		timeout = setTimeout(() => {
 			try {
 				child.kill();
@@ -122,6 +133,7 @@ function sanitizedEnv() {
 	mkdirSync(miniflareRegistryPath, { recursive: true });
 	return {
 		...runtimeEnv,
+		CLOUDFLARE_INCLUDE_PROCESS_ENV: 'true',
 		XDG_CONFIG_HOME: xdgConfigHome,
 		MINIFLARE_REGISTRY_PATH: miniflareRegistryPath
 	};
@@ -222,4 +234,29 @@ function optionalProjectRoutes() {
 
 function sleep(milliseconds) {
 	return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function loadDotEnv(path) {
+	if (!existsSync(path)) {
+		return;
+	}
+	const lines = readFileSync(path, 'utf8').split(/\r?\n/);
+	for (const line of lines) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#')) {
+			continue;
+		}
+		const match = trimmed.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+		if (!match || process.env[match[1]] !== undefined) {
+			continue;
+		}
+		process.env[match[1]] = unquoteEnvValue(match[2].trim());
+	}
+}
+
+function unquoteEnvValue(value) {
+	if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+		return value.slice(1, -1);
+	}
+	return value;
 }

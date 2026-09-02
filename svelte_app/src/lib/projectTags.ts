@@ -15,6 +15,10 @@ export function projectTagsInclude(tags: string[], selectedTag: string) {
 }
 
 export function popularTagsFromTagLists(tagLists: string[][], limit: number) {
+	return popularTagStatsFromTagLists(tagLists, limit).map((entry) => entry.label);
+}
+
+export function popularTagStatsFromTagLists(tagLists: string[][], limit: number) {
 	const counts = new Map<string, { label: string; count: number }>();
 	for (const tags of tagLists) {
 		for (const tag of tags) {
@@ -32,8 +36,7 @@ export function popularTagsFromTagLists(tagLists: string[][], limit: number) {
 	}
 	return [...counts.values()]
 		.sort((first, second) => second.count - first.count || first.label.localeCompare(second.label, 'ko-KR'))
-		.slice(0, limit)
-		.map((entry) => entry.label);
+		.slice(0, limit);
 }
 
 export function normalizePopularHomeTags(tags: string[], limit: number) {

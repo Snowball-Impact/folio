@@ -5,7 +5,13 @@
 	let { data } = $props();
 	const snapshot = $derived(data.snapshot);
 	const filters = $derived(data.filters ?? { search: '', tag: '' });
-	const visiblePopularTags = $derived(snapshot.popular_tags.slice(0, 10));
+	const visiblePopularTags = $derived(
+		(snapshot.popular_tag_counts?.length
+			? snapshot.popular_tag_counts
+			: snapshot.popular_tags.map((label: string) => ({ label, count: 0 }))
+		).slice(0, 10)
+	);
+	const selectedTagCount = $derived(visiblePopularTags.find((tag) => tag.label === filters.tag)?.count ?? 0);
 	let displayedProjectCount = $state(0);
 
 	onMount(() => {
@@ -203,14 +209,17 @@
 			<a class:active={!filters.tag} href={filters.search ? `/?q=${encodeURIComponent(filters.search)}` : '/'}>전체</a>
 			{#each visiblePopularTags as tag}
 				<a
-					class:active={filters.tag === tag}
-					href={`/?${new URLSearchParams({ ...(filters.search ? { q: filters.search } : {}), tag }).toString()}`}
+					class:active={filters.tag === tag.label}
+					href={`/?${new URLSearchParams({ ...(filters.search ? { q: filters.search } : {}), tag: tag.label }).toString()}`}
 				>
-					{tag}
+					<span>{tag.label}</span>
+					<small>{tag.count.toLocaleString('ko-KR')}</small>
 				</a>
 			{/each}
 		</div>
-		<div class="home-popular-tag-label">인기 태그 TOP10</div>
+		<div class="home-popular-tag-label">
+			{filters.tag ? `${filters.tag} ${selectedTagCount.toLocaleString('ko-KR')}개` : '인기 태그 TOP10'}
+		</div>
 	</div>
 </section>
 

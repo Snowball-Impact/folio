@@ -883,7 +883,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 
 ### 완료: 썸네일 업로드와 PBIX 수정 UX (2026-08-15)
 
-- 프로젝트 등록/수정 폼의 썸네일 설정에 `이미지 업로드` 모드를 추가했다. JPG, PNG, WebP를 최대 5MB까지 받으며 서버에서 960x540 JPEG로 정규화해 `project-thumbnails` Storage bucket의 기존 프로젝트 썸네일 경로에 저장한다.
+- 프로젝트 등록/수정 폼의 썸네일 설정에 `이미지 업로드` 모드를 추가했다. JPG, PNG, WebP를 최대 5MB까지 받으며 Svelte 서버 엔드포인트가 `project-thumbnails` Storage bucket의 기존 프로젝트 썸네일 경로에 원본 이미지 형식으로 저장한다.
 - 수정 화면에서는 기존 썸네일을 삭제해 기본 커버로 되돌릴 수 있고, 새 이미지 파일을 선택하면 같은 Storage 경로를 upsert해 교체한다.
 - Power BI 프로젝트 수정 화면에서도 PBIX 파일 업로드를 허용한다. 새 PBIX를 업로드하면 기존 프로젝트 ID와 상세 URL은 유지하고 `powerbi_reports` 메타데이터를 새 Import 결과로 갱신한다.
 - 수정 화면에서 기존 Power BI 게시본 연결 삭제를 선택하면 FOLIO의 `powerbi_reports` row와 `projects.power_bi_url` 연결을 제거한다. Power BI Workspace의 Report/Semantic Model 물리 삭제는 30일 cleanup 정책과 별도로 남겨둔다.

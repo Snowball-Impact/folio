@@ -1,7 +1,8 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 
-loadDotEnv();
+loadDotEnv('../.env');
+loadDotEnv('.env');
 
 const host = process.env.SMOKE_HOST || '127.0.0.1';
 const port = Number(process.env.PORT || process.env.SMOKE_PORT || 4173);
@@ -90,11 +91,11 @@ function sleep(milliseconds) {
 	return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
-function loadDotEnv() {
-	if (!existsSync('.env')) {
+function loadDotEnv(path) {
+	if (!existsSync(path)) {
 		return;
 	}
-	const lines = readFileSync('.env', 'utf8').split(/\r?\n/);
+	const lines = readFileSync(path, 'utf8').split(/\r?\n/);
 	for (const line of lines) {
 		const trimmed = line.trim();
 		if (!trimmed || trimmed.startsWith('#')) {

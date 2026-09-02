@@ -85,6 +85,7 @@ export async function signUpWithEmail(input: {
 	passwordConfirm: string;
 	name: string;
 	organization: string;
+	consentedPolicyVersionIds?: string[];
 }): Promise<AuthResult> {
 	const supabase = getSupabaseClient();
 	if (!supabase) {
@@ -106,6 +107,7 @@ export async function signUpWithEmail(input: {
 	if (input.password !== input.passwordConfirm) {
 		return { ok: false, message: '비밀번호와 비밀번호 확인이 일치하지 않습니다.' };
 	}
+	const consentedPolicyVersionIds = [...new Set(input.consentedPolicyVersionIds ?? [])].filter(Boolean);
 
 	const { data, error } = await supabase.auth.signUp({
 		email,
@@ -115,7 +117,7 @@ export async function signUpWithEmail(input: {
 			data: {
 				name,
 				organization,
-				consented_policy_version_ids: []
+				consented_policy_version_ids: consentedPolicyVersionIds
 			}
 		}
 	});
@@ -125,6 +127,14 @@ export async function signUpWithEmail(input: {
 	}
 	if (data.user?.identities?.length === 0) {
 		return { ok: false, message: '이미 가입된 이메일입니다. 로그인 화면에서 로그인하세요.' };
+	}
+	if (data.session && consentedPolicyVersionIds.length > 0) {
+		await supabase.from('user_policy_consents').insert(
+			consentedPolicyVersionIds.map((policyId) => ({
+				user_id: data.session!.user.id,
+				policy_version_id: policyId
+			}))
+		);
 	}
 	if (data.session) {
 		return { ok: true, message: '회원가입이 완료되었습니다.' };
