@@ -7,7 +7,13 @@ import {
 	uploadProjectBodyImages,
 	type PendingProjectBodyImage
 } from '$lib/projectBodyImages';
+import { publicConfigSeconds } from '$lib/clientRuntimeConfig';
 import { projectInputForPbixReplacement } from '$lib/projectInput';
+
+const BODY_IMAGE_UPLOAD_ESTIMATE_SECONDS = publicConfigSeconds('PUBLIC_BODY_IMAGE_UPLOAD_TIMEOUT_SECONDS', 10);
+const THUMBNAIL_UPLOAD_ESTIMATE_SECONDS = publicConfigSeconds('PUBLIC_THUMBNAIL_UPLOAD_TIMEOUT_SECONDS', 10);
+const PBIX_PUBLISH_ESTIMATE_SECONDS = publicConfigSeconds('PUBLIC_PBIX_PUBLISH_TIMEOUT_SECONDS', 30);
+const THUMBNAIL_CAPTURE_ESTIMATE_SECONDS = publicConfigSeconds('PUBLIC_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS', 30);
 
 type ProjectMutationResult = {
 	ok: boolean;
@@ -131,7 +137,12 @@ function buildProjectOperationSteps(options: ProjectSaveWorkflowOptions): Operat
 	const { mode, input, bodyImageFiles, thumbnailFile, pbixFile } = options;
 	const steps: OperationStep[] = [{ id: 'save', label: '프로젝트 정보를 저장합니다.', status: 'pending' }];
 	if (bodyImageFiles.length > 0) {
-		steps.push({ id: 'body-image-upload', label: '본문 이미지를 업로드합니다.', status: 'pending' });
+		steps.push({
+			id: 'body-image-upload',
+			label: '본문 이미지를 업로드합니다.',
+			status: 'pending',
+			estimatedSeconds: BODY_IMAGE_UPLOAD_ESTIMATE_SECONDS
+		});
 	}
 	if (mode === 'edit' && input.delete_thumbnail && !thumbnailFile && input.thumbnail_mode !== 'capture') {
 		steps.push({ id: 'thumbnail-delete', label: '기존 썸네일을 삭제합니다.', status: 'pending' });
@@ -140,17 +151,28 @@ function buildProjectOperationSteps(options: ProjectSaveWorkflowOptions): Operat
 		steps.push({ id: 'pbix-unlink', label: '기존 Power BI 연결을 삭제합니다.', status: 'pending' });
 	}
 	if (thumbnailFile) {
-		steps.push({ id: 'thumbnail-upload', label: '썸네일 이미지를 업로드합니다.', status: 'pending' });
+		steps.push({
+			id: 'thumbnail-upload',
+			label: '썸네일 이미지를 업로드합니다.',
+			status: 'pending',
+			estimatedSeconds: THUMBNAIL_UPLOAD_ESTIMATE_SECONDS
+		});
 	}
 	if (pbixFile) {
 		steps.push({
 			id: 'pbix-publish',
 			label: mode === 'create' ? 'PBIX 파일을 Power BI Workspace에 게시합니다.' : '새 PBIX 파일을 Power BI Workspace에 게시합니다.',
-			status: 'pending'
+			status: 'pending',
+			estimatedSeconds: PBIX_PUBLISH_ESTIMATE_SECONDS
 		});
 	}
 	if (input.thumbnail_mode === 'capture') {
-		steps.push({ id: 'thumbnail-capture', label: '대표 썸네일을 자동 캡처합니다.', status: 'pending' });
+		steps.push({
+			id: 'thumbnail-capture',
+			label: '대표 썸네일을 자동 캡처합니다.',
+			status: 'pending',
+			estimatedSeconds: THUMBNAIL_CAPTURE_ESTIMATE_SECONDS
+		});
 	}
 	steps.push({
 		id: 'finish',

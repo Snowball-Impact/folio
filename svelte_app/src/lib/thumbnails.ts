@@ -1,8 +1,9 @@
 import { currentSession } from '$lib/auth';
+import { publicConfigMilliseconds } from '$lib/clientRuntimeConfig';
 
-const THUMBNAIL_UPLOAD_TIMEOUT_MS = 45_000;
-const THUMBNAIL_CAPTURE_TIMEOUT_MS = 90_000;
-const THUMBNAIL_DELETE_TIMEOUT_MS = 30_000;
+const THUMBNAIL_UPLOAD_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_THUMBNAIL_UPLOAD_TIMEOUT_SECONDS', 10);
+const THUMBNAIL_CAPTURE_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS', 30);
+const THUMBNAIL_DELETE_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_THUMBNAIL_DELETE_TIMEOUT_SECONDS', 30);
 
 export async function uploadProjectThumbnail(projectId: string, file: File) {
 	const session = await currentSession();

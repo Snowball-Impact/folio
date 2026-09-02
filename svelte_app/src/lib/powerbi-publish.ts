@@ -1,4 +1,7 @@
 import { currentSession } from '$lib/auth';
+import { publicConfigMilliseconds } from '$lib/clientRuntimeConfig';
+
+const PBIX_PUBLISH_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_PBIX_PUBLISH_TIMEOUT_SECONDS', 30);
 
 export async function publishProjectPbix(projectId: string, file: File) {
 	const session = await currentSession();
@@ -8,13 +11,17 @@ export async function publishProjectPbix(projectId: string, file: File) {
 
 	const formData = new FormData();
 	formData.set('pbix', file);
-	const response = await fetch(`/api/projects/${projectId}/powerbi-publish`, {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${session.access_token}`
+	const response = await fetchWithTimeout(
+		`/api/projects/${projectId}/powerbi-publish`,
+		{
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${session.access_token}`
+			},
+			body: formData
 		},
-		body: formData
-	});
+		PBIX_PUBLISH_TIMEOUT_MS
+	).catch((error) => errorResponse(error, 'Power BI 게시 요청 시간이 초과되었습니다. 잠시 후 다시 시도하세요.'));
 	const payload = (await response.json().catch(() => ({}))) as {
 		ok?: boolean;
 		message?: string;
@@ -60,6 +67,7 @@ export async function unlinkProjectPbix(projectId: string) {
 	}
 	return { ok: true, message: payload.message || '기존 Power BI 연결을 삭제했습니다.' };
 }
+
 export async function projectPbixExists(projectId: string) {
 	const session = await currentSession();
 	if (!session) {
@@ -77,6 +85,26 @@ export async function projectPbixExists(projectId: string) {
 	}
 	const payload = (await response.json().catch(() => ({}))) as { exists?: boolean };
 	return Boolean(payload.exists);
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), timeoutMs);
+	try {
+		return await fetch(url, { ...init, signal: controller.signal });
+	} finally {
+		clearTimeout(timeout);
+	}
+}
+
+function errorResponse(error: unknown, fallbackMessage: string) {
+	const message = error instanceof Error && error.name !== 'AbortError' ? error.message : fallbackMessage;
+	return new Response(JSON.stringify({ error: message, error_code: 'PBI_CLIENT_TIMEOUT' }), {
+		status: 408,
+		headers: {
+			'Content-Type': 'application/json'
+		}
+	});
 }
 
 function withErrorCode(message: string, payload: { error_code?: string; upstream_status?: number | null; upstream_code?: string | null }) {

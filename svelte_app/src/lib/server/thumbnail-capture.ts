@@ -4,7 +4,7 @@ import { getSupabaseServerClient } from '$lib/server/supabase';
 const DEFAULT_BUCKET = 'project-thumbnails';
 const THUMBNAIL_WIDTH = 960;
 const THUMBNAIL_HEIGHT = 540;
-const CAPTURE_TIMEOUT_MS = 18_000;
+const DEFAULT_CAPTURE_TIMEOUT_SECONDS = 30;
 const DEFAULT_CAPTURE_SETTLE_SECONDS = 10;
 const CLOUDFLARE_SCREENSHOT_ENDPOINT = 'https://api.cloudflare.com/client/v4/accounts/{accountId}/browser-rendering/screenshot';
 
@@ -87,10 +87,10 @@ async function captureWithLocalPlaywright(normalizedUrl: string) {
 			viewport: { width: THUMBNAIL_WIDTH, height: THUMBNAIL_HEIGHT },
 			deviceScaleFactor: 1
 		});
-		page.setDefaultTimeout(CAPTURE_TIMEOUT_MS);
+		page.setDefaultTimeout(captureTimeoutMs());
 		await page.goto(fullscreenIframeCaptureUrl(normalizedUrl), {
 			waitUntil: 'domcontentloaded',
-			timeout: CAPTURE_TIMEOUT_MS
+			timeout: captureTimeoutMs()
 		});
 		await page.waitForLoadState('networkidle', { timeout: 7_000 }).catch(() => null);
 		await page.waitForTimeout(captureSettleMs());
@@ -119,8 +119,7 @@ async function captureWithCloudflareBrowserRun(normalizedUrl: string) {
 		},
 		body: JSON.stringify({
 			html: fullscreenIframeCaptureHtml(normalizedUrl),
-			cacheTTL: 0,
-			actionTimeout: CAPTURE_TIMEOUT_MS,
+			actionTimeout: captureTimeoutMs(),
 			waitForTimeout: Math.min(captureSettleMs(), 60_000),
 			viewport: {
 				width: THUMBNAIL_WIDTH,
@@ -211,6 +210,10 @@ function captureSettleMs() {
 	return Math.max(Number(env.POWERBI_CAPTURE_READY_WAIT_SECONDS ?? DEFAULT_CAPTURE_SETTLE_SECONDS), 0) * 1000;
 }
 
+function captureTimeoutMs() {
+	return Math.max(Number(env.THUMBNAIL_CAPTURE_ACTION_TIMEOUT_SECONDS ?? DEFAULT_CAPTURE_TIMEOUT_SECONDS), 1) * 1000;
+}
+
 function isThumbnailCaptureEnabled() {
 	return env.THUMBNAIL_CAPTURE_ENABLED !== 'false';
 }
@@ -299,7 +302,9 @@ function cacheBustedUrl(url: string) {
 }
 
 function cloudflareScreenshotUrl(accountId: string) {
-	return CLOUDFLARE_SCREENSHOT_ENDPOINT.replace('{accountId}', encodeURIComponent(accountId));
+	const url = new URL(CLOUDFLARE_SCREENSHOT_ENDPOINT.replace('{accountId}', encodeURIComponent(accountId)));
+	url.searchParams.set('cacheTTL', '0');
+	return url.toString();
 }
 
 async function cloudflareFetch(input: string, init: RequestInit) {

@@ -863,7 +863,7 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 
 - `supabase/schema.sql`에 `projects.project_type`, `status`, `embed_status`, `published_at`, `deleted_at`과 `powerbi_reports` 테이블을 추가했다. 공개 프로젝트 RLS는 `is_public=true`와 `status='published'`를 함께 만족해야 한다.
 - 프로젝트 삭제는 물리 삭제에서 soft delete로 바꿨다. 앱은 `status='deleted'`, `deleted_at`, `is_public=false`로 숨기며, 작성자 목록과 상세에서도 deleted 프로젝트를 제외한다.
-- Power BI 설정은 `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`를 사용한다. PBIX 기본 상한은 `PBIX_MAX_UPLOAD_MB=100`, Import polling 기본값은 `POWERBI_IMPORT_POLL_SECONDS=100`, PBIX 게시 후 캡처 대기 기본값은 `POWERBI_CAPTURE_READY_WAIT_SECONDS=10`이다.
+- Power BI 설정은 `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`를 사용한다. PBIX 기본 상한은 `PBIX_MAX_UPLOAD_MB=100`, Import polling 기본값은 `POWERBI_IMPORT_POLL_SECONDS=30`, PBIX 게시 후 캡처 대기 기본값은 `POWERBI_CAPTURE_READY_WAIT_SECONDS=10`이다.
 - `services/powerbi.py`가 Entra client credentials token, PBIX Import API, Import polling, Report metadata 조회, Embed Token 발급, `powerbi_reports` upsert를 담당한다. Client Secret과 Embed Token은 DB에 저장하지 않는다.
 - 등록 폼에서 플랫폼을 Power BI로 선택하면 PBIX 파일 업로드 필드가 보인다. PBIX 확장자와 크기 검증, Power BI 설정 누락은 프로젝트 생성 전에 중단한다.
 - 신규 PBIX 등록은 프로젝트를 `processing`으로 먼저 생성한 뒤 Import를 실행한다. Import 성공 시 `published`와 `embed_status='supported'`로 전환하고, 실패/timeout은 `failed`로 표시한다.

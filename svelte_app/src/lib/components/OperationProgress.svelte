@@ -1,10 +1,13 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+
 	export type OperationStepStatus = 'pending' | 'active' | 'done' | 'error';
 	export type OperationStep = {
 		id: string;
 		label: string;
 		status: OperationStepStatus;
 		detail?: string;
+		estimatedSeconds?: number;
 	};
 
 	let {
@@ -23,6 +26,47 @@
 	const boundedProgress = $derived(Math.max(0, Math.min(100, Math.round(progress))));
 	const activeStep = $derived(steps.find((step) => step.status === 'error') ?? steps.find((step) => step.status === 'active') ?? steps.at(-1));
 	const canDismiss = $derived(Boolean(onDismiss) && (boundedProgress >= 100 || steps.some((step) => step.status === 'error')));
+	let now = $state(Date.now());
+	let activeStepKey = $state('');
+	let activeStepStartedAt = $state(Date.now());
+	const activeEstimateSeconds = $derived(
+		activeStep?.status === 'active' && activeStep.estimatedSeconds ? Math.max(activeStep.estimatedSeconds, 1) : 0
+	);
+	const elapsedSeconds = $derived(Math.max(0, Math.floor((now - activeStepStartedAt) / 1000)));
+	const remainingSeconds = $derived(Math.max(0, activeEstimateSeconds - elapsedSeconds));
+	const timeEstimateText = $derived(
+		activeEstimateSeconds
+			? remainingSeconds > 0
+				? `예상 남은 시간 약 ${formatDuration(remainingSeconds)} · 경과 ${formatDuration(elapsedSeconds)}`
+				: `예상 대기 시간을 넘겼지만 계속 처리 중입니다. 경과 ${formatDuration(elapsedSeconds)}`
+			: ''
+	);
+
+	$effect(() => {
+		const nextKey = activeStep ? `${activeStep.id}:${activeStep.status}` : '';
+		if (nextKey !== activeStepKey) {
+			activeStepKey = nextKey;
+			activeStepStartedAt = Date.now();
+			now = activeStepStartedAt;
+		}
+	});
+
+	onMount(() => {
+		const timer = setInterval(() => {
+			now = Date.now();
+		}, 1000);
+		return () => clearInterval(timer);
+	});
+
+	function formatDuration(totalSeconds: number) {
+		const seconds = Math.max(0, Math.round(totalSeconds));
+		if (seconds < 60) {
+			return `${seconds}초`;
+		}
+		const minutes = Math.floor(seconds / 60);
+		const remainder = seconds % 60;
+		return remainder ? `${minutes}분 ${remainder}초` : `${minutes}분`;
+	}
 </script>
 
 {#if steps.length > 0}
@@ -37,6 +81,9 @@
 			</div>
 			{#if activeStep}
 				<p>{activeStep.detail ?? activeStep.label}</p>
+			{/if}
+			{#if timeEstimateText}
+				<div class="operation-progress-estimate">{timeEstimateText}</div>
 			{/if}
 			<ol>
 				{#each steps as step}

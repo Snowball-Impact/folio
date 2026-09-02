@@ -4582,6 +4582,21 @@ summary:focus-visible {
 	font-weight: var(--font-weight-regular);
 }
 
+.operation-progress-estimate {
+	display: inline-flex;
+	align-items: center;
+	width: fit-content;
+	min-height: 28px;
+	padding: 0 10px;
+	border: 1px solid rgba(20, 89, 200, 0.16);
+	border-radius: 999px;
+	background: #f4f8ff;
+	color: #31527d;
+	font-size: 12px;
+	font-weight: var(--font-weight-regular);
+	line-height: 1.35;
+}
+
 .operation-progress-panel ol {
 	display: grid;
 	grid-template-columns: 1fr;
