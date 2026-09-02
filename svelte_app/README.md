@@ -28,6 +28,8 @@ PUBLIC_BODY_IMAGE_UPLOAD_TIMEOUT_SECONDS=10
 PUBLIC_THUMBNAIL_UPLOAD_TIMEOUT_SECONDS=10
 PUBLIC_PBIX_PUBLISH_TIMEOUT_SECONDS=30
 PUBLIC_THUMBNAIL_CAPTURE_TIMEOUT_SECONDS=30
+PUBLIC_THUMBNAIL_DELETE_TIMEOUT_SECONDS=30
+BODY_IMAGE_STORAGE_BUCKET=project-body-assets
 THUMBNAIL_STORAGE_BUCKET=project-thumbnails
 THUMBNAIL_CAPTURE_ENABLED=true
 THUMBNAIL_CAPTURE_PROVIDER=cloudflare
@@ -57,6 +59,8 @@ npm.cmd run dev:managed -- --Port 5174
 ```
 
 `dev:managed`와 smoke 스크립트는 루트 `.env`를 먼저 읽습니다. 예전 `svelte_app/.env`가 남아 있더라도 루트 값이 우선됩니다.
+
+Supabase 데이터를 포함한 홈/상세 화면 검증은 외부 네트워크 접근이 가능한 환경에서 실행해야 합니다. 네트워크가 차단된 샌드박스에서 dev 서버를 띄우면 `home_project_snapshot`이 `fetch failed`로 실패해 홈 프로젝트 오류 문구가 표시될 수 있습니다. 이 경우 같은 환경변수로 `npm.cmd run smoke:supabase`를 외부 네트워크 허용 상태에서 실행해 DB/RPC 문제와 검증 환경 문제를 먼저 분리합니다.
 
 일반 개발 포트 `5173`, managed UIUX 검증 포트 `5174`, Cloudflare preview 포트 `8788`은 서로 다른 실행 단계입니다.
 
@@ -118,6 +122,7 @@ For first Cloudflare staging, keep `PBIX_MAX_UPLOAD_MB=50` unless larger-file im
 - Password reset uses Supabase recovery links at `/reset-password` and accepts `code`, `token_hash`, or access/refresh token recovery callbacks before updating the password.
 - Policy consent onboarding reads active `policy_versions`, checks `user_policy_consents`, gates authenticated public routes, and stores missing required consents before returning users to their requested page.
 - Project submit at `/submit` creates authenticated `projects` rows with the existing title/body/link/platform/tag/visibility contract, can upload JPG/PNG/WebP thumbnails through a server endpoint backed by `SUPABASE_SERVICE_ROLE_KEY`, can capture thumbnails through a server Playwright runtime when available, and can publish Power BI `.pbix` files through a server-only Power BI Import endpoint.
+- New project submit treats body image upload, thumbnail upload/capture, and PBIX publish as required follow-up work for the selected options. If one of those follow-up steps fails, the workflow cancels the new project and best-effort cleans up body image storage, thumbnail storage, and Power BI report links before surfacing the error.
 - My Page at `/my` lists the signed-in user's non-deleted projects, summarizes project/view/like/comment counts, edits `profiles.name/organization/bio`, links to detail/edit, and soft-deletes projects with the existing `status='deleted'` contract.
 - Project edit at `/projects/:id/edit` lets the project author update the same basic title/body/link/platform/tag/visibility contract as submit, replace uploaded/captured thumbnails, and publish a replacement `.pbix` for Power BI projects.
 - Notifications at `/notifications` list the signed-in user's `notifications`, expose unread counts in the header, mark one notification read when opening a project, and support marking all unread notifications read.

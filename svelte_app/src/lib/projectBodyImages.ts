@@ -1,4 +1,5 @@
 import { currentSession } from '$lib/auth';
+import { fetchWithTimeout, requestErrorResponse } from '$lib/clientRequest';
 import { publicConfigMilliseconds } from '$lib/clientRuntimeConfig';
 
 const BODY_IMAGE_UPLOAD_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_BODY_IMAGE_UPLOAD_TIMEOUT_SECONDS', 10);
@@ -48,26 +49,31 @@ export async function uploadProjectBodyImages(projectId: string, images: Pending
 	return { ok: true, message: '본문 이미지가 업로드되었습니다.', urls };
 }
 
+export async function deleteProjectBodyImages(projectId: string) {
+	const session = await currentSession();
+	if (!session) {
+		return { ok: false, message: '로그인 후 본문 이미지를 삭제할 수 있습니다.' };
+	}
+
+	const response = await fetchWithTimeout(
+		`/api/projects/${projectId}/body-image`,
+		{
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${session.access_token}` }
+		},
+		BODY_IMAGE_UPLOAD_TIMEOUT_MS
+	).catch((error) => errorResponse(error, '본문 이미지 삭제 요청 시간이 초과되었습니다. 잠시 후 다시 시도하세요.'));
+	const payload = (await response.json().catch(() => ({}))) as { ok?: boolean; error?: string };
+	if (!response.ok || payload.ok === false) {
+		return { ok: false, message: payload.error || '본문 이미지 삭제에 실패했습니다.' };
+	}
+	return { ok: true, message: '본문 이미지를 삭제했습니다.' };
+}
+
 function escapeRegExp(value: string) {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), timeoutMs);
-	try {
-		return await fetch(url, { ...init, signal: controller.signal });
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
 function errorResponse(error: unknown, fallbackMessage: string) {
-	const message = error instanceof Error && error.name !== 'AbortError' ? error.message : fallbackMessage;
-	return new Response(JSON.stringify({ error: message }), {
-		status: 408,
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	});
+	return requestErrorResponse(error, fallbackMessage);
 }

@@ -26,6 +26,7 @@
 	const boundedProgress = $derived(Math.max(0, Math.min(100, Math.round(progress))));
 	const activeStep = $derived(steps.find((step) => step.status === 'error') ?? steps.find((step) => step.status === 'active') ?? steps.at(-1));
 	const canDismiss = $derived(Boolean(onDismiss) && (boundedProgress >= 100 || steps.some((step) => step.status === 'error')));
+	const actionLabel = $derived(boundedProgress >= 100 && !steps.some((step) => step.status === 'error') ? '완료' : dismissLabel);
 	let now = $state(Date.now());
 	let activeStepKey = $state('');
 	let activeStepStartedAt = $state(Date.now());
@@ -95,7 +96,7 @@
 			</ol>
 			{#if canDismiss}
 				<div class="operation-progress-actions">
-					<button type="button" onclick={() => onDismiss?.()}>{dismissLabel}</button>
+					<button type="button" onclick={() => onDismiss?.()}>{actionLabel}</button>
 				</div>
 			{/if}
 		</div>

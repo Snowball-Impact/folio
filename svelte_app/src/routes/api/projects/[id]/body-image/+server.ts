@@ -64,6 +64,45 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	return json({ image_url: bucket.getPublicUrl(path).data.publicUrl });
 };
 
+export const DELETE: RequestHandler = async ({ params, request }) => {
+	const projectId = params.id;
+	if (!projectId) {
+		return json({ error: '프로젝트 ID가 없습니다.' }, { status: 400 });
+	}
+
+	const auth = await authenticateBearerRequest(request);
+	if (!auth.ok) {
+		return authFailureResponse(auth, {
+			missingToken: '로그인 후 본문 이미지를 삭제할 수 있습니다.',
+			unavailable: '본문 이미지 삭제 서버 환경 변수가 설정되지 않았습니다.',
+			invalidSession: '로그인 세션을 확인하지 못했습니다.'
+		});
+	}
+
+	const { data: project, error: projectError } = await getOwnedProjectQuery(auth, projectId, 'id,author_id').maybeSingle();
+	if (projectError || !project) {
+		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+	}
+
+	const bucketName = env.BODY_IMAGE_STORAGE_BUCKET || DEFAULT_BUCKET;
+	const bucket = auth.serviceClient.storage.from(bucketName);
+	const directory = `projects/${safeStorageName(projectId)}`;
+	const { data, error: listError } = await bucket.list(directory, { limit: 1000 });
+	if (listError) {
+		return json({ error: '본문 이미지 목록을 확인하지 못했습니다.' }, { status: 502 });
+	}
+
+	const paths = (data ?? []).map((item: { name: string }) => `${directory}/${item.name}`);
+	if (paths.length > 0) {
+		const { error: removeError } = await bucket.remove(paths);
+		if (removeError) {
+			return json({ error: '본문 이미지를 삭제하지 못했습니다.' }, { status: 502 });
+		}
+	}
+
+	return json({ ok: true, deleted_count: paths.length });
+};
+
 async function ensureBucket(serviceClient: ServerAuthContext['serviceClient'], bucketName: string) {
 	const { data } = await serviceClient.storage.getBucket(bucketName);
 	if (data) {

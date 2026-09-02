@@ -3,6 +3,7 @@ import { publishProjectPbix, unlinkProjectPbix } from '$lib/powerbi-publish';
 import { createProject, deleteProject, updateProject, type ProjectSubmitInput } from '$lib/projects';
 import { captureProjectThumbnail, deleteProjectThumbnail, uploadProjectThumbnail } from '$lib/thumbnails';
 import {
+	deleteProjectBodyImages,
 	replacePendingBodyImages,
 	uploadProjectBodyImages,
 	type PendingProjectBodyImage
@@ -204,9 +205,18 @@ function fail(
 	};
 }
 
-async function rollbackCreatedProject(projectId: string) {
+async function rollbackCreatedProject(options: ProjectSaveWorkflowOptions, projectId: string) {
+	await cleanupCreatedProjectResources(options, projectId);
 	const result = await deleteProject(projectId);
 	return { ok: result.ok };
+}
+
+async function cleanupCreatedProjectResources(options: ProjectSaveWorkflowOptions, projectId: string) {
+	await Promise.allSettled([
+		options.bodyImageFiles.length > 0 ? deleteProjectBodyImages(projectId) : Promise.resolve(),
+		options.thumbnailFile ? deleteProjectThumbnail(projectId) : Promise.resolve(),
+		options.pbixFile ? unlinkProjectPbix(projectId) : Promise.resolve()
+	]);
 }
 
 async function failAfterSavedProject(
@@ -219,7 +229,7 @@ async function failAfterSavedProject(
 		return fail(options, partialProjectMessage, projectId);
 	}
 
-	const rollback = await rollbackCreatedProject(projectId);
+	const rollback = await rollbackCreatedProject(options, projectId);
 	const rollbackMessage = rollback.ok
 		? `${message} 프로젝트 등록을 취소했습니다.`
 		: `${message} 프로젝트 등록 취소도 완료하지 못했습니다. 마이페이지에서 삭제해 주세요.`;

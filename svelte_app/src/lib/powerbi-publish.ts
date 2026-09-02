@@ -1,4 +1,5 @@
 import { currentSession } from '$lib/auth';
+import { fetchWithTimeout, requestErrorResponse } from '$lib/clientRequest';
 import { publicConfigMilliseconds } from '$lib/clientRuntimeConfig';
 
 const PBIX_PUBLISH_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_PBIX_PUBLISH_TIMEOUT_SECONDS', 30);
@@ -87,24 +88,8 @@ export async function projectPbixExists(projectId: string) {
 	return Boolean(payload.exists);
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), timeoutMs);
-	try {
-		return await fetch(url, { ...init, signal: controller.signal });
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
 function errorResponse(error: unknown, fallbackMessage: string) {
-	const message = error instanceof Error && error.name !== 'AbortError' ? error.message : fallbackMessage;
-	return new Response(JSON.stringify({ error: message, error_code: 'PBI_CLIENT_TIMEOUT' }), {
-		status: 408,
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	});
+	return requestErrorResponse(error, fallbackMessage, 'PBI_CLIENT_TIMEOUT');
 }
 
 function withErrorCode(message: string, payload: { error_code?: string; upstream_status?: number | null; upstream_code?: string | null }) {

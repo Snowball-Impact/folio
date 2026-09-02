@@ -180,6 +180,7 @@ async function uploadCapturedThumbnail(projectId: string, bytes: Uint8Array) {
 		})
 		.eq('id', projectId);
 	if (updateError) {
+		await bucket.remove([path]).catch(() => null);
 		throw new ThumbnailCaptureError('프로젝트에 캡처 썸네일을 연결하지 못했습니다.', 502, 'CAPTURE_PROJECT_UPDATE_FAILED');
 	}
 

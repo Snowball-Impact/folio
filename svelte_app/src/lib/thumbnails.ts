@@ -1,4 +1,5 @@
 import { currentSession } from '$lib/auth';
+import { fetchWithTimeout, requestErrorResponse } from '$lib/clientRequest';
 import { publicConfigMilliseconds } from '$lib/clientRuntimeConfig';
 
 const THUMBNAIL_UPLOAD_TIMEOUT_MS = publicConfigMilliseconds('PUBLIC_THUMBNAIL_UPLOAD_TIMEOUT_SECONDS', 10);
@@ -108,24 +109,8 @@ export async function deleteProjectThumbnail(projectId: string) {
 	return { ok: true, message: payload.message || '기존 썸네일을 삭제했습니다.' };
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number) {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), timeoutMs);
-	try {
-		return await fetch(url, { ...init, signal: controller.signal });
-	} finally {
-		clearTimeout(timeout);
-	}
-}
-
 function errorResponse(error: unknown, fallbackMessage: string) {
-	const message = error instanceof Error && error.name !== 'AbortError' ? error.message : fallbackMessage;
-	return new Response(JSON.stringify({ error: message }), {
-		status: 408,
-		headers: {
-			'Content-Type': 'application/json'
-		}
-	});
+	return requestErrorResponse(error, fallbackMessage);
 }
 
 function withErrorCode(message: string, payload: { error_code?: string }) {
