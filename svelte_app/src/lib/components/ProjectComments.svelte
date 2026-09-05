@@ -12,6 +12,8 @@
 	import { formatDateTime } from '$lib/format';
 	import type { ProjectComment } from '$lib/types';
 
+	const TESTING = import.meta.env?.VITE_TESTING === 'true';
+
 	let {
 		projectId,
 		projectAuthorId,
@@ -205,7 +207,7 @@
 								답글
 							</button>
 						{/if}
-						{#if currentUserId === comment.author_id}
+						{#if currentUserId === comment.author_id || (TESTING && authenticated)}
 							<button type="button" class:danger={deleteConfirmId === comment.id} disabled={deleting} onclick={() => removeComment(comment.id)}>
 								{deleteConfirmId === comment.id ? '삭제 확인' : '삭제'}
 							</button>

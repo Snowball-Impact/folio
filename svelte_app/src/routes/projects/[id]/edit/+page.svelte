@@ -155,6 +155,9 @@
 		submitting = false;
 		message = result.message;
 		pendingProjectRedirect = `/projects/${result.projectId}`;
+		if (pendingProjectRedirect) {
+			await goto(pendingProjectRedirect);
+		}
 	}
 
 

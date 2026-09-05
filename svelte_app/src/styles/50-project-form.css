@@ -355,6 +355,7 @@
 	padding: 24px;
 	background: rgba(11, 31, 63, 0.28);
 	backdrop-filter: blur(3px);
+	pointer-events: none;
 }
 
 .operation-progress-panel {
@@ -366,6 +367,7 @@
 	border-radius: 10px;
 	background: #ffffff;
 	box-shadow: 0 22px 54px rgba(11, 31, 63, 0.2);
+	pointer-events: auto;
 }
 
 .operation-progress-panel header {
