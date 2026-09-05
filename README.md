@@ -2,7 +2,12 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록한 프로젝트를 함께 탐색·공유하는 Streamlit + Supabase 기반 MVP입니다. 현재 런칭 모드는 Power BI-first이며, 기존 포트폴리오 기능과 Tableau, Looker Studio/Data Studio, Streamlit 레퍼런스 분류 데이터는 유지하되 UI 노출은 Power BI 콘텐츠를 우선합니다.
+현재 이 레포지토리는 SvelteKit 기반 프론트엔드(`svelte_app`)를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 보관용으로 `archive/streamlit_app`에 유지되어 있으며, 새로운 개발과 배포는 `svelte_app`에서 진행합니다.
+
+요약:
+- 메인 프론트엔드: `svelte_app` (SvelteKit + Vite)
+- 보관: `archive/streamlit_app` (원본 Streamlit MVP, 참고용)
+- 백엔드 및 데이터: Supabase를 계속 사용
 
 ## 현재 구현 범위
 
@@ -33,47 +38,31 @@ FOLIO는 공개 데이터 시각화 레퍼런스와 사용자가 직접 등록�
 
 ## 실행
 
-1. Python 가상환경을 만들고 의존성을 설치합니다.
+프론트엔드(SvelteKit) 개발 서버 실행:
+
+```bash
+cd svelte_app
+npm ci
+npm run dev
+```
+
+로컬에서 Playwright E2E를 실행하려면:
+
+```bash
+cd svelte_app
+npm ci
+npx playwright test
+```
+
+기존 Streamlit 앱(보관용)을 로컬에서 확인하려면 `archive/streamlit_app` 내 지침을 따르세요. Streamlit 실행 예시:
 
 ```powershell
+cd archive/streamlit_app
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-2. Supabase 프로젝트를 만들고 SQL Editor에서 `supabase/schema.sql`을 실행합니다.
-
-3. `.env.example`을 참고해 `.env`를 생성합니다.
-
-```text
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-APP_URL=http://localhost:8501
-COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
-```
-
-댓글 이메일 알림을 실제로 발송하려면 서버 전용 secret에 아래 값을 추가합니다. `SUPABASE_SERVICE_ROLE_KEY`는 수신자 이메일 조회에만 사용하며 브라우저에 노출하지 않습니다.
-
-```text
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USERNAME=your-smtp-user
-SMTP_PASSWORD=your-smtp-password
-SMTP_FROM_EMAIL=noreply@example.com
-SMTP_FROM_NAME=FOLIO
-SMTP_USE_TLS=true
-THUMBNAIL_STORAGE_BUCKET=project-thumbnails
-CHROME_BINARY_PATH=
-```
-
-4. 앱을 실행합니다.
-
-```powershell
 streamlit run app.py
 ```
-
-기본 로컬 주소는 `http://localhost:8501`입니다.
 
 Windows 개발 환경에서는 `.streamlit/config.toml`의 `runOnSave = true`와 `fileWatcherType = "auto"`를 사용합니다.
 수정이 반영되지 않거나 같은 포트에 여러 서버가 떠 있는 것처럼 보이면 `8501` 리스너를 확인한 뒤 서버를 하나만 남겨 재시작합니다.

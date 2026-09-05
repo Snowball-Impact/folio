@@ -12,7 +12,9 @@
 	import { formatDateTime } from '$lib/format';
 	import type { ProjectComment } from '$lib/types';
 
-	const TESTING = import.meta.env?.VITE_TESTING === 'true';
+	const TESTING =
+		(typeof window !== 'undefined' && (window.__FOLIO_TESTING === true || localStorage.getItem('FOLIO_TESTING') === 'true')) ||
+		import.meta.env?.VITE_TESTING === 'true';
 
 	let {
 		projectId,
