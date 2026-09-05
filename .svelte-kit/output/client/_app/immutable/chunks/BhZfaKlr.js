@@ -1,0 +1,1 @@
+import{Color as e}from"./37hoO9u0.js";var t=e;export{e as Color,t as default};

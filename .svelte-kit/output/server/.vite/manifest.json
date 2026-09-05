@@ -1,0 +1,563 @@
+{
+  ".svelte-kit/generated/server/internal.js": {
+    "file": "internal.js",
+    "name": "internal",
+    "src": ".svelte-kit/generated/server/internal.js",
+    "isEntry": true,
+    "imports": [
+      "_internal.js",
+      "_shared-server.js",
+      "_internal2.js"
+    ]
+  },
+  "_ProjectCard.js": {
+    "file": "chunks/ProjectCard.js",
+    "name": "ProjectCard",
+    "imports": [
+      "_server.js",
+      "_format.js"
+    ]
+  },
+  "_ProjectRichContent.js": {
+    "file": "chunks/ProjectRichContent.js",
+    "name": "ProjectRichContent",
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_format.js"
+    ]
+  },
+  "_auth.js": {
+    "file": "chunks/auth.js",
+    "name": "auth",
+    "imports": [
+      "_supabase2.js"
+    ]
+  },
+  "_client.js": {
+    "file": "chunks/client.js",
+    "name": "client",
+    "imports": [
+      "_index-server.js",
+      "_shared.js",
+      "_internal.js",
+      "_exports.js",
+      "_server.js",
+      "_internal2.js"
+    ]
+  },
+  "_env.js": {
+    "file": "chunks/env.js",
+    "name": "env"
+  },
+  "_exports.js": {
+    "file": "chunks/exports.js",
+    "name": "exports",
+    "imports": [
+      "_server.js"
+    ]
+  },
+  "_format.js": {
+    "file": "chunks/format.js",
+    "name": "format"
+  },
+  "_index-server.js": {
+    "file": "chunks/index-server.js",
+    "name": "index-server",
+    "imports": [
+      "_server.js"
+    ]
+  },
+  "_internal.js": {
+    "file": "chunks/internal.js",
+    "name": "internal"
+  },
+  "_internal2.js": {
+    "file": "chunks/internal2.js",
+    "name": "internal",
+    "imports": [
+      "_index-server.js",
+      "_internal.js",
+      "_server.js"
+    ]
+  },
+  "_navigation.js": {
+    "file": "chunks/navigation.js",
+    "name": "navigation",
+    "imports": [
+      "_client.js"
+    ]
+  },
+  "_notifications.js": {
+    "file": "chunks/notifications.js",
+    "name": "notifications",
+    "imports": [
+      "_supabase2.js",
+      "_auth.js"
+    ]
+  },
+  "_onboarding.js": {
+    "file": "chunks/onboarding.js",
+    "name": "onboarding",
+    "imports": [
+      "_supabase2.js",
+      "_auth.js"
+    ]
+  },
+  "_powerbi.js": {
+    "file": "chunks/powerbi.js",
+    "name": "powerbi",
+    "imports": [
+      "_shared-server.js",
+      "_supabase.js",
+      "_supabase2.js"
+    ]
+  },
+  "_projectBody.Dj8CHLRK.css": {
+    "file": "_app/immutable/assets/projectBody.Dj8CHLRK.css",
+    "src": "_projectBody.Dj8CHLRK.css"
+  },
+  "_projectBody.js": {
+    "file": "chunks/projectBody.js",
+    "name": "projectBody",
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_projects.js",
+      "_ProjectCard.js",
+      "_ProjectRichContent.js"
+    ],
+    "css": [
+      "_app/immutable/assets/projectBody.Dj8CHLRK.css"
+    ]
+  },
+  "_projects.js": {
+    "file": "chunks/projects.js",
+    "name": "projects",
+    "imports": [
+      "_supabase2.js",
+      "_auth.js"
+    ]
+  },
+  "_request-auth.js": {
+    "file": "chunks/request-auth.js",
+    "name": "request-auth",
+    "imports": [
+      "_supabase.js"
+    ]
+  },
+  "_server.js": {
+    "file": "chunks/server.js",
+    "name": "server"
+  },
+  "_shared-server.js": {
+    "file": "chunks/shared-server.js",
+    "name": "shared-server"
+  },
+  "_shared.js": {
+    "file": "chunks/shared.js",
+    "name": "shared"
+  },
+  "_state.js": {
+    "file": "chunks/state.js",
+    "name": "state",
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_client.js"
+    ]
+  },
+  "_supabase.js": {
+    "file": "chunks/supabase.js",
+    "name": "supabase",
+    "imports": [
+      "_shared-server.js"
+    ]
+  },
+  "_supabase2.js": {
+    "file": "chunks/supabase2.js",
+    "name": "supabase"
+  },
+  "_utils.js": {
+    "file": "chunks/utils.js",
+    "name": "utils",
+    "imports": [
+      "_shared.js"
+    ]
+  },
+  "node_modules/@sveltejs/kit/src/runtime/app/server/remote/index.js": {
+    "file": "remote-entry.js",
+    "name": "remote-entry",
+    "src": "node_modules/@sveltejs/kit/src/runtime/app/server/remote/index.js",
+    "isEntry": true,
+    "imports": [
+      "_shared.js",
+      "_internal.js",
+      "_utils.js"
+    ]
+  },
+  "node_modules/@sveltejs/kit/src/runtime/components/svelte-5/error.svelte": {
+    "file": "entries/fallbacks/error.svelte.js",
+    "name": "entries/fallbacks/error.svelte",
+    "src": "node_modules/@sveltejs/kit/src/runtime/components/svelte-5/error.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_state.js"
+    ]
+  },
+  "node_modules/@sveltejs/kit/src/runtime/server/index.js": {
+    "file": "index.js",
+    "name": "index",
+    "src": "node_modules/@sveltejs/kit/src/runtime/server/index.js",
+    "isEntry": true,
+    "imports": [
+      "_shared.js",
+      "_internal.js",
+      "_utils.js",
+      "_shared-server.js",
+      "_exports.js",
+      "_server.js",
+      "_env.js",
+      "_internal2.js"
+    ]
+  },
+  "routes/+layout.svelte": {
+    "file": "entries/pages/_layout.svelte.js",
+    "name": "entries/pages/_layout.svelte",
+    "src": "routes/+layout.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_shared-server.js",
+      "_server.js",
+      "_supabase2.js",
+      "_auth.js",
+      "_client.js",
+      "_state.js",
+      "_navigation.js",
+      "_notifications.js",
+      "_onboarding.js"
+    ],
+    "css": [
+      "_app/immutable/assets/_layout.CI14gE7O.css"
+    ]
+  },
+  "routes/+page.server.ts": {
+    "file": "entries/pages/_page.server.ts.js",
+    "name": "entries/pages/_page.server.ts",
+    "src": "routes/+page.server.ts",
+    "isEntry": true,
+    "imports": [
+      "_projects.js"
+    ]
+  },
+  "routes/+page.svelte": {
+    "file": "entries/pages/_page.svelte.js",
+    "name": "entries/pages/_page.svelte",
+    "src": "routes/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_ProjectCard.js"
+    ]
+  },
+  "routes/about/+page.svelte": {
+    "file": "entries/pages/about/_page.svelte.js",
+    "name": "entries/pages/about/_page.svelte",
+    "src": "routes/about/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js"
+    ]
+  },
+  "routes/api/comments/[id]/email-notification/+server.ts": {
+    "file": "entries/endpoints/api/comments/_id_/email-notification/_server.ts.js",
+    "name": "entries/endpoints/api/comments/_id_/email-notification/_server.ts",
+    "src": "routes/api/comments/[id]/email-notification/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_shared-server.js",
+      "_request-auth.js"
+    ]
+  },
+  "routes/api/projects/[id]/body-image/+server.ts": {
+    "file": "entries/endpoints/api/projects/_id_/body-image/_server.ts.js",
+    "name": "entries/endpoints/api/projects/_id_/body-image/_server.ts",
+    "src": "routes/api/projects/[id]/body-image/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_shared-server.js",
+      "_request-auth.js"
+    ]
+  },
+  "routes/api/projects/[id]/powerbi-embed/+server.ts": {
+    "file": "entries/endpoints/api/projects/_id_/powerbi-embed/_server.ts.js",
+    "name": "entries/endpoints/api/projects/_id_/powerbi-embed/_server.ts",
+    "src": "routes/api/projects/[id]/powerbi-embed/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_projects.js",
+      "_powerbi.js"
+    ]
+  },
+  "routes/api/projects/[id]/powerbi-publish/+server.ts": {
+    "file": "entries/endpoints/api/projects/_id_/powerbi-publish/_server.ts.js",
+    "name": "entries/endpoints/api/projects/_id_/powerbi-publish/_server.ts",
+    "src": "routes/api/projects/[id]/powerbi-publish/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_request-auth.js",
+      "_powerbi.js"
+    ]
+  },
+  "routes/api/projects/[id]/thumbnail-capture/+server.ts": {
+    "file": "entries/endpoints/api/projects/_id_/thumbnail-capture/_server.ts.js",
+    "name": "entries/endpoints/api/projects/_id_/thumbnail-capture/_server.ts",
+    "src": "routes/api/projects/[id]/thumbnail-capture/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_shared-server.js",
+      "_supabase.js",
+      "_request-auth.js"
+    ]
+  },
+  "routes/api/projects/[id]/thumbnail/+server.ts": {
+    "file": "entries/endpoints/api/projects/_id_/thumbnail/_server.ts.js",
+    "name": "entries/endpoints/api/projects/_id_/thumbnail/_server.ts",
+    "src": "routes/api/projects/[id]/thumbnail/+server.ts",
+    "isEntry": true,
+    "imports": [
+      "_shared-server.js",
+      "_request-auth.js"
+    ]
+  },
+  "routes/login/+page.svelte": {
+    "file": "entries/pages/login/_page.svelte.js",
+    "name": "entries/pages/login/_page.svelte",
+    "src": "routes/login/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_state.js",
+      "_navigation.js"
+    ]
+  },
+  "routes/my/+page.svelte": {
+    "file": "entries/pages/my/_page.svelte.js",
+    "name": "entries/pages/my/_page.svelte",
+    "src": "routes/my/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_projects.js",
+      "_navigation.js",
+      "_format.js"
+    ]
+  },
+  "routes/notifications/+page.svelte": {
+    "file": "entries/pages/notifications/_page.svelte.js",
+    "name": "entries/pages/notifications/_page.svelte",
+    "src": "routes/notifications/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_navigation.js",
+      "_notifications.js",
+      "_format.js"
+    ]
+  },
+  "routes/onboarding/+page.svelte": {
+    "file": "entries/pages/onboarding/_page.svelte.js",
+    "name": "entries/pages/onboarding/_page.svelte",
+    "src": "routes/onboarding/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_client.js",
+      "_state.js",
+      "_navigation.js",
+      "_onboarding.js"
+    ]
+  },
+  "routes/policy/+page.server.ts": {
+    "file": "entries/pages/policy/_page.server.ts.js",
+    "name": "entries/pages/policy/_page.server.ts",
+    "src": "routes/policy/+page.server.ts",
+    "isEntry": true
+  },
+  "routes/policy/+page.svelte": {
+    "file": "entries/pages/policy/_page.svelte.js",
+    "name": "entries/pages/policy/_page.svelte",
+    "src": "routes/policy/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js"
+    ]
+  },
+  "routes/policy/[type]/+page.server.ts": {
+    "file": "entries/pages/policy/_type_/_page.server.ts.js",
+    "name": "entries/pages/policy/_type_/_page.server.ts",
+    "src": "routes/policy/[type]/+page.server.ts",
+    "isEntry": true
+  },
+  "routes/policy/[type]/+page.svelte": {
+    "file": "entries/pages/policy/_type_/_page.svelte.js",
+    "name": "entries/pages/policy/_type_/_page.svelte",
+    "src": "routes/policy/[type]/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js"
+    ]
+  },
+  "routes/powerbi/+page.server.ts": {
+    "file": "entries/pages/powerbi/_page.server.ts.js",
+    "name": "entries/pages/powerbi/_page.server.ts",
+    "src": "routes/powerbi/+page.server.ts",
+    "isEntry": true
+  },
+  "routes/powerbi/+page.svelte": {
+    "file": "entries/pages/powerbi/_page.svelte.js",
+    "name": "entries/pages/powerbi/_page.svelte",
+    "src": "routes/powerbi/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_format.js"
+    ]
+  },
+  "routes/projects/[id]/+page.server.ts": {
+    "file": "entries/pages/projects/_id_/_page.server.ts.js",
+    "name": "entries/pages/projects/_id_/_page.server.ts",
+    "src": "routes/projects/[id]/+page.server.ts",
+    "isEntry": true,
+    "imports": [
+      "_projects.js"
+    ]
+  },
+  "routes/projects/[id]/+page.svelte": {
+    "file": "entries/pages/projects/_id_/_page.svelte.js",
+    "name": "entries/pages/projects/_id_/_page.svelte",
+    "src": "routes/projects/[id]/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_supabase2.js",
+      "_auth.js",
+      "_projects.js",
+      "_state.js",
+      "_navigation.js",
+      "_format.js",
+      "_ProjectCard.js",
+      "_ProjectRichContent.js"
+    ]
+  },
+  "routes/projects/[id]/edit/+page.svelte": {
+    "file": "entries/pages/projects/_id_/edit/_page.svelte.js",
+    "name": "entries/pages/projects/_id_/edit/_page.svelte",
+    "src": "routes/projects/[id]/edit/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_projects.js",
+      "_client.js",
+      "_state.js",
+      "_navigation.js",
+      "_projectBody.js"
+    ]
+  },
+  "routes/references/[platform]/+page.server.ts": {
+    "file": "entries/pages/references/_platform_/_page.server.ts.js",
+    "name": "entries/pages/references/_platform_/_page.server.ts",
+    "src": "routes/references/[platform]/+page.server.ts",
+    "isEntry": true,
+    "imports": [
+      "_projects.js"
+    ]
+  },
+  "routes/references/[platform]/+page.svelte": {
+    "file": "entries/pages/references/_platform_/_page.svelte.js",
+    "name": "entries/pages/references/_platform_/_page.svelte",
+    "src": "routes/references/[platform]/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_ProjectCard.js"
+    ]
+  },
+  "routes/references/powerbi/+page.server.ts": {
+    "file": "entries/pages/references/powerbi/_page.server.ts.js",
+    "name": "entries/pages/references/powerbi/_page.server.ts",
+    "src": "routes/references/powerbi/+page.server.ts",
+    "isEntry": true,
+    "imports": [
+      "_projects.js"
+    ]
+  },
+  "routes/references/powerbi/+page.svelte": {
+    "file": "entries/pages/references/powerbi/_page.svelte.js",
+    "name": "entries/pages/references/powerbi/_page.svelte",
+    "src": "routes/references/powerbi/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_ProjectCard.js"
+    ]
+  },
+  "routes/reset-password/+page.svelte": {
+    "file": "entries/pages/reset-password/_page.svelte.js",
+    "name": "entries/pages/reset-password/_page.svelte",
+    "src": "routes/reset-password/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_server.js",
+      "_state.js",
+      "_navigation.js"
+    ]
+  },
+  "routes/signup/+page.svelte": {
+    "file": "entries/pages/signup/_page.svelte.js",
+    "name": "entries/pages/signup/_page.svelte",
+    "src": "routes/signup/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_onboarding.js"
+    ]
+  },
+  "routes/submit/+page.svelte": {
+    "file": "entries/pages/submit/_page.svelte.js",
+    "name": "entries/pages/submit/_page.svelte",
+    "src": "routes/submit/+page.svelte",
+    "isEntry": true,
+    "imports": [
+      "_index-server.js",
+      "_server.js",
+      "_auth.js",
+      "_client.js",
+      "_navigation.js",
+      "_projectBody.js"
+    ]
+  },
+  "virtual:__sveltekit/env": {
+    "file": "env.js",
+    "name": "env",
+    "src": "virtual:__sveltekit/env",
+    "isEntry": true,
+    "imports": [
+      "_env.js"
+    ]
+  }
+}

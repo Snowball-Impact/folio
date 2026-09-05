@@ -155,6 +155,10 @@
 		submitting = false;
 		message = result.message;
 		pendingProjectRedirect = `/projects/${result.projectId}`;
+		// 즉시 상세 페이지로 이동(Playwright 테스트가 즉시 네비게이션을 기대함)
+		if (pendingProjectRedirect) {
+			await goto(pendingProjectRedirect);
+		}
 	}
 
 
