@@ -7,3 +7,4 @@ __pycache__/
 .streamlit/secrets.toml
 *.log
 artifacts/
+node_modules/
