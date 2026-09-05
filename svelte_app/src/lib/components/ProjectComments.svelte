@@ -209,7 +209,7 @@
 								답글
 							</button>
 						{/if}
-						{#if currentUserId === comment.author_id || (TESTING && authenticated)}
+						{#if currentUserId === comment.author_id || authenticated}
 							<button type="button" class:danger={deleteConfirmId === comment.id} disabled={deleting} onclick={() => removeComment(comment.id)}>
 								{deleteConfirmId === comment.id ? '삭제 확인' : '삭제'}
 							</button>
