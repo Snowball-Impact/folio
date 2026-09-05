@@ -95,4 +95,4 @@ Week 2 핵심 범위는 완료되었다.
 - 실제 Supabase 환경에서 조회수 RPC와 좋아요 데이터 최종 검증
 - 카드/상세 레이아웃 PC 기준 마감 점검
 
-> 이 문서는 Week 2 완료 기록이다. 현재 구조와 다음 작업 순서는 `docs/PROJECT_CONTEXT.md`를 우선한다.
+> 이 문서는 Week 2 완료 기록이다. 현재 구조와 다음 작업 순서는 `docs/common/PROJECT_CONTEXT.md`를 우선한다.

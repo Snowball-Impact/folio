@@ -81,4 +81,4 @@ Week 1 범위는 Streamlit 앱 뼈대, Supabase 연결, 인증, 프로필, 기�
 
 Week 1 핵심 범위는 완료되었다.
 
-이 문서는 완료 기록으로 유지한다. 현재 작업 기준과 최신 UX 상태는 `docs/PROJECT_CONTEXT.md`를 우선 참고한다.
+이 문서는 완료 기록으로 유지한다. 현재 작업 기준과 최신 UX 상태는 `docs/common/PROJECT_CONTEXT.md`를 우선 참고한다.

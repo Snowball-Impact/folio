@@ -49,8 +49,7 @@ div:has(> iframe[src*="cookie_manager"]),
    do not push the sticky header and first hero down for a few frames. */
 iframe[height="0"],
 iframe[style*="height: 0px"],
-iframe[style*="height:0px"],
-iframe[title="st.iframe"]:not([src]) {
+iframe[style*="height:0px"] {
     border: 0 !important;
     height: 0 !important;
     min-height: 0 !important;
@@ -60,7 +59,6 @@ iframe[title="st.iframe"]:not([src]) {
 div:has(> iframe[height="0"]),
 div:has(> iframe[style*="height: 0px"]),
 div:has(> iframe[style*="height:0px"]),
-[data-testid="stElementContainer"]:has(iframe[title="st.iframe"]:not([src])),
 [data-testid="stElementContainer"]:has(iframe[height="0"]),
 [data-testid="stElementContainer"]:has(iframe[style*="height: 0px"]),
 [data-testid="stElementContainer"]:has(iframe[style*="height:0px"]) {
