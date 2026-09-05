@@ -1,0 +1,8 @@
+﻿@import './styles/00-foundation.css';
+@import './styles/10-heroes.css';
+@import './styles/20-auth-onboarding.css';
+@import './styles/30-home-discovery.css';
+@import './styles/40-cards-detail.css';
+@import './styles/50-project-form.css';
+@import './styles/60-powerbi-policy.css';
+@import './styles/90-responsive.css';

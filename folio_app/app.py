@@ -1,5 +1,7 @@
 from uuid import UUID, uuid4
 
+import logging
+
 import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_cookies_manager import EncryptedCookieManager
@@ -20,6 +22,8 @@ from folio_app.services.auth import (
 from folio_app.styles import apply_global_styles
 
 APP_VERSION = "v2026.08.24.01"
+
+logger = logging.getLogger(__name__)
 
 _FOOTER_HTML = """
 <footer class="folio-footer">
@@ -196,12 +200,8 @@ def _can_skip_cookie_manager_for_public_home() -> bool:
 
 
 def _can_skip_cookie_manager_for_public_detail() -> bool:
-    return (
-        _can_render_public_detail_shell()
-        and get_current_user() is None
-        and not st.session_state.get("folio_clear_browser_auth")
-        and not st.session_state.get("folio_logout_in_progress")
-    )
+    """Keep detail routes eligible for restoring auth from browser cookies."""
+    return False
 
 
 def _can_skip_cookie_manager_for_public_content() -> bool:
@@ -231,6 +231,7 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
     result = restore_session(access_token, refresh_token)
 
     if not result.ok:
+        logger.warning("Browser auth restore failed: %s", result.message)
         cookies.pop("access_token", None)
         cookies.pop("refresh_token", None)
         cookies.save()
@@ -242,6 +243,7 @@ def _restore_auth_from_cookies(cookies: EncryptedCookieManager) -> None:
             st.rerun()
         return
 
+    logger.info("Browser auth session restored")
     st.rerun()
 
 
@@ -350,12 +352,7 @@ def main() -> None:
     _normalize_legacy_routes()
     _normalize_password_reset_routes()
     _render_verified_notice()
-
     if _can_skip_cookie_manager_for_public_home():
-        _render_routed_page()
-        return
-    if _can_skip_cookie_manager_for_public_detail():
-        _ensure_session_visitor_id()
         _render_routed_page()
         return
     if _can_skip_cookie_manager_for_public_content():
