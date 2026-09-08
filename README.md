@@ -2,10 +2,10 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-현재 이 레포지토리는 SvelteKit 기반 프론트엔드(`svelte_app`)를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 아직 루트 `app.py`와 `folio_app/`에 남아 있으며, 새 개발과 배포는 `svelte_app`에서 진행합니다.
+현재 이 레포지토리는 루트의 SvelteKit 기반 프론트엔드를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 아직 루트 `app.py`와 `folio_app/`에 레거시 구현으로 남아 있으며, 새 개발과 배포는 SvelteKit 기준으로 진행합니다.
 
 요약:
-- 메인 프론트엔드: `svelte_app` (SvelteKit + Vite)
+- 메인 프론트엔드: 루트 `src/`, `static/`, `package.json` (SvelteKit + Vite)
 - 레거시: 루트 `app.py`, `folio_app/`, Python `tests/` (원본 Streamlit MVP, 참고용)
 - 백엔드 및 데이터: Supabase를 계속 사용
 
@@ -40,16 +40,14 @@
 
 프론트엔드(SvelteKit) 개발 서버 실행:
 
-```bash
-cd svelte_app
+```powershell
 npm ci
-npm run dev
+npm.cmd run dev:managed -- --Port 5174
 ```
 
 로컬에서 Playwright E2E를 실행하려면:
 
 ```bash
-cd svelte_app
 npm ci
 npx playwright test
 ```

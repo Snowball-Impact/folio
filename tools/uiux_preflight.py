@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def env_keys() -> set[str]:
     keys: set[str] = set()
-    for path in (ROOT / '.env', ROOT / 'svelte_app' / '.env'):
+    for path in (ROOT / '.env',):
         if not path.exists():
             continue
         for raw in path.read_text(encoding='utf-8').splitlines():
@@ -60,7 +60,7 @@ def main() -> int:
         results.append({'name': name, 'status': status, 'detail': detail})
 
     try:
-        json.loads((ROOT / 'svelte_app' / 'package.json').read_text(encoding='utf-8-sig'))
+        json.loads((ROOT / 'package.json').read_text(encoding='utf-8-sig'))
         add('package_json', 'pass', 'valid JSON')
     except (OSError, json.JSONDecodeError) as exc:
         add('package_json', 'fail', type(exc).__name__)

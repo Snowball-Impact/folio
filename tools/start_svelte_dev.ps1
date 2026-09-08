@@ -3,7 +3,7 @@ param([int]$Port = 5174)
 
 $ErrorActionPreference = "Stop"
 $repoRoot = Split-Path -Parent $PSScriptRoot
-$appRoot = Join-Path $repoRoot "svelte_app"
+$appRoot = $repoRoot
 $runtimeRoot = Join-Path $repoRoot ".runtime"
 $xdgConfig = Join-Path $runtimeRoot "xdg-config"
 $miniflareRegistry = Join-Path $runtimeRoot "miniflare-registry"

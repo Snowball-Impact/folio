@@ -33,8 +33,8 @@ Completed locally:
 
 - `@sveltejs/adapter-cloudflare` is installed and active.
 - `wrangler` is installed as a dev dependency.
-- `svelte_app/wrangler.jsonc` defines `pages_build_output_dir=.svelte-kit/cloudflare`, `compatibility_date=2025-12-01`, and `nodejs_compat`.
-- SvelteKit adapter settings live in `svelte_app/svelte.config.js`; `vite.config.ts` only wires the Vite plugin.
+- `wrangler.jsonc` defines `pages_build_output_dir=.svelte-kit/cloudflare`, `compatibility_date=2025-12-01`, and `nodejs_compat`.
+- SvelteKit adapter settings live in `svelte.config.js`; `vite.config.ts` only wires the Vite plugin.
 - Cloudflare MVP defaults lower `PBIX_MAX_UPLOAD_MB` to 50 and use `THUMBNAIL_CAPTURE_PROVIDER=cloudflare` for automatic capture.
 - Local Cloudflare preview and smoke pin Wrangler registry/log paths to repository-local `.runtime/` to avoid Windows profile `EPERM` failures.
 - `npm.cmd run build` creates `.svelte-kit/cloudflare`.
@@ -188,7 +188,7 @@ Note: `PUBLIC_*` values are browser-visible. Do not put service role, Power BI c
 Initial local commands after Cloudflare adapter work:
 
 ```powershell
-cd svelte_app
+cd C:\workspace\folio
 npm.cmd install
 npm.cmd run check
 npm.cmd run build
@@ -228,5 +228,5 @@ npx wrangler deploy
 1. Done: add Cloudflare adapter dependency and build config.
 2. Done: replace Power BI content runtime filesystem reads with Vite raw CSV imports.
 3. Done: run Cloudflare build and fix local runtime content loading errors.
-4. Add Cloudflare-specific deploy instructions to `svelte_app/README.md`.
+4. Add Cloudflare-specific deploy instructions to the repository README.
 5. Validate Cloudflare Browser Run thumbnail capture on a real preview URL with configured Browser Rendering credentials.

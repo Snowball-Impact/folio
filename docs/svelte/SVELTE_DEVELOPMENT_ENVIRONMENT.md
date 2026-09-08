@@ -2,7 +2,7 @@
 
 작성일: 2026-08-28
 
-이 문서는 현재 `svelte_app/` 코드와 UIUX 검증에 사용하는 실행 환경의 기준 문서다. Streamlit 원본 환경과 Svelte/Cloudflare 환경을 섞어 판단하지 않는다.
+이 문서는 현재 루트 SvelteKit 코드와 UIUX 검증에 사용하는 실행 환경의 기준 문서다. Streamlit 원본 환경과 Svelte/Cloudflare 환경을 섞어 판단하지 않는다.
 
 ## 환경 구분
 
@@ -18,11 +18,11 @@
 
 ## 필수 파일과 변수
 
-- 앱 코드: `svelte_app/`
-- Svelte 설정: `svelte_app/vite.config.ts`
-- 의존성: `svelte_app/package.json`, `svelte_app/package-lock.json`
+- 앱 코드: 루트 `src/`, `static/`
+- Svelte 설정: 루트 `vite.config.ts`
+- 의존성: 루트 `package.json`, `package-lock.json`
 - 환경 파일: 저장소 루트 `.env`
-- Svelte 환경: 루트 `.env` 또는 실행 환경 변수. `svelte_app/.env`는 과거 호환용 fallback으로만 본다.
+- Svelte 환경: 루트 `.env` 또는 실행 환경 변수.
 - 샘플 PBIX: `artifacts/test.pbix`
 - 관리형 Wrangler 경로: 저장소 루트 `.runtime/`
 
@@ -31,7 +31,7 @@
 ## 설치와 실행
 
 ```powershell
-cd C:\workspace\folio\svelte_app
+cd C:\workspace\folio
 npm.cmd install
 npm.cmd run dev:managed -- --Port 5174
 ```
@@ -81,7 +81,7 @@ Browser runtime이 없으면 서버·코드 조사는 계속할 수 있지만 DO
 Playwright는 Desktop/Chrome Browser 연동과 별개의 독립 Chromium을 실행한다. 현재 Svelte UIUX 검증에서는 다음 명령으로 사용한다.
 
 ```powershell
-cd C:\workspace\folio\svelte_app
+cd C:\workspace\folio
 npx.cmd playwright install chromium
 npm.cmd run dev:managed -- --Port 5174
 npm.cmd run test:ui
@@ -92,7 +92,7 @@ npm.cmd run test:ui
 수동 UI 캡처가 필요하면 Selenium 대신 Svelte 앱의 Playwright 캡처 스크립트를 사용한다.
 
 ```powershell
-npm.cmd run capture:ui -- --base-url http://127.0.0.1:5174 --out-dir ..\artifacts\playwright\manual-captures
+npm.cmd run capture:ui -- --base-url http://127.0.0.1:5174 --out-dir artifacts\playwright\manual-captures
 npm.cmd run capture:ui -- --viewport mobile --route powerbi-news=/powerbi
 ```
 

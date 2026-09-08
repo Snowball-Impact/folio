@@ -1,6 +1,6 @@
 # SvelteKit Documents
 
-현재 `svelte_app/`의 SvelteKit·Cloudflare 구현을 작업할 때 읽는 문서다.
+현재 루트 SvelteKit·Cloudflare 구현을 작업할 때 읽는 문서다.
 
 1. [../common/PROJECT_CONTEXT.md](../common/PROJECT_CONTEXT.md)
 2. [SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md](SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md)
