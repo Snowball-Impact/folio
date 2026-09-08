@@ -39,4 +39,4 @@ npm run deploy:cloudflare
 
 ## 참고
 
-Streamlit 앱은 `archive/streamlit_app`로 보관되어 있습니다. 필요시 해당 폴더의 지침을 따라 Streamlit을 개별적으로 배포하거나 참조하세요.
+Streamlit 앱은 아직 루트 `app.py`와 `folio_app/`에 레거시 구현으로 남아 있습니다. 필요시 루트 README의 Streamlit 실행 지침을 따라 개별적으로 실행하거나 참조하세요.

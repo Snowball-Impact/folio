@@ -2,11 +2,11 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-현재 이 레포지토리는 SvelteKit 기반 프론트엔드(`svelte_app`)를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 보관용으로 `archive/streamlit_app`에 유지되어 있으며, 새로운 개발과 배포는 `svelte_app`에서 진행합니다.
+현재 이 레포지토리는 SvelteKit 기반 프론트엔드(`svelte_app`)를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 아직 루트 `app.py`와 `folio_app/`에 남아 있으며, 새 개발과 배포는 `svelte_app`에서 진행합니다.
 
 요약:
 - 메인 프론트엔드: `svelte_app` (SvelteKit + Vite)
-- 보관: `archive/streamlit_app` (원본 Streamlit MVP, 참고용)
+- 레거시: 루트 `app.py`, `folio_app/`, Python `tests/` (원본 Streamlit MVP, 참고용)
 - 백엔드 및 데이터: Supabase를 계속 사용
 
 ## 현재 구현 범위
@@ -54,17 +54,16 @@ npm ci
 npx playwright test
 ```
 
-기존 Streamlit 앱(보관용)을 로컬에서 확인하려면 `archive/streamlit_app` 내 지침을 따르세요. Streamlit 실행 예시:
+기존 Streamlit 앱(레거시)을 로컬에서 확인하려면 루트에서 Python 의존성을 설치한 뒤 실행합니다.
 
 ```powershell
-cd archive/streamlit_app
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Windows 개발 환경에서는 `.streamlit/config.toml`의 `runOnSave = true`와 `fileWatcherType = "auto"`를 사용합니다.
+Streamlit 레거시의 Windows 개발 환경에서는 `.streamlit/config.toml`의 `runOnSave = true`와 `fileWatcherType = "auto"`를 사용합니다.
 수정이 반영되지 않거나 같은 포트에 여러 서버가 떠 있는 것처럼 보이면 `8501` 리스너를 확인한 뒤 서버를 하나만 남겨 재시작합니다.
 
 ## 애플리케이션 진입 구조

@@ -1,6 +1,16 @@
 .env
 .venv/
 .runtime/
+node_modules/
+svelte_app/node_modules/
+.svelte-kit/
+svelte_app/.svelte-kit/
+.wrangler/
+svelte_app/.wrangler/
+dist/
+svelte_app/dist/
+build/
+svelte_app/build/
 __pycache__/
 *.py[cod]
 .pytest_cache/
