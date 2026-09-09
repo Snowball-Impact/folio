@@ -1,12 +1,14 @@
 # FOLIO Svelte Spike
 
+이 문서는 `svelte_app/` 독립 앱 시절 README를 루트 SvelteKit 구조에 맞춰 보관한 참고 문서입니다. 현재 실행 기준은 저장소 루트의 `package.json`, `src/`, `static/`입니다.
+
 SvelteKit 기반 FOLIO Cloudflare 전환 앱입니다. 현재 범위는 공개 조회뿐 아니라 홈(`/`), 프로젝트 상세(`/projects/:id`), Power BI 레퍼런스(`/references/powerbi`), Power BI 콘텐츠 허브(`/powerbi`), 인증/온보딩, 프로젝트 등록·수정, 마이페이지, 알림, 좋아요/댓글, 썸네일/PBIX 서버 엔드포인트까지 포함합니다.
 
 ## Setup
 
 ```powershell
 npm install
-Copy-Item ..\.env.example ..\.env
+Copy-Item .env.example .env
 ```
 
 환경 변수는 저장소 루트 `.env`에서 관리합니다. 공개 Supabase 값과, 서버 전용 기능을 켤 때만 private 값을 넣습니다.
@@ -48,17 +50,13 @@ SMTP_USE_TLS=true
 
 ## Development
 
-```powershell
-npm run dev -- --host 127.0.0.1 --port 5173
-```
-
 Windows UIUX 검증은 Wrangler 경로를 프로젝트 내부로 고정하는 managed 명령을 사용합니다.
 
 ```powershell
 npm.cmd run dev:managed -- --Port 5174
 ```
 
-`dev:managed`와 smoke 스크립트는 루트 `.env`를 먼저 읽습니다. 예전 `svelte_app/.env`가 남아 있더라도 루트 값이 우선됩니다.
+`dev:managed`와 smoke 스크립트는 루트 `.env`를 읽습니다.
 
 Supabase 데이터를 포함한 홈/상세 화면 검증은 외부 네트워크 접근이 가능한 환경에서 실행해야 합니다. 네트워크가 차단된 샌드박스에서 dev 서버를 띄우면 `home_project_snapshot`이 `fetch failed`로 실패해 홈 프로젝트 오류 문구가 표시될 수 있습니다. 이 경우 같은 환경변수로 `npm.cmd run smoke:supabase`를 외부 네트워크 허용 상태에서 실행해 DB/RPC 문제와 검증 환경 문제를 먼저 분리합니다.
 

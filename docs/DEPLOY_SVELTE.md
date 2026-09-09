@@ -1,12 +1,12 @@
-# Svelte (svelte_app) 배포 가이드
+# Svelte 배포 가이드
 
-이 문서는 `svelte_app`을 레포의 메인 프론트엔드로 배포하는 방법을 설명합니다. 이 레포는 `svelte_app` 폴더에 SvelteKit 코드가 있으며, 우리는 Cloudflare Pages를 기본 배포 채널로 사용하도록 구성합니다.
+이 문서는 레포 루트의 SvelteKit 앱을 메인 프론트엔드로 배포하는 방법을 설명합니다. 우리는 Cloudflare Pages를 기본 배포 채널로 사용하도록 구성합니다.
 
 ## 자동 배포(GitHub Actions)
 
 레포에 `.github/workflows/deploy-svelte-pages.yml` 워크플로우가 추가되어 있습니다. `main` 브랜치에 푸시되면 자동으로 다음을 수행합니다:
 
-- `svelte_app`에서 `npm ci` 실행
+- 루트에서 `npm ci` 실행
 - `npm run build`로 빌드
 - `wrangler pages deploy .svelte-kit/cloudflare --project-name <PROJECT>`로 Cloudflare Pages에 배포
 
@@ -24,7 +24,6 @@ Cloudflare에서 Pages 프로젝트가 아직 없다면 먼저 Pages에 프로�
 로컬에서 수동으로 배포하려면:
 
 ```bash
-cd svelte_app
 npm ci
 npm run build
 npm run deploy:cloudflare

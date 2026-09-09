@@ -12,10 +12,10 @@ export default defineConfig({
 	expect: {
 		timeout: 5_000
 	},
-	outputDir: '../artifacts/playwright/test-results',
+	outputDir: 'artifacts/playwright/test-results',
 	reporter: [
 		['list'],
-		['html', { outputFolder: '../artifacts/playwright/report', open: 'never' }]
+		['html', { outputFolder: 'artifacts/playwright/report', open: 'never' }]
 	],
 	use: {
 		baseURL,

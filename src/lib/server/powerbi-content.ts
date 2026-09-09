@@ -1,10 +1,10 @@
-import desktopCsv from '../../../../docs/curation/powerbi_desktop_download/all.csv?raw';
-import updatesCsv from '../../../../docs/curation/powerbi_updates/all.csv?raw';
-import changelogCsv from '../../../../docs/curation/powerbi_changelog/all.csv?raw';
-import learningCsv from '../../../../docs/curation/powerbi_learning_videos/all.csv?raw';
-import updateVideosCsv from '../../../../docs/curation/powerbi_update_videos/all.csv?raw';
-import learningProgramsCsv from '../../../../docs/curation/powerbi_learning_programs/all.csv?raw';
-import communityCsv from '../../../../docs/curation/powerbi_community_blog/all.csv?raw';
+import desktopCsv from '../../../docs/curation/powerbi_desktop_download/all.csv?raw';
+import updatesCsv from '../../../docs/curation/powerbi_updates/all.csv?raw';
+import changelogCsv from '../../../docs/curation/powerbi_changelog/all.csv?raw';
+import learningCsv from '../../../docs/curation/powerbi_learning_videos/all.csv?raw';
+import updateVideosCsv from '../../../docs/curation/powerbi_update_videos/all.csv?raw';
+import learningProgramsCsv from '../../../docs/curation/powerbi_learning_programs/all.csv?raw';
+import communityCsv from '../../../docs/curation/powerbi_community_blog/all.csv?raw';
 import type {
 	PowerBIContentLink,
 	PowerBIHubContent,

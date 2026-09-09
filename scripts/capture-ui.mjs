@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DEFAULT_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5174';
-const DEFAULT_OUT_DIR = '../artifacts/playwright/manual-captures';
+const DEFAULT_OUT_DIR = 'artifacts/playwright/manual-captures';
 const VIEWPORTS = {
 	desktop: { width: 1440, height: 1000, isMobile: false },
 	mobile: { width: 390, height: 844, isMobile: true }

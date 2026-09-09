@@ -40,7 +40,7 @@
 
 ## SvelteKit
 
-현재 `svelte_app/` 구현과 Cloudflare runtime의 기준 문서다.
+현재 루트 SvelteKit 구현과 Cloudflare runtime의 기준 문서다.
 
 - [svelte/CLOUDFLARE_DEPLOYMENT.md](svelte/CLOUDFLARE_DEPLOYMENT.md): Cloudflare Pages/Workers 배포 기준과 제약
 - [svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md](svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md): 개발·테스트 환경

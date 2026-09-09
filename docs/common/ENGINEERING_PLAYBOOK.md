@@ -285,7 +285,7 @@ python -m pyflakes folio_app app.py
 - **Svelte 전환은 화면 이식보다 데이터 계약 분리다.** 홈/상세/콘텐츠 화면은 먼저 RPC 응답 모양, nullable field, enum, visibility 규칙을 고정한 뒤 컴포넌트를 붙인다.
 - **FOLIO Svelte 앱은 현재 Cloudflare adapter 기반이다.** 로컬 Vite dev는 Miniflare/Wrangler 경로를 사용하므로 npm.cmd run dev:managed로 프로젝트 내부의 .runtime/ 경로를 지정하고, 배포 target을 바꾸지 않는 한 adapter와 실행 명령을 혼용하지 않는다.
 - **원격 Supabase contract smoke를 완료 조건에 넣는다.** 로컬 schema가 맞아도 원격 RPC, check 제약, upsert 제약이 예전이면 앱은 실패한다. DB patch 후에는 `npm.cmd run smoke:supabase`로 확인한다.
-- **검증 명령은 하나로 수렴시킨다.** Svelte 앱 변경 후 기본 완료 gate는 `svelte_app/`에서 `npm.cmd run verify`다. 이 명령은 check, build, Node route smoke, Supabase contract smoke, security smoke를 실행한다.
+- **검증 명령은 하나로 수렴시킨다.** Svelte 앱 변경 후 기본 완료 gate는 레포 루트에서 `npm.cmd run verify`다. 이 명령은 check, build, Node route smoke, Supabase contract smoke, security smoke를 실행한다.
 - **보안 smoke는 작은 경계를 자동화한다.** private env 이름/값이 클라이언트 코드와 bundle에 새지 않는지, thumbnail/PBIX/comment email endpoint가 익명 요청을 거절하는지 확인한다.
 - **SvelteKit CSRF와 앱 인증 gate를 구분한다.** FormData POST는 라우트 코드 전 CSRF 403으로 막힐 수 있다. bearer token 검증을 테스트하려면 같은 origin의 body 없는 POST처럼 앱 로직에 도달하는 최소 요청을 쓴다.
 - **Streamlit-to-Svelte UI parity는 정적 캡처 비교만으로 완료하지 않는다.** 원본의 코드 구조, 캡처, 현재 Svelte 렌더를 함께 보고 사용자가 실제로 조작하는 상태까지 비교한다. 특히 등록/수정 폼처럼 입력값이 히어로, 카드, 썸네일, 공개상태, 링크 패널에 반영되는 화면은 `empty`, `typed`, `radio-selected`, `file/url-selected`, `error`, `mobile` 상태를 각각 확인한다.
