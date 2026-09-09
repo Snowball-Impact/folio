@@ -1,5 +1,7 @@
 # FOLIO Svelte 리팩토링·최적화 인수인계
 
+> Historical note: 이 문서는 2026-08-29 시점의 인수인계 기록이다. `svelte_app/` 경로와 당시 브랜치/커밋은 루트 이전 전 상태를 설명한다. 현재 SvelteKit 앱은 repository root의 `package.json`, `src/`, `svelte.config.js`, `wrangler.jsonc`를 기준으로 실행·배포한다.
+
 이 문서는 Streamlit 원본과의 UIUX/기능 클로닝을 마친 현재 시점에서, Svelte 프로젝트를 구조적으로 리팩토링하고 성능을 개선하기 위한 새 컨텍스트용 시작 문서다.
 
 이 문서의 목적은 새로운 기능을 추가하는 것이 아니다. 이미 검증된 동작을 보존하면서 코드 중복, 상태 흐름, 렌더링 비용, 유지보수 위험을 줄이는 것이다.
@@ -9,7 +11,7 @@
 | 항목 | 현재 값 |
 |---|---|
 | Repository | `C:\workspace\folio` |
-| Svelte app | `svelte_app/` |
+| Svelte app | Historical handoff path: `svelte_app/`; current app: repository root |
 | Streamlit original | `folio_app/` |
 | 현재 브랜치 | `spike/svelte-public-pages` |
 | 최근 커밋 | `fbbde60 Complete Svelte UIUX parity and verification` |
@@ -156,7 +158,7 @@
 
 - 현재 Svelte adapter는 `@sveltejs/adapter-cloudflare`다. adapter-node 기준 문서를 현재 실행 기준으로 사용하지 않는다.
 - `.xdg-config/.wrangler`는 로컬 Wrangler 로그/registry이며 배포에 필요한 파일이 아니다. 저장소에 커밋하지 않는다.
-- 배포에는 `svelte_app/wrangler.jsonc`, Cloudflare adapter, 빌드 결과, dashboard variables/secrets가 필요하다.
+- 현재 배포에는 root `wrangler.jsonc`, Cloudflare adapter, 빌드 결과, dashboard variables/secrets가 필요하다.
 - Cloudflare Pages 배포가 성공해도 PBIX 크기 제한, 로컬 Playwright thumbnail capture, socket SMTP는 별도 호환성 결정이 필요하다.
 - `npm.cmd run build` 성공은 실제 Cloudflare preview/deploy와 동일하지 않다.
 
@@ -229,7 +231,7 @@
 ### 기본 확인
 
 ```powershell
-cd C:\workspace\folio\svelte_app
+cd C:\workspace\folio
 npm.cmd run check
 npm.cmd run build
 ```

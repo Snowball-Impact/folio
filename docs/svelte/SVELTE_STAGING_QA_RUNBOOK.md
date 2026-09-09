@@ -14,7 +14,7 @@
 
 ### 자동 gate
 
-`C:\workspace\folio\svelte_app`에서 실행한다.
+`C:\workspace\folio`에서 실행한다.
 
 ```powershell
 npm.cmd install
@@ -64,8 +64,8 @@ SMTP를 이번 QA 범위에 포함할 때:
 
 Thumbnail capture를 이번 QA 범위에 포함할 때:
 
-- Playwright 또는 system Chromium 사용 가능
-- 필요한 경우 `CHROME_BINARY_PATH`
+- Cloudflare Browser Rendering API binding 또는 동등한 server-side capture runtime 사용 가능
+- 로컬 검증에서만 Playwright 또는 system Chromium fallback 사용
 - host memory, sandbox, request timeout 확인
 
 ## 2. 테스트 데이터

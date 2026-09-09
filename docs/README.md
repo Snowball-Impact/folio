@@ -7,8 +7,9 @@
 | 작업 대상 | 먼저 읽을 문서 |
 |---|---|
 | 공통 제품·데이터·개발 원칙 | [common/README.md](common/README.md) |
-| Streamlit 원본·기존 운영 | [streamlit/README.md](streamlit/README.md) |
 | 현재 SvelteKit·Cloudflare | [svelte/README.md](svelte/README.md) |
+| 운영 모니터링·롤백 | [ops/PRODUCTION_MONITORING.md](ops/PRODUCTION_MONITORING.md) |
+| Streamlit 원본·기존 운영 | [streamlit/README.md](streamlit/README.md) |
 | Streamlit↔Svelte 전환·UIUX 증거 | [migration/README.md](migration/README.md) |
 | 과거 초안·완료 기록 | [legacy/README.md](legacy/README.md) |
 
@@ -32,7 +33,7 @@
 
 ## Streamlit
 
-`folio_app/`와 루트 `app.py`의 원본 실행·배포·통합 검증 문서다.
+`folio_app/`와 루트 `app.py`의 레거시 원본 실행·배포·통합 검증 문서다. 현재 운영 배포 기준은 SvelteKit이다.
 
 - [streamlit/PAAS_DEPLOYMENT.md](streamlit/PAAS_DEPLOYMENT.md): Docker 기반 Streamlit PaaS 배포
 - [streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md](streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md): Streamlit Community Cloud 기록
@@ -46,14 +47,20 @@
 - [svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md](svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md): 개발·테스트 환경
 - [svelte/SVELTE_E2E_READINESS.md](svelte/SVELTE_E2E_READINESS.md): E2E go/no-go 기준
 - [svelte/SVELTE_STAGING_QA_RUNBOOK.md](svelte/SVELTE_STAGING_QA_RUNBOOK.md): staging 수동 QA
-- [svelte/SVELTE_PHASE0_DATA_CONTRACTS.md](svelte/SVELTE_PHASE0_DATA_CONTRACTS.md): 구현 전 데이터 계약
-- [svelte/SVELTE_REFACTOR_CHECKLIST_2026-08-29.md](svelte/SVELTE_REFACTOR_CHECKLIST_2026-08-29.md): 리팩토링·최적화 실행 기록
-- [svelte/SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md](svelte/SVELTE_REFACTOR_OPTIMIZATION_HANDOFF_2026-08-29.md): 새 컨텍스트 인수인계
 - [svelte/SVELTE_RUM_CONTRACT_2026-08-29.md](svelte/SVELTE_RUM_CONTRACT_2026-08-29.md): 선택형 RUM 계약
+- [svelte/SVELTE_UIUX_DESIGN_SYSTEM.md](svelte/SVELTE_UIUX_DESIGN_SYSTEM.md): Svelte UIUX 기준과 QA 루틴
+
+날짜가 붙은 phase/refactor/checklist 문서는 당시 작업 기록이다. 현재 명령·경로와 다르면 위 기준 문서와 실제 코드를 우선한다.
+
+## Ops
+
+- [ops/PRODUCTION_MONITORING.md](ops/PRODUCTION_MONITORING.md): Cloudflare Pages 배포 이후 모니터링·롤백 체크리스트
 
 ## Migration
 
 두 구현을 비교하거나 SvelteKit 이전 과정의 UIUX·기능 증거를 기록한 문서다.
+
+이 폴더의 문서는 historical record다. `svelte_app/` 경로, 과거 포트, 과거 브랜치, 과거 adapter 언급은 당시 상태를 설명하는 기록으로 둔다. 현재 실행 기준은 `svelte/`의 active 문서와 실제 루트 코드를 따른다.
 
 - [migration/SVELTE_MIGRATION_PRD.md](migration/SVELTE_MIGRATION_PRD.md): SvelteKit 단계적 재구축 계획
 - [migration/SVELTE_MIGRATION_RETROSPECTIVE.md](migration/SVELTE_MIGRATION_RETROSPECTIVE.md): 이전 과정 회고
