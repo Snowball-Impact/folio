@@ -1,10 +1,12 @@
 <script lang="ts">
-import { onDestroy, onMount } from 'svelte';
-import type { Editor as TiptapEditor } from '@tiptap/core';
-import ProjectRichContent from './ProjectRichContent.svelte';
-import RichEditorIcon from './RichEditorIcon.svelte';
+	import { onDestroy, onMount } from 'svelte';
+	import type { Editor as TiptapEditor } from '@tiptap/core';
+	import ProjectRichContent from './ProjectRichContent.svelte';
+	import RichEditorIcon from './RichEditorIcon.svelte';
 
 	type BodyImageFileChange = (file: File, objectUrl: string) => void;
+	type FontSizeValue = '' | '0.75em' | '1.5em' | '2.5em';
+	type FontFamilyValue = '' | 'sans-serif' | 'serif' | 'monospace';
 
 	let {
 		value,
@@ -23,7 +25,11 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 	let lastEmittedHtml = '';
 	type BlockFormat = 'paragraph' | 'heading1' | 'heading2' | 'heading3' | 'heading4' | 'heading5' | 'heading6';
 	let blockFormat = $state<BlockFormat>('paragraph');
+	let fontSize = $state<FontSizeValue>('');
+	let fontFamily = $state<FontFamilyValue>('');
 	let imageInput = $state<HTMLInputElement | null>(null);
+	const textColors = ['#1459c8', '#0a9485', '#9c1d34', '#6b7280'];
+	const highlightColors = ['#fff2a8', '#d9f4ef', '#eaf2ff', '#ffe4e6'];
 
 	function syncBlockFormat(instance: TiptapEditor | null = editor) {
 		if (!instance) {
@@ -206,6 +212,81 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		});
 	}
 
+	function setFontSize(event: Event) {
+		const value = (event.currentTarget as HTMLSelectElement).value as FontSizeValue;
+		fontSize = value;
+		run(() => {
+			const chain = editor?.chain().focus() as ReturnType<TiptapEditor['chain']> & {
+				setFontSize?: (size: string) => { run: () => boolean };
+				unsetFontSize?: () => { run: () => boolean };
+			};
+			if (!chain) {
+				return false;
+			}
+			return value ? (chain.setFontSize?.(value).run() ?? false) : (chain.unsetFontSize?.().run() ?? false);
+		});
+	}
+
+	function setFontFamily(event: Event) {
+		const value = (event.currentTarget as HTMLSelectElement).value as FontFamilyValue;
+		fontFamily = value;
+		run(() => {
+			const chain = editor?.chain().focus() as ReturnType<TiptapEditor['chain']> & {
+				setFontFamily?: (family: string) => { run: () => boolean };
+				unsetFontFamily?: () => { run: () => boolean };
+			};
+			if (!chain) {
+				return false;
+			}
+			return value ? (chain.setFontFamily?.(value).run() ?? false) : (chain.unsetFontFamily?.().run() ?? false);
+		});
+	}
+
+	function setTextColor(color: string) {
+		run(() => {
+			const chain = editor?.chain().focus() as ReturnType<TiptapEditor['chain']> & {
+				setColor?: (color: string) => { run: () => boolean };
+			};
+			return chain?.setColor?.(color).run() ?? false;
+		});
+	}
+
+	function setHighlightColor(color: string) {
+		run(() => editor?.chain().focus().toggleHighlight({ color }).run() ?? false);
+	}
+
+	function clearTextStyle() {
+		run(() => {
+			const chain = editor?.chain().focus() as ReturnType<TiptapEditor['chain']> & {
+				unsetColor?: () => { unsetFontFamily?: () => { unsetFontSize?: () => { run: () => boolean } }; run?: () => boolean };
+			};
+			const withoutColor = chain?.unsetColor?.();
+			const withoutFamily = withoutColor?.unsetFontFamily?.();
+			return withoutFamily?.unsetFontSize?.().run() ?? withoutColor?.run?.() ?? false;
+		});
+		fontSize = '';
+		fontFamily = '';
+	}
+
+	function changeIndent(direction: -1 | 1) {
+		if (!editor) {
+			return;
+		}
+		const current = Math.max(
+			0,
+			Math.min(6, Number(editor.getAttributes('paragraph').indent ?? editor.getAttributes('heading').indent ?? 0))
+		);
+		const next = Math.max(0, Math.min(6, current + direction));
+		run(() =>
+			editor
+				?.chain()
+				.focus()
+				.updateAttributes('paragraph', { indent: next })
+				.updateAttributes('heading', { indent: next })
+				.run() ?? false
+		);
+	}
+
 	function setLink() {
 		if (!editor) {
 			return;
@@ -232,8 +313,8 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		input.value = '';
 		if (!file || !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
 			return;
-	}
-	const objectUrl = URL.createObjectURL(file);
+		}
+		const objectUrl = URL.createObjectURL(file);
 		const inserted = run(() => insertImageNode(objectUrl, file.name));
 		if (inserted) {
 			onImageFile(file, objectUrl);
@@ -257,16 +338,21 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 	}
 </script>
 
-	<div class="rich-editor-shell">
+<div class="rich-editor-shell">
 	<div class="rich-editor-toolbar" aria-label="본문 서식 도구">
 		<div class="rich-editor-toolbar-group" aria-label="글자 서식">
 			<button type="button" aria-label="굵게" class:active={editor?.isActive('bold')} title="굵게" onclick={() => run(() => editor?.chain().focus().toggleBold().run() ?? false)}><RichEditorIcon name="bold" /></button>
 			<button type="button" aria-label="기울임" class:active={editor?.isActive('italic')} title="기울임" onclick={() => run(() => editor?.chain().focus().toggleItalic().run() ?? false)}><RichEditorIcon name="italic" /></button>
 			<button type="button" aria-label="밑줄" class:active={editor?.isActive('underline')} title="밑줄" onclick={() => run(() => editor?.chain().focus().toggleUnderline().run() ?? false)}><RichEditorIcon name="underline" /></button>
+			<button type="button" aria-label="위첨자" class:active={editor?.isActive('superscript')} title="위첨자" onclick={() => run(() => editor?.chain().focus().toggleSuperscript().run() ?? false)}><RichEditorIcon name="superscript" /></button>
+			<button type="button" aria-label="아래첨자" class:active={editor?.isActive('subscript')} title="아래첨자" onclick={() => run(() => editor?.chain().focus().toggleSubscript().run() ?? false)}><RichEditorIcon name="subscript" /></button>
+			<button type="button" aria-label="인라인 코드" class:active={editor?.isActive('code')} title="인라인 코드" onclick={() => run(() => editor?.chain().focus().toggleCode().run() ?? false)}><RichEditorIcon name="code" /></button>
 		</div>
 		<div class="rich-editor-toolbar-group" aria-label="목록과 정렬">
 			<button type="button" aria-label="번호 목록" class:active={editor?.isActive('orderedList')} title="번호 목록" onclick={() => run(() => editor?.chain().focus().toggleOrderedList().run() ?? false)}><RichEditorIcon name="ordered-list" /></button>
 			<button type="button" aria-label="글머리 목록" class:active={editor?.isActive('bulletList')} title="글머리 목록" onclick={() => run(() => editor?.chain().focus().toggleBulletList().run() ?? false)}><RichEditorIcon name="bullet-list" /></button>
+			<button type="button" aria-label="내어쓰기" title="내어쓰기" onclick={() => changeIndent(-1)}><RichEditorIcon name="outdent" /></button>
+			<button type="button" aria-label="들여쓰기" title="들여쓰기" onclick={() => changeIndent(1)}><RichEditorIcon name="indent" /></button>
 			<button type="button" aria-label="왼쪽 정렬" class:active={editor?.isActive({ textAlign: 'left' })} title="왼쪽 정렬" onclick={() => run(() => editor?.chain().focus().setTextAlign('left').run() ?? false)}><RichEditorIcon name="align-left" /></button>
 			<button type="button" aria-label="가운데 정렬" class:active={editor?.isActive({ textAlign: 'center' })} title="가운데 정렬" onclick={() => run(() => editor?.chain().focus().setTextAlign('center').run() ?? false)}><RichEditorIcon name="align-center" /></button>
 			<button type="button" aria-label="오른쪽 정렬" class:active={editor?.isActive({ textAlign: 'right' })} title="오른쪽 정렬" onclick={() => run(() => editor?.chain().focus().setTextAlign('right').run() ?? false)}><RichEditorIcon name="align-right" /></button>
@@ -274,13 +360,40 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		<div class="rich-editor-toolbar-group" aria-label="문단 형식">
 			<select class="rich-editor-format-select" aria-label="문단 형식" bind:value={blockFormat} onchange={setBlockFormat}>
 				<option value="paragraph">Normal</option>
+				<option value="heading1">H1</option>
 				<option value="heading2">H2</option>
 				<option value="heading3">H3</option>
+				<option value="heading4">H4</option>
+				<option value="heading5">H5</option>
+				<option value="heading6">H6</option>
 			</select>
+			<select class="rich-editor-size-select" aria-label="글자 크기" bind:value={fontSize} onchange={setFontSize}>
+				<option value="">Normal</option>
+				<option value="0.75em">Small</option>
+				<option value="1.5em">Large</option>
+				<option value="2.5em">Huge</option>
+			</select>
+			<select class="rich-editor-font-select" aria-label="글꼴" bind:value={fontFamily} onchange={setFontFamily}>
+				<option value="">Sans</option>
+				<option value="serif">Serif</option>
+				<option value="monospace">Mono</option>
+			</select>
+		</div>
+		<div class="rich-editor-toolbar-group" aria-label="색상">
+			{#each textColors as color}
+				<button type="button" class="rich-editor-swatch" aria-label={`글자 색상 ${color}`} title={`글자 색상 ${color}`} style={`--swatch-color: ${color}`} onclick={() => setTextColor(color)}></button>
+			{/each}
+			{#each highlightColors as color}
+				<button type="button" class="rich-editor-swatch highlight" aria-label={`배경색 ${color}`} title={`배경색 ${color}`} style={`--swatch-color: ${color}`} onclick={() => setHighlightColor(color)}></button>
+			{/each}
+			<button type="button" aria-label="색상 지우기" title="색상 지우기" onclick={clearTextStyle}><RichEditorIcon name="clear" /></button>
 		</div>
 		<div class="rich-editor-toolbar-group" aria-label="링크와 이미지">
 			<button type="button" aria-label="링크" class:active={editor?.isActive('link')} title="링크" onclick={setLink}><RichEditorIcon name="link" /></button>
 			<button type="button" aria-label="이미지 파일 업로드" title="이미지 파일 업로드" onclick={openImageFilePicker}><RichEditorIcon name="upload" /></button>
+			<button type="button" aria-label="인용" class:active={editor?.isActive('blockquote')} title="인용" onclick={() => run(() => editor?.chain().focus().toggleBlockquote().run() ?? false)}><RichEditorIcon name="blockquote" /></button>
+			<button type="button" aria-label="코드 블록" class:active={editor?.isActive('codeBlock')} title="코드 블록" onclick={() => run(() => editor?.chain().focus().toggleCodeBlock().run() ?? false)}><RichEditorIcon name="code-block" /></button>
+			<button type="button" aria-label="구분선" title="구분선" onclick={() => run(() => editor?.chain().focus().setHorizontalRule().run() ?? false)}><RichEditorIcon name="rule" /></button>
 			<button type="button" aria-label="되돌리기" title="되돌리기" onclick={() => run(() => editor?.chain().focus().undo().run() ?? false)}><RichEditorIcon name="undo" /></button>
 			<button type="button" aria-label="다시 실행" title="다시 실행" onclick={() => run(() => editor?.chain().focus().redo().run() ?? false)}><RichEditorIcon name="redo" /></button>
 		</div>
@@ -353,7 +466,9 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 		flex: 0 0 18px;
 	}
 
-	.rich-editor-format-select {
+	.rich-editor-format-select,
+	.rich-editor-size-select,
+	.rich-editor-font-select {
 		min-height: 24px;
 		padding: 3px 22px 3px 5px;
 		border: 0;
@@ -367,6 +482,36 @@ import RichEditorIcon from './RichEditorIcon.svelte';
 
 	.rich-editor-toolbar .rich-editor-format-select {
 		width: 96px;
+	}
+
+	.rich-editor-toolbar .rich-editor-size-select {
+		width: 88px;
+	}
+
+	.rich-editor-toolbar .rich-editor-font-select {
+		width: 82px;
+	}
+
+	.rich-editor-swatch {
+		position: relative;
+		min-width: 24px;
+		width: 24px;
+		height: 24px;
+		padding: 3px;
+	}
+
+	.rich-editor-swatch::before {
+		display: block;
+		width: 14px;
+		height: 14px;
+		border: 1px solid rgba(11, 31, 63, 0.18);
+		border-radius: 999px;
+		background: var(--swatch-color);
+		content: '';
+	}
+
+	.rich-editor-swatch.highlight::before {
+		border-radius: 3px;
 	}
 
 	.rich-editor-toolbar button:hover,

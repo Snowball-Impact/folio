@@ -549,12 +549,13 @@ workflow는 수동 실행과 Admin 트리거를 모두 지원한다.
 필수 단계:
 
 - 저장소 checkout
-- Python 환경 준비
+- Node 환경 준비
 - 의존성 설치
 - `python tools/collect_powerbi_all.py`
-- `python -m compileall -q folio_app\pages\powerbi.py folio_app\services\powerbi_content.py folio_app\services\powerbi_i18n.py tools\collect_powerbi_all.py`
-- `python -m unittest tests.test_powerbi_content`
-- 변경사항이 있으면 `docs/curation/powerbi_*`와 `folio_app/static/powerbi_learning_thumbs` 커밋
+- `python -m py_compile tools\collect_powerbi_all.py tools\collect_powerbi_learning_videos.py tools\project_payload.py`
+- `npm.cmd run check`
+- `npm.cmd run test:unit`
+- 변경사항이 있으면 `docs/curation/powerbi_*`와 `static/powerbi_learning_thumbs` 커밋
 - `main`에 push
 
 변경사항이 없으면 커밋하지 않고 성공으로 종료한다.

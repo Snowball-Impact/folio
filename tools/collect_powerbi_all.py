@@ -11,7 +11,7 @@ from typing import Callable
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-THUMBNAIL_DIR = ROOT_DIR / "folio_app" / "static" / "powerbi_learning_thumbs"
+THUMBNAIL_DIR = ROOT_DIR / "static" / "powerbi_learning_thumbs"
 
 
 @dataclass(frozen=True)
@@ -184,18 +184,10 @@ def _referenced_thumbnail_names() -> set[str]:
 
 
 def _check_powerbi_reference() -> StepResult:
-    sys.path.insert(0, str(ROOT_DIR))
-    try:
-        from folio_app.services.project_references import REFERENCE_PLATFORM_BY_KEY
-    except Exception as exc:
-        return StepResult("Official reference check", "failed", f"import failed: {exc}")
-    platform = REFERENCE_PLATFORM_BY_KEY.get("powerbi")
-    logo = ROOT_DIR / "folio_app" / "static" / "reference-powerbi-logo-cropped.webp"
-    if not platform:
-        return StepResult("Official reference check", "failed", "missing powerbi platform")
+    logo = ROOT_DIR / "static" / "reference-powerbi-logo-cropped.webp"
     if not logo.exists():
         return StepResult("Official reference check", "failed", f"missing logo: {logo.relative_to(ROOT_DIR)}")
-    return StepResult("Official reference check", "ok", f"label={platform.label}")
+    return StepResult("Official reference check", "ok", "label=Power BI")
 
 
 def _validate_outputs() -> list[StepResult]:

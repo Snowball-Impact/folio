@@ -1,6 +1,8 @@
-# PaaS 배포 운영 절차
+# Historical: Streamlit PaaS 배포 운영 절차
 
-FOLIO의 운영 배포 기준은 Streamlit Community Cloud 자동 배포에서 Docker 기반 PaaS 배포로 전환한다. 앱은 계속 Streamlit으로 실행하지만, 런타임은 직접 관리하는 컨테이너가 된다.
+이 문서는 Streamlit 앱을 Docker 기반 PaaS로 옮기려던 과거 운영 계획이다. 현재 운영 배포 기준은 repository root의 SvelteKit 앱과 Cloudflare Pages이며, 이 문서의 `Dockerfile`, `requirements*.txt`, `packages.txt`, `app.py`, `folio_app/` 경로는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관된 과거 소스를 가리킨다.
+
+현재 배포 절차는 `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`를 따른다.
 
 ## 1. 권장 방향
 

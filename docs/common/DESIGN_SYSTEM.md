@@ -22,7 +22,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ## 2. 디자인 토큰
 
-현재 실제 CSS 토큰은 `folio_app/styles/tokens.py`의 `:root`에 있다.
+현재 실제 CSS 토큰은 `src/styles/00-foundation.css`의 `:root`에 있다.
 
 | 토큰 | 값 | 용도 |
 |---|---:|---|
@@ -70,7 +70,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Reference Hero
 
-파일: `folio_app/pages/reference.py`, `folio_app/styles/reference.py`
+파일: `src/routes/references/[platform]/+page.svelte`, `src/styles/60-powerbi-policy.css`
 
 - shell은 홈 히어로의 surface, border, 16px radius, desktop padding, grid column 기준을 따른다.
 - eyebrow, title, description의 font-size, weight, line-height는 홈 히어로와 같은 값을 사용한다.
@@ -87,7 +87,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Header
 
-파일: `folio_app/components/layout.py`, `folio_app/styles/header.py`
+파일: `src/routes/+layout.svelte`, `src/styles/00-foundation.css`
 
 - dark navy surface
 - 왼쪽 Folio 로고, 오른쪽 nav
@@ -96,7 +96,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Page Hero
 
-파일: `folio_app/components/layout.py`, `folio_app/styles/hero.py`
+파일: `src/routes/+page.svelte`, `src/styles/10-heroes.css`
 
 - `render_hero()`를 우선 사용한다.
 - 등록/마이페이지는 홈 히어로 기준 여백을 따른다.
@@ -106,7 +106,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Project Card
 
-파일: `folio_app/components/ui.py`, `folio_app/components/home_gallery.py`, `folio_app/styles/cards.py`, `folio_app/styles/project_card_cover.py`, `folio_app/styles/gallery_rail.py`
+파일: `src/lib/components/ProjectCard.svelte`, `src/lib/components/ProjectRail.svelte`, `src/styles/40-cards-detail.css`
 
 - 16:9 미디어 타일
 - 제목 2줄, 요약 1줄, 태그 최대 4개 + `+N`, 푸터 메타
@@ -129,7 +129,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Button
 
-파일: `folio_app/styles/buttons_inputs.py`
+파일: `src/styles/00-foundation.css`, `src/styles/50-project-form.css`
 
 - primary action은 파란 배경과 흰 글자를 사용한다.
 - secondary action은 흰 배경, border, navy/blue 텍스트를 사용한다.
@@ -138,7 +138,7 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Form Section Header
 
-파일: `folio_app/components/project_form.py`, `folio_app/styles/project_form.py`
+파일: `src/lib/projectForm.ts`, `src/lib/components/ProjectBodyEditor.svelte`, `src/styles/50-project-form.css`
 
 - 제목 왼쪽, 설명 오른쪽
 - 번호 원형 배지는 사용하지 않는다.
@@ -146,17 +146,17 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 
 ### Detail Action Bar
 
-파일: `folio_app/pages/project_detail.py`, `folio_app/components/share.py`, `folio_app/styles/detail_page.py`, `folio_app/styles/hero_footer.py`
+파일: `src/routes/projects/[id]/+page.svelte`, `src/lib/components/ProjectLikeButton.svelte`, `src/styles/40-cards-detail.css`
 
 - 조회수, 댓글 수, 공개 상태, 링크 복사 버튼은 `project_action_group_html()`이 일반 HTML로 렌더링한다. 보이는 액션 UI는 custom component iframe 안에 넣지 않는다.
 - 좋아요는 로그인 상태와 mutation 흐름 때문에 Streamlit button으로 유지하되, 액션 그룹 바로 오른쪽에 둔다.
-- 조회수, 댓글 수, 공개 상태, 링크 복사, 좋아요를 별도 `st.columns()`에 흩어놓지 않는다. 상세 footer는 `st.container(horizontal=True, key="detail_footer_row")` 한 줄 안에서 메타, 액션 그룹, 좋아요 버튼을 sibling으로 둔다.
+- 조회수, 댓글 수, 공개 상태, 링크 복사, 좋아요를 별도 레이아웃에 흩어놓지 않는다. 상세 footer는 같은 flex/grid 컨테이너 안에서 메타, 액션 그룹, 좋아요 버튼을 sibling으로 둔다.
 - 링크 복사 기능은 보이지 않는 0 크기 custom component iframe으로 이벤트 핸들러만 주입한다. iframe 안에 보이는 칩을 넣으면 viewport clipping으로 일부 칩이 잘릴 수 있다.
 - 링크 복사 버튼 폭은 좋아요 칩과 통일감을 주는 수준으로 제한하고, 액션 그룹 전체는 우측 정렬한다.
 
 ### Profile Summary
 
-파일: `folio_app/pages/protected.py`, `folio_app/styles/profile.py`
+파일: `src/routes/my/+page.svelte`, `src/styles/50-project-form.css`
 
 - 중앙 정렬
 - 작성자, 소속, 이메일 값은 20px
@@ -172,18 +172,18 @@ FOLIO는 흰 surface와 연한 blue-gray 배경을 기본으로 한다. 어두�
 - 좌우 레일 버튼은 카드 탐색에만 사용한다.
 - 외부 결과물 링크는 상세의 대표 결과물 섹션 하단 액션으로 둔다.
 
-## 7. Streamlit 구현 규칙
+## 7. Svelte 구현 규칙
 
-Streamlit UI는 Python 레이아웃과 브라우저 DOM wrapper가 같이 만든다. 시각 문제가 생기면 CSS만 보지 않는다.
+Svelte UI는 component markup, route state, global style cascade가 함께 만든다. 시각 문제가 생기면 CSS 값만 보지 않고 DOM 구조와 상태 전이를 함께 확인한다.
 
-- `st.columns()` 비율이 불필요한 빈 폭을 만들고 있는지 확인한다.
-- `st.container(key=...)`가 실제로 어떤 `.st-key-*` wrapper를 만드는지 확인한다.
-- `components.html()` iframe은 주변 button과 높이/정렬 기준이 다르다.
-- selector가 실제 요소에 매치되는지 DOM에서 확인한다. key class와 target attribute가 같은 노드에 있으면 descendant selector가 아니라 compound selector를 써야 한다.
+- grid/flex 비율이 불필요한 빈 폭을 만들고 있는지 확인한다.
+- component class와 route-level wrapper가 실제로 어느 DOM 노드에 붙는지 확인한다.
+- iframe과 주변 button은 높이/정렬 기준이 다르므로 같은 행에 둘 때 bounding box를 본다.
+- selector가 실제 요소에 매치되는지 DOM에서 확인한다.
 - 같은 줄로 보여야 하는 요소는 실제 구조에서도 같은 flex/grid 컨테이너 안에 둔다.
-- Streamlit markdown, custom component iframe, Streamlit button이 섞이는 행은 wrapper가 세 종류가 되므로 먼저 구조를 단순화한다.
+- `{@html ...}`, iframe, button이 섞이는 행은 먼저 구조를 단순화한다.
 - 강한 상호작용은 화면 전용 wrapper 아래로 scope를 제한한다.
-- Streamlit 내부 auto-generated class에는 의존하지 않는다.
+- Svelte generated class명이나 third-party editor 내부 구조에는 과하게 의존하지 않는다.
 
 ## 8. 새 화면 추가 체크리스트
 

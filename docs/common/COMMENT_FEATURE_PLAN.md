@@ -101,13 +101,12 @@
 
 ## 6. 구현 위치
 
-- UI: folio_app/pages/project_detail.py, folio_app/components/project_comments.py, folio_app/components/project_detail_content.py
-- 서비스 facade: folio_app/services/comments.py, folio_app/services/projects.py
-- 댓글 구현 모듈: folio_app/services/comment_queries.py, comment_mutations.py, comment_reads.py, comment_stats.py, comment_utils.py
-- 프로젝트 연동 구현 모듈: folio_app/services/project_queries.py, project_mutations.py
-- 스타일: folio_app/styles/detail_comments.py, detail_visual.py, detail_page.py, hero_footer.py
+- UI: `src/routes/projects/[id]/+page.svelte`, `src/lib/components/ProjectComments.svelte`, `src/lib/components/ProjectRichContent.svelte`
+- 댓글/알림 로직: `src/lib/comments.ts`, `src/lib/notifications.ts`, `src/routes/api/comments/[id]/email-notification/+server.ts`
+- 프로젝트 연동 로직: `src/lib/projects.ts`, `src/lib/likes.ts`
+- 스타일: `src/styles/40-cards-detail.css`
 - DB 스키마: supabase/schema.sql
-- 테스트: tests/test_comments.py, tests/test_detail_components.py, tests/test_ui_cards.py, tests/test_auth_stability.py
+- 테스트: `tests/uiux/`, `tests/unit/`
 
 ## 7. 구현 순서
 

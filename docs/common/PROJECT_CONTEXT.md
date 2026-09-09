@@ -2,7 +2,7 @@
 
 새 대화에서 작업을 이어갈 때 이 문서를 먼저 읽어라.
 코드와 문서가 다르면 코드베이스를 확인한 뒤 이 문서를 고쳐라.
-문서 영역은 `docs/common/`, `docs/streamlit/`, `docs/svelte/`, `docs/migration/`, `docs/legacy/`로 나뉜다. SvelteKit 작업은 `docs/svelte/README.md`, Streamlit 원본 작업은 `docs/streamlit/README.md`, 이전 증거는 `docs/migration/README.md`를 이어서 읽는다.
+문서 영역은 `docs/common/`, `docs/svelte/`, `docs/streamlit/`, `docs/migration/`, `docs/legacy/`로 나뉜다. SvelteKit 작업은 `docs/svelte/README.md`, Streamlit 원본 백업·과거 기록은 `docs/streamlit/README.md`, 이전 증거는 `docs/migration/README.md`를 이어서 읽는다.
 민감 정보(API 키, 비밀번호 등)는 이 문서에 기록하지 않는다.
 
 ---
@@ -18,7 +18,7 @@
 - **실행**: `npm.cmd run dev:managed -- --Port 5174`
 - **엔트리**: 루트 `src/routes/`, `src/lib/`, `package.json`
 - **배포 채널**: Cloudflare Pages. Root directory는 비우거나 repository root로 두고, build command는 `npm run build`, output은 `.svelte-kit/cloudflare`이다.
-- **레거시**: 루트 `app.py`, `folio_app/`, Python 테스트, `docs/streamlit/`은 Streamlit 원본 비교·참조용으로 유지한다.
+- **레거시**: Streamlit 원본은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)과 `docs/streamlit/` historical record로만 보관한다.
 
 ### 현재 핸드오프 상태 (2026-09-09)
 
@@ -27,6 +27,8 @@
 - `main`은 PR #198 merge commit `a6caee3` 기준으로 SvelteKit 앱을 repository root로 이동했다.
 - `svelte_app/` 디렉터리는 삭제 완료했다. Git 추적 파일도 0개다.
 - Cloudflare Pages 배포는 repository root 기준으로 완료했다.
+- Streamlit 원본 백업은 `archive/streamlit_app_20260909.zip`에 보관한다. `archive/`는 로컬 전용이며 Git 추적에서 제외한다.
+- 푸터 배포 확인 버전은 `v2026.09.09.01`이다.
 - 현재 주요 실행 명령은 루트에서 `npm.cmd run check`, `npm.cmd run build`, `npm.cmd run test:unit`, `npm.cmd run verify`이다.
 - Windows 로컬 개발은 Wrangler/Miniflare profile path `EPERM`을 피하기 위해 `npm.cmd run dev:managed -- --Port 5174`를 기본으로 쓴다.
 - 현재 문서 기준은 `README.md`, `docs/README.md`, `docs/common/ARCHITECTURE.md`, `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`, `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`이다.
@@ -52,17 +54,17 @@ Historical note: 아래 섹션은 Streamlit 중심 운영 및 Svelte 이전 전 
 - 레퍼런스의 `더 보기`는 아직 기존 Streamlit 방식이다. 하단 도달 시 `visible` query parameter를 늘리고 rerun으로 다음 묶음을 렌더링한다.
 - 홈 히어로 1번 설명은 서비스 방향성에 맞춰 "FOLIO는 좋은 시각화를 발견하고, 직접 경험하며 토론하고 함께 성장하는 커뮤니티입니다."로 변경했다. 히어로 설명 문장은 쉼표 뒤에서 줄바꿈하며, 첫 줄은 짧고 아래 줄이 더 길고 무겁게 받치는 구도를 선호한다.
 - 나머지 홈 히어로 설명도 같은 줄바꿈 균형을 적용했다.
-- 푸터는 좌측 저작권, 중앙 앱 버전, 우측 정책 링크 묶음으로 배치한다. 버전 문자열은 `folio_app/app.py`의 `APP_VERSION`에 둔다.
-- 버전 숫자는 실제 배포할 때 갱신한다. 현재 배포 확인 버전은 `v2026.08.24.01`이다.
+- 푸터는 좌측 저작권, 중앙 앱 버전, 우측 정책 링크 묶음으로 배치한다. 현재 SvelteKit 푸터 버전 문자열은 `src/routes/+layout.svelte`에 둔다.
+- 버전 숫자는 실제 배포할 때 갱신한다. 현재 배포 확인 버전은 `v2026.09.09.01`이다.
 - 홈 기본 로딩 최적화를 위해 첫 화면 카드 레일은 레일당 6개만 가져와 렌더링한다. 검색/태그/플랫폼 필터를 쓰는 경우에는 기존 전체 필터 경로를 사용한다.
 - 홈 인기 태그에는 플랫폼 메뉴성 태그와 레퍼런스 분류 태그를 노출하지 않는다. 제외 대상은 `Tableau`, `Power BI`, `Data Studio`, `Streamlit`, `Looker Studio`, `Other`, `reference`, `references`, `레퍼런스`, `참고` 등이다.
 - 등록/수정에서 PBIX 업로드와 썸네일 자동 캡처를 함께 쓰면 PBIX 게시/배포 완료와 명시 대기 후 캡처가 실행되어야 한다. 게시 대기와 캡처 대기는 각각 진행률 메시지를 표시한다.
-- 다음 작업 후보는 Power BI 콘텐츠 번역 품질 개선이다. 새 컨텍스트에서는 `docs/curation/powerbi_CONTENT_OPS.md`, `docs/curation/powerbi_*`, `folio_app/services/powerbi_content.py`, `folio_app/services/powerbi_i18n.py`, `tests/test_powerbi_content.py`와 관련 테스트를 먼저 분석하고, 바로 수정하지 말고 번역 대상/방식/우선순위 계획부터 세운다.
+- 다음 작업 후보는 Power BI 콘텐츠 번역 품질 개선이다. 새 컨텍스트에서는 `docs/curation/powerbi_CONTENT_OPS.md`, `docs/curation/powerbi_*`, `src/lib/server/powerbi-content.ts`, `tests/unit/`과 관련 smoke를 먼저 분석하고, 바로 수정하지 말고 번역 대상/방식/우선순위 계획부터 세운다.
 - 검증 완료 명령:
-  - `python -m pyflakes folio_app app.py tests`
-  - `python -m unittest tests.test_project_references tests.test_core_flows tests.test_ui_cards -v`
-  - `python -m pyflakes folio_app\pages\home.py`
-  - `python -m unittest discover -s tests -v`
+  - `npm.cmd run check`
+  - `npm.cmd run test:unit`
+  - `npm.cmd run build`
+  - `npm.cmd run smoke:security`
 
 ### PRD v1.5 전환 기준
 
@@ -89,69 +91,30 @@ Historical note: 아래 섹션은 Streamlit 중심 운영 및 Svelte 이전 전 
 ## 파일 구조 (핵심만)
 
 ```
-folio_app/
-  app.py                  # 진입점. 쿠키 복구, 라우팅, 온보딩 체크
-  styles/                 # 전역 CSS 주입 (apply_global_styles), UI 영역별 CSS 모듈
-  config.py               # 환경변수 로드 (get_settings)
-  navigation.py           # 내부 이동 공통 헬퍼와 허용 라우트
-  components/
-    assets.py             # static 이미지 data URI 헬퍼
-    dashboard.py          # 상세 대표 결과물 iframe 컴포넌트
-    home_gallery.py       # 홈 카드 레일, 카드 preview script, count-up script
-    layout.py             # render_header(), render_hero()
-    auth_forms.py         # auth 컴포넌트 public facade
-    auth_login.py         # 로그인 폼
-    auth_signup.py        # 회원가입 폼
-    auth_password_reset.py # 비밀번호 재설정 폼
-    auth_validation.py    # 회원가입 입력/정책 검증
-    analytics.py          # GA page view/event script bridge
-    policy_consent.py     # 약관 동의 checkbox/링크 렌더링
-    portfolio_items.py    # 마이페이지 프로젝트 관리 카드
-    profile_summary.py    # 마이페이지 프로필·통계 요약 HTML
-    project_body.py       # Quill 본문 편집기, 섹션 파싱, plain text 변환
-    project_comments.py   # 상세 댓글·답글 UI
-    project_detail_content.py # 상세 대표 결과물, 본문 섹션, 외부 링크 액션
-    project_editor.py     # 등록/수정 제출 흐름
-    share.py              # 공유 버튼, 상세 액션 그룹 HTML 컴포넌트
-    ui.py                 # clean_html(), 공통 UI 헬퍼
-    project_form.py       # 프로젝트 등록/수정 공용 입력 폼과 payload 검증
-  pages/
-    about.py              # 서비스 소개 페이지
-    home.py               # 홈 + 탐색 허브 + 상세 뷰
-    project_detail.py     # 상세 렌더링 (home에서 project_id 쿼리로 호출)
-    auth.py               # render_login(), render_signup()
-    gallery.py            # 레거시 → Home으로 리다이렉트
-    notifications.py      # 댓글 알림 목록과 읽음 처리
-    protected.py          # render_submit(), render_my_page() (프로필+포트폴리오 통합). render_my_portfolio()/render_profile()은 My Page로 리다이렉트만 하는 레거시 라우트 핸들러
-    onboarding.py         # 약관 동의 온보딩
-    policy.py             # 약관/개인정보 정책 본문
-  services/
-    auth.py               # 인증 public facade. 세션/계정/복구/비밀번호 모듈 re-export
-    auth_session.py       # session_state 토큰, Supabase client binding, 로그아웃
-    auth_account.py       # 회원가입, 로그인, 인증 메일 재발송
-    auth_restore.py       # 쿠키 기반 세션 복구
-    auth_password_reset.py # 비밀번호 재설정 요청/완료
-    auth_types.py, auth_errors.py
-    comments.py           # 댓글 public facade. 조회/작성/읽음/통계 모듈 re-export
-    comment_queries.py    # 댓글 조회, 작성자 attach, 답글 가능 여부
-    comment_mutations.py  # 댓글 작성/삭제, 알림 생성 bridge
-    comment_reads.py      # 프로젝트별 댓글 읽음 상태
-    comment_stats.py      # 댓글 수, 최신 댓글 시각 캐시
-    comment_types.py, comment_utils.py
-    profiles.py           # get_profile(), update_profile(), get_onboarding_status()
-    projects.py           # 프로젝트 public facade. query/mutation/normalizer/type re-export
-    project_queries.py    # 공개/작성자 목록, 검색·태그·정렬, 좋아요/작성자 attach, 캐시
-    project_mutations.py  # 생성/수정/삭제, 조회수, 좋아요 mutation
-    project_normalizers.py # payload, 태그, URL, Power BI iframe src 정규화
-    project_types.py      # ProjectResult, ProjectServiceError, ViewCountResult
-    project_drafts.py     # 사용자·작업별 세션 초안 저장·복구·삭제
-    project_content.py    # 프로젝트 본문 HTML 허용 목록 정제
-    notifications.py      # 댓글 알림 생성·조회·읽음 처리
-    email_notifications.py # SMTP 댓글 이메일 알림
-    supabase_client.py    # Streamlit 세션별 Supabase client
-  static/
-    hero-preview-home.jpg # 홈 히어로 전용 경량 미리보기 이미지
-    gapyear-hero-banner.jpg, snowball-impact.webp, vision-snowball.webp # 서비스 소개 페이지 이미지
+src/routes/
+  +layout.svelte          # 전역 레이아웃, 헤더, 푸터 버전/정책 링크
+  +page.svelte            # 홈 탐색, 레일, 카드
+  +page.server.ts         # 레거시 쿼리 라우팅 redirect
+  login/, signup/, reset-password/
+  my/, submit/, notifications/
+  projects/[id]/, projects/[id]/edit/
+  policy/[type]/, powerbi/, references/[platform]/
+src/lib/
+  auth.ts                 # Supabase Auth, 가입 동의 metadata, 메일 재발송
+  onboarding.ts           # 가입 페이지용 활성 정책 버전 조회
+  projects.ts             # 프로젝트 조회, 저장, 삭제, 조회수
+  projectForm.ts          # 등록/수정 폼 payload와 검증
+  projectBody.ts          # Tiptap HTML sanitizer와 본문 처리
+  comments.ts             # 댓글/답글 조회와 mutation
+  notifications.ts        # 알림 조회와 읽음 처리
+  server/                 # 서버 전용 Supabase, Power BI, 이메일, 캡처 helper
+  components/             # 카드, 댓글, 폼, 리치 에디터, Power BI 뷰어
+src/styles/               # foundation, auth, home, card/detail, form, policy/powerbi, responsive
+static/                   # 정적 이미지와 폰트
+supabase/                 # schema와 운영 SQL
+tests/unit/               # Vitest 단위 테스트
+tests/uiux/               # Playwright smoke/E2E 테스트
+archive/                  # 로컬 전용 Streamlit 백업 zip, Git 추적 제외
 ```
 
 ---
@@ -160,16 +123,16 @@ folio_app/
 
 | 기능 | 파일 | 비고 |
 |------|------|------|
-| 회원가입 / 이메일 인증 | `pages/auth.py`, `components/auth_signup.py`, `services/auth.py` | Supabase Auth |
-| 로그인 / 로그아웃 | `pages/auth.py`, `components/auth_login.py`, `services/auth.py`, `app.py` | EncryptedCookieManager로 세션 유지 |
-| 약관 동의 | `components/auth_signup.py`, `components/policy_consent.py`, `pages/onboarding.py`, `services/profiles.py` | 회원가입 폼에서 동의 수집(체크 이력을 Auth user_metadata에 저장) → 첫 로그인 시 조용히 `user_policy_consents`에 기록. 메타데이터가 없거나 기록 실패 시 온보딩 화면이 폴백으로 강제 진입 |
-| 프로필 조회 / 수정 | `protected.py` | 이름, 소속, 자기소개 |
-| 프로젝트 등록 / 수정 / 삭제 | `protected.py`, `project_editor.py`, `project_form.py`, `services/projects.py` | |
-| 홈 탐색 (검색, 태그, 정렬) | `home.py`, `home_gallery.py` | Gallery 페이지 없음, Home이 탐색 허브 |
-| 프로젝트 상세 | `project_detail.py`, `project_detail_content.py`, `project_comments.py` | `?project_id=` 쿼리로 Home 안에서 렌더링 |
-| 서비스 소개 | `about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
-| 좋아요 | `services/projects.py`, `project_detail.py` | 비로그인 → Login으로 이동 |
-| 푸터 | `app.py`, `styles/tokens.py` | 좌측 저작권, 중앙 버전, 우측 정책 링크. 버전은 배포 시점에만 갱신 |
+| 회원가입 / 이메일 인증 | `src/routes/signup/+page.svelte`, `src/lib/auth.ts` | Supabase Auth, 인증 메일 재발송 |
+| 로그인 / 로그아웃 | `src/routes/login/+page.svelte`, `src/lib/auth.ts`, `src/lib/components/AuthNav.svelte` | Supabase browser session |
+| 약관 동의 | `src/routes/signup/+page.svelte`, `src/lib/onboarding.ts`, `src/lib/auth.ts` | 회원가입 폼에서 활성 이용약관/개인정보 처리방침 동의를 필수로 수집한다. 로그인 후 별도 약관 온보딩 페이지는 Svelte 앱에서 제거했다. |
+| 프로필 조회 / 수정 | `src/routes/my/+page.svelte` | 이름, 소속, 자기소개 |
+| 프로젝트 등록 / 수정 / 삭제 | `src/routes/submit/+page.svelte`, `src/routes/projects/[id]/edit/+page.svelte`, `src/lib/projectForm.ts`, `src/lib/projects.ts` | Tiptap 본문 편집 포함 |
+| 홈 탐색 (검색, 태그, 정렬) | `src/routes/+page.svelte`, `src/lib/projects.ts`, `src/lib/components/ProjectRail.svelte` | Home이 탐색 허브 |
+| 프로젝트 상세 | `src/routes/projects/[id]/+page.svelte`, `src/routes/projects/[id]/+page.server.ts` | 상세, 임베드, 댓글 |
+| 서비스 소개 | `src/routes/about/+page.svelte` | 경기청년 갭이어 2026, Snowball Impact, FOLIO, VISION 소개 |
+| 좋아요 | `src/lib/components/ProjectLikeButton.svelte`, `src/lib/likes.ts` | 비로그인 → Login으로 이동 |
+| 푸터 | `src/routes/+layout.svelte` | 좌측 저작권, 중앙 버전, 우측 정책 링크. 버전은 배포 시점에만 갱신 |
 
 ---
 
@@ -316,7 +279,6 @@ folio_app/styles/
   shared.py             # folio-tags/folio-tag/folio-detail-meta/folio-muted (카드·히어로·상세 공용)
   auth.py               # 로그인/회원가입 카드
   notifications.py      # 알림 페이지
-  onboarding.py         # 온보딩(약관 동의) 카드
   project_form.py        # 프로젝트 등록/수정 폼 + 공개 설정 토글
   portfolio.py           # 내 포트폴리오 카드
   detail_page.py         # 프로젝트 상세 페이지 레이아웃/본문
@@ -359,7 +321,6 @@ with st.container(border=False, key="folio_header"):
 | `folio_browse_panel` | 홈 탐색 패널 |
 | `folio_auth_shell` | 인증 카드 전체 |
 | `folio_auth_form` | 인증 폼 카드 |
-| `folio_onboarding_card` | 온보딩 카드 |
 | `profile_overview`, `profile_edit_card`, `portfolio_item_<id>` | My Page 프로필/프로젝트 관리 |
 | `detail_footer_row`, `detail_back_action_row` | 상세 footer 액션/복귀 버튼 행 |
 | `project_detail_visual` | 상세 대표 결과물 영역 |
@@ -622,8 +583,7 @@ Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내�
 
 - **회원가입 폼에 필수 동의 체크박스 추가**: `auth.py`의 `render_signup()`이 `get_required_policy_versions()`로 활성 정책을 가져와 `components/policy_consent.py`의 공용 `render_policy_agreement_fields()`로 렌더링한다. 제출 시 모든 필수 정책에 동의했는지 검증한다.
 - **동의 이력은 가입 시점에 Auth user_metadata로만 저장**: 이메일 인증 전에는 세션이 없어 RLS(`auth.uid() = user_id`) 때문에 `user_policy_consents`에 바로 insert할 수 없다. 대신 `sign_up()`이 동의한 `policy_version_id` 목록을 Supabase Auth의 `options.data`(`consented_policy_version_ids`)에 저장해두고, 이후 `sign_in()`/`restore_session()`에서 인증된 세션이 생기는 즉시 `complete_onboarding()`으로 조용히 커밋한다(이미 기록된 정책은 건너뜀). 이 조용한 커밋이 실패해도 로그인 자체는 막지 않고 로그만 남긴다.
-- **온보딩 화면은 폴백으로 유지**: 위 과정이 어떤 이유로든 완료되지 못한 계정(가입 폼 정책 조회 실패, 메타데이터 유실 등)은 `app.py`의 기존 `get_onboarding_status()` 체크에 걸려 여전히 온보딩 화면으로 안내된다. 온보딩 화면 자체 로직은 바뀌지 않았고, 체크박스 렌더링만 `policy_consent.py`로 공용화했다.
-- 스크린샷의 온보딩 카드 상단 헤딩("서비스 이용을 시작하기 전")이 2열 그리드 히어로 레이아웃의 왼쪽 컬럼에 치우쳐 보이던 것도 함께 고쳤다. `.folio-onboarding-hero`에 `grid-template-columns: 1fr`과 `text-align: center`를 추가해 단일 컬럼 중앙 정렬로 전환했다.
+- **Svelte 전환 후 온보딩 화면 제거**: 가입 페이지의 필수 동의가 정착되면서 로그인 후 독립 `/onboarding` 화면과 전역 강제 이동 게이트는 제거했다. 약관/개인정보 전문은 `/policy/terms`, `/policy/privacy`에서 유지한다.
 - 검증: `py_compile` + 단위 테스트 67개 전체 통과. 실제 이메일 인증 흐름을 포함한 브라우저 검증은 아직 하지 않았다 — 다음에 실제 신규 계정으로 가입~로그인까지 확인 필요.
 
 ### 완료: GitHub 이슈 #178 GA(Google Analytics) 연동 (2026-07-07)
@@ -964,9 +924,9 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
 - `python -m pyflakes folio_app app.py tests`
 - `python -m unittest discover -s tests -v`
 
-### 진행 중: Power BI-first UI 정리와 레퍼런스 UX 개선 (2026-08-23)
+### Historical: Power BI-first UI 정리와 레퍼런스 UX 개선 (2026-08-23)
 
-- 작업트리 기준 푸터 버전은 `v2026.08.23.10`이다. 이 변경은 아직 커밋되지 않았다.
+- 당시 작업트리 기준 푸터 버전은 `v2026.08.23.10`이었다. 현재 배포 확인 버전은 이 문서 상단의 핸드오프 상태를 따른다.
 - 레퍼런스 페이지 히어로에서 "공식" 문구를 제거했다. Power BI 메뉴 안의 `공식 레퍼런스` 라벨도 `레퍼런스`로 바꿨다.
 - 레퍼런스 페이지 우상단에 정렬 버튼 `최신`, `좋아요`, `조회수`를 추가했다. 정렬 기준은 홈 갤러리의 `최신순`, `좋아요순`, `조회수순`을 재사용한다.
 - 레퍼런스 정렬 버튼은 Streamlit rerun이 아니라 클라이언트 JS로 카드 DOM을 재정렬한다. 카드 슬롯에는 `data-created-at`, `data-like-count`, `data-view-count`가 들어간다.

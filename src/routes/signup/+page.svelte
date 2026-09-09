@@ -1,28 +1,45 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { signUpWithEmail } from '$lib/auth';
+	import { isValidEmail, normalizeEmail, resendSignupConfirmation, signUpWithEmail } from '$lib/auth';
 	import { getActivePolicyVersions, type PolicyVersion } from '$lib/onboarding';
 
+	const resendCooldownSeconds = 60;
 	let email = $state('');
 	let password = $state('');
 	let passwordConfirm = $state('');
 	let name = $state('');
 	let organization = $state('');
+	let resendEmail = $state('');
 	let policies = $state<PolicyVersion[]>([]);
 	let agreedPolicyIds = $state<string[]>([]);
 	let policyLoading = $state(true);
 	let policyError = $state('');
 	let message = $state('');
 	let status = $state<'idle' | 'success' | 'error'>('idle');
+	let resendMessage = $state('');
+	let resendStatus = $state<'idle' | 'success' | 'error'>('idle');
 	let submitting = $state(false);
+	let resending = $state(false);
+	let showResendPanel = $state(false);
+	let resendAvailableAt = $state(0);
+	let now = $state(Date.now());
 	const requiredPolicyIds = $derived(policies.map((policy) => policy.id));
 	const sharedPolicyEffectiveDate = $derived(sharedEffectiveDate(policies));
+	const resendCooldownRemaining = $derived(
+		Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
+	);
 
-	onMount(async () => {
-		const result = await getActivePolicyVersions();
-		policies = result.policies;
-		policyError = result.error;
-		policyLoading = false;
+	onMount(() => {
+		void (async () => {
+			const result = await getActivePolicyVersions();
+			policies = result.policies;
+			policyError = result.error;
+			policyLoading = false;
+		})();
+		const timer = window.setInterval(() => {
+			now = Date.now();
+		}, 1000);
+		return () => window.clearInterval(timer);
 	});
 
 	async function submitSignup(event: SubmitEvent) {
@@ -49,7 +66,37 @@
 		});
 		status = result.ok ? 'success' : 'error';
 		message = result.message;
+		if (result.ok || result.message.includes('이미 가입된 이메일')) {
+			resendEmail = normalizeEmail(email);
+			showResendPanel = true;
+		}
 		submitting = false;
+	}
+
+	async function submitResend(event: SubmitEvent) {
+		event.preventDefault();
+		const targetEmail = normalizeEmail(resendEmail || email);
+		resendEmail = targetEmail;
+		resendMessage = '';
+		resendStatus = 'idle';
+		if (!isValidEmail(targetEmail)) {
+			resendStatus = 'error';
+			resendMessage = '재발송할 이메일을 올바르게 입력하세요.';
+			return;
+		}
+		if (resendCooldownRemaining > 0) {
+			resendStatus = 'error';
+			resendMessage = `인증 메일은 ${resendCooldownRemaining}초 후 다시 요청할 수 있습니다.`;
+			return;
+		}
+		resending = true;
+		const result = await resendSignupConfirmation(targetEmail);
+		resendStatus = result.ok ? 'success' : 'error';
+		resendMessage = result.message;
+		if (result.ok) {
+			resendAvailableAt = Date.now() + resendCooldownSeconds * 1000;
+		}
+		resending = false;
 	}
 
 	function togglePolicy(policyId: string, checked: boolean) {
@@ -170,7 +217,42 @@
 		</form>
 
 		<div class="auth-links">
+			<button
+				type="button"
+				class="auth-link-button"
+				onclick={() => {
+					resendEmail = normalizeEmail(resendEmail || email);
+					showResendPanel = !showResendPanel;
+				}}
+			>
+				인증 메일 다시 받기
+			</button>
 			<a href="/login">이미 계정이 있다면 로그인하기</a>
 		</div>
+
+		{#if showResendPanel}
+			<form class="auth-form resend-confirmation-form" onsubmit={submitResend}>
+				<p>인증 메일을 받지 못했거나 링크가 만료됐다면 다시 요청하세요.</p>
+				<label>
+					<span>인증 메일 재발송 이메일</span>
+					<input bind:value={resendEmail} type="email" placeholder="name@example.com" autocomplete="email" />
+				</label>
+				{#if resendCooldownRemaining > 0}
+					<p>인증 메일은 {resendCooldownRemaining}초 후 다시 요청할 수 있습니다.</p>
+				{/if}
+				{#if resendMessage}
+					<div
+						class:success={resendStatus === 'success'}
+						class:error={resendStatus === 'error'}
+						class="auth-message"
+					>
+						{resendMessage}
+					</div>
+				{/if}
+				<button type="submit" disabled={resending || resendCooldownRemaining > 0}>
+					{resending ? '재발송 요청 중...' : '인증 메일 다시 보내기'}
+				</button>
+			</form>
+		{/if}
 	</div>
 </section>

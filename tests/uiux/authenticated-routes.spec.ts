@@ -582,12 +582,13 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.locator('.platform-panel input[type="radio"][value="other"]').check();
 		await page.screenshot({ path: testInfo.outputPath('submit-empty-baseline.png'), fullPage: true });
 		const formatSelect = page.locator('.rich-editor-format-select');
-		await expect(page.locator('.rich-editor-toolbar-group')).toHaveCount(4);
+		const sizeSelect = page.locator('.rich-editor-size-select');
+		await expect(page.locator('.rich-editor-toolbar-group')).toHaveCount(5);
 		expect(
 			await page.locator('.rich-editor-toolbar-group').evaluateAll((groups) =>
 				groups.map((group) => group.getAttribute('aria-label'))
 			)
-		).toEqual(['글자 서식', '목록과 정렬', '문단 형식', '링크와 이미지']);
+		).toEqual(['글자 서식', '목록과 정렬', '문단 형식', '색상', '링크와 이미지']);
 		const toolbarButton = page.locator('.rich-editor-toolbar button').first();
 		const toolbarButtonStyle = await toolbarButton.evaluate((button) => ({
 			borderStyle: getComputedStyle(button).borderStyle,
@@ -598,15 +599,27 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await toolbarButton.hover();
 		await expect.poll(() => toolbarButton.evaluate((button) => getComputedStyle(button).color)).toBe('rgb(20, 89, 200)');
 		await expect(formatSelect).toHaveValue('paragraph');
-		await expect(formatSelect.locator('option')).toHaveText(['Normal', 'H2', 'H3']);
+		await expect(formatSelect.locator('option')).toHaveText(['Normal', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+		await expect(sizeSelect.locator('option')).toHaveText(['Normal', 'Small', 'Large', 'Huge']);
 		await page.locator('.rich-editor .tiptap h2').first().click();
 		await expect(formatSelect).toHaveValue('heading2');
-		await formatSelect.selectOption('heading3');
-		await expect(page.locator('.rich-editor .tiptap h3').first()).toBeVisible();
+		await formatSelect.selectOption('heading6');
+		await expect(page.locator('.rich-editor .tiptap h6').first()).toBeVisible();
 		await formatSelect.selectOption('heading2');
 		await expect(page.locator('.rich-editor .tiptap h2').first()).toBeVisible();
 		const editorContent = page.locator('.rich-editor .tiptap');
 		await editorContent.click();
+		await page.keyboard.press('Control+a');
+		await sizeSelect.selectOption('1.5em');
+		await expect(editorContent.locator('span[style*="font-size: 1.5em"]').first()).toBeVisible();
+		await page.getByTitle('들여쓰기').click();
+		await expect(editorContent.locator('[data-indent="1"]').first()).toBeVisible();
+		await page.getByTitle('내어쓰기').click();
+		await expect(editorContent.locator('[data-indent="1"]')).toHaveCount(0);
+		await editorContent.click();
+		await page.keyboard.press('Control+a');
+		await page.getByTitle('글자 색상 #1459c8').click();
+		await expect(editorContent.locator('span[style*="color: #1459c8"], span[style*="rgb(20, 89, 200)"]').first()).toBeVisible();
 		await page.keyboard.press('Control+a');
 		await page.getByTitle('글머리 목록').click();
 		await expect(editorContent.locator('ul li').first()).toBeVisible();

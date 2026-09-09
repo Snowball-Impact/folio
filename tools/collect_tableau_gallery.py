@@ -21,7 +21,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from folio_app.services.project_normalizers import clean_project_payload
+from tools.project_payload import clean_project_payload
 
 
 DEFAULT_GALLERY_URL = "https://www.tableau.com/viz-gallery"

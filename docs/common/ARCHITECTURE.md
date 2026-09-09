@@ -1,6 +1,6 @@
 # FOLIO 아키텍처
 
-이 문서는 현재 운영 기준인 루트 SvelteKit 앱의 실행 구조, 모듈 경계, 인증 상태와 데이터 흐름을 설명한다. Streamlit 구현은 레거시 비교·참조용이며 현재 배포 단위가 아니다.
+이 문서는 현재 운영 기준인 루트 SvelteKit 앱의 실행 구조, 모듈 경계, 인증 상태와 데이터 흐름을 설명한다. Streamlit 구현은 로컬 백업 zip과 historical 문서로만 보관하며 현재 배포 단위가 아니다.
 
 ## 1. 시스템 개요
 
@@ -89,7 +89,6 @@ SvelteKit 파일 기반 라우팅을 사용한다.
 | `/my` | 마이페이지 |
 | `/notifications` | 알림 |
 | `/login`, `/signup`, `/reset-password` | 인증 |
-| `/onboarding` | 정책 동의 온보딩 |
 | `/policy`, `/policy/[type]` | 정책 문서 |
 | `/references/powerbi`, `/references/[platform]` | 레퍼런스 |
 | `/powerbi` | Power BI 콘텐츠 허브 |
@@ -122,4 +121,4 @@ API endpoints:
 
 ## 7. 레거시 경계
 
-`app.py`, `folio_app/`, Python `tests/test_*.py`, `docs/streamlit/`은 Streamlit 원본과 과거 운영 기준을 보존한다. 새 기능, 배포, UI 수정은 기본적으로 루트 SvelteKit 구조에서 진행한다.
+Streamlit 원본 소스와 Python 테스트는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다. repository root에는 SvelteKit 앱만 현재 실행 대상으로 남기며, `docs/streamlit/`은 과거 운영 기준을 설명하는 historical record다.

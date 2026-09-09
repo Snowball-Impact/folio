@@ -8,7 +8,7 @@
 
 | 구분 | 기준 | 주소/명령 | 용도 |
 |---|---|---|---|
-| Streamlit 원본 | Python + Streamlit | `streamlit run app.py` / `http://127.0.0.1:8501` | 원본 기능·UI 비교 |
+| Streamlit 원본 | 로컬 백업 zip | `archive/streamlit_app_20260909.zip` | 과거 원본 참조 |
 | Svelte 일반 개발 | SvelteKit + Vite | `npm.cmd run dev -- --host 127.0.0.1 --port 5173` | 빠른 컴포넌트 개발 |
 | Svelte 관리형 개발 | SvelteKit + Cloudflare adapter + local Wrangler paths | `npm.cmd run dev:managed -- --Port 5174` | Windows에서 UIUX 검증 |
 | Svelte Playwright UIUX | Playwright + Chromium, 독립 browser context | `npm.cmd run test:ui` | Svelte DOM·기능·데스크톱/모바일 캡처 |
@@ -23,7 +23,7 @@
 - 의존성: 루트 `package.json`, `package-lock.json`
 - 환경 파일: 저장소 루트 `.env`
 - Svelte 환경: 루트 `.env` 또는 실행 환경 변수.
-- 샘플 PBIX: `artifacts/test.pbix`
+- 샘플 PBIX: 필요 시 로컬 `artifacts/test.pbix`
 - 관리형 Wrangler 경로: 저장소 루트 `.runtime/`
 
 공개 Supabase 값은 `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_PUBLISHABLE_KEY`를 사용한다. service role, Power BI secret, SMTP password는 server-only 변수이며 문서·로그·캡처에 값을 남기지 않는다.
@@ -144,12 +144,12 @@ PBIX 교체 성공의 클라이언트 orchestration은 별도의 비변경 인�
 
 ## 포트와 프로세스 규칙
 
-- Streamlit 원본은 `8501`, Svelte 일반 개발은 `5173`, 관리형 UIUX 서버는 `5174`, Cloudflare preview는 `8788`을 사용한다.
+- Svelte 일반 개발은 `5173`, 관리형 UIUX 서버는 `5174`, Cloudflare preview는 `8788`을 사용한다.
  - 캡처 전에 대상 포트 리스너가 하나인지 확인한다.
  - 오래된 서버가 최신 코드처럼 보이는 경우 새 서버를 추가로 띄우지 말고 기존 프로세스와 포트를 먼저 정리한다.
 - Playwright 실행 전에 `PLAYWRIGHT_BASE_URL`과 실제 서버 포트가 일치하는지 확인한다. 다른 포트를 바라본 404/구버전 결과는 제품 버그 증거로 사용하지 않는다.
 - 원본과 Svelte를 비교할 때 viewport, 인증 상태, query/path, fixture, 실행 서버를 기록한다.
-- Streamlit 상세 캡처는 기본 3초 대기만으로 로딩 셸을 저장할 수 있다. 실제 fixture를 비교할 때는 `tools/capture_streamlit_scroll.py`에 `--wait-for-text`, `--settle-seconds`를 지정하고, 인증 비교는 `--login`을 사용해 보이는 로그아웃 메뉴와 세션 유지 여부를 확인한다. 로그인 후 대상 페이지에서 다시 로그인 상태가 풀리면 캡처를 성공으로 분류하지 않는다.
+- Streamlit 원본 캡처 도구는 로컬 백업 zip의 historical asset으로만 남아 있다. 현재 UI 캡처와 회귀 검증은 Playwright 기반 Svelte 도구를 사용한다.
 
 ## 관련 기준 문서
 

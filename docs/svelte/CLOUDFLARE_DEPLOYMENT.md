@@ -88,7 +88,7 @@ Scope:
 - Project detail
 - Power BI references
 - Power BI content hub
-- Login/signup/reset/onboarding
+- Login/signup/reset
 - Likes/comments/notifications if Supabase RLS passes
 - Thumbnail upload only
 
@@ -131,7 +131,7 @@ SMTP:
 For first Cloudflare staging, ship this scope:
 
 - Public browsing
-- Auth/onboarding
+- Auth/signup policy consent
 - Project submit/edit/delete
 - Likes/comments/in-app notifications
 - Manual thumbnail URL

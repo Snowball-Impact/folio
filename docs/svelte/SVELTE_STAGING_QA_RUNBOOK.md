@@ -112,8 +112,8 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 2. Supabase Auth에 사용자가 생성됐는지 확인한다.
 3. `profiles` row가 생성되거나 첫 로그인 후 생성되는지 확인한다.
 4. `/login`으로 로그인한다.
-5. 필요한 경우 policy onboarding이 뜨는지 확인한다.
-6. 필수 약관에 동의한 뒤 원래 가려던 보호 route로 돌아가는지 확인한다.
+5. 가입 페이지에서 필수 약관 동의 체크가 없으면 가입 제출이 막히는지 확인한다.
+6. 로그인 후 별도 `/onboarding` 약관 동의 페이지로 강제 이동하지 않는지 확인한다.
 7. `/reset-password` recovery link 흐름은 Supabase redirect URL이 staging URL로 잡힌 뒤 별도 확인한다.
 
 기록:

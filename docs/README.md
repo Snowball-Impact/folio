@@ -9,7 +9,7 @@
 | 공통 제품·데이터·개발 원칙 | [common/README.md](common/README.md) |
 | 현재 SvelteKit·Cloudflare | [svelte/README.md](svelte/README.md) |
 | 운영 모니터링·롤백 | [ops/PRODUCTION_MONITORING.md](ops/PRODUCTION_MONITORING.md) |
-| Streamlit 원본·기존 운영 | [streamlit/README.md](streamlit/README.md) |
+| Streamlit 원본 백업·기존 운영 기록 | [streamlit/README.md](streamlit/README.md) |
 | Streamlit↔Svelte 전환·UIUX 증거 | [migration/README.md](migration/README.md) |
 | 과거 초안·완료 기록 | [legacy/README.md](legacy/README.md) |
 
@@ -33,11 +33,11 @@
 
 ## Streamlit
 
-`folio_app/`와 루트 `app.py`의 레거시 원본 실행·배포·통합 검증 문서다. 현재 운영 배포 기준은 SvelteKit이다.
+Streamlit 원본 백업과 과거 실행·배포·통합 검증 기록이다. 현재 운영 배포 기준은 SvelteKit이며, Streamlit 원본 소스는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다.
 
-- [streamlit/PAAS_DEPLOYMENT.md](streamlit/PAAS_DEPLOYMENT.md): Docker 기반 Streamlit PaaS 배포
-- [streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md](streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md): Streamlit Community Cloud 기록
-- [streamlit/INTEGRATION_VALIDATION.md](streamlit/INTEGRATION_VALIDATION.md): Streamlit 기준 원격 Supabase 검증
+- [streamlit/PAAS_DEPLOYMENT.md](streamlit/PAAS_DEPLOYMENT.md): Docker 기반 Streamlit PaaS 배포 과거 계획
+- [streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md](streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md): Streamlit Community Cloud 과거 기록
+- [streamlit/INTEGRATION_VALIDATION.md](streamlit/INTEGRATION_VALIDATION.md): Streamlit 기준 원격 Supabase 검증 과거 기록
 
 ## SvelteKit
 
@@ -60,7 +60,7 @@
 
 두 구현을 비교하거나 SvelteKit 이전 과정의 UIUX·기능 증거를 기록한 문서다.
 
-이 폴더의 문서는 historical record다. `svelte_app/` 경로, 과거 포트, 과거 브랜치, 과거 adapter 언급은 당시 상태를 설명하는 기록으로 둔다. 현재 실행 기준은 `svelte/`의 active 문서와 실제 루트 코드를 따른다.
+이 폴더의 문서는 historical record다. `svelte_app/`, `folio_app/`, 과거 포트, 과거 브랜치, 과거 adapter 언급은 당시 상태를 설명하는 기록으로 둔다. 현재 실행 기준은 `svelte/`의 active 문서와 실제 루트 코드를 따른다.
 
 - [migration/SVELTE_MIGRATION_PRD.md](migration/SVELTE_MIGRATION_PRD.md): SvelteKit 단계적 재구축 계획
 - [migration/SVELTE_MIGRATION_RETROSPECTIVE.md](migration/SVELTE_MIGRATION_RETROSPECTIVE.md): 이전 과정 회고

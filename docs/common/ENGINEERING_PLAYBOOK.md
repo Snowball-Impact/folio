@@ -5,8 +5,8 @@
 ## 1. 핵심 원칙
 
 1. **권한은 UI가 아니라 RLS로 완성한다.** 버튼을 숨기는 것은 UX일 뿐 보안 경계가 아니다.
-2. **상태 변경 전 인증을 다시 확인한다.** `session_state`의 사용자와 PostgREST JWT는 별개로 만료될 수 있다.
-3. **Streamlit rerun을 정상 동작으로 설계한다.** 입력, query, 쿠키와 일회성 메시지가 rerun 뒤에도 예측 가능해야 한다.
+2. **상태 변경 전 인증을 다시 확인한다.** 브라우저 session과 서버 endpoint request token은 별개로 만료될 수 있다.
+3. **SvelteKit hydration과 서버/클라이언트 경계를 분리해 설계한다.** 브라우저 전용 API와 private env는 서버 bundle 경계를 넘기지 않는다.
 4. **완료 조건을 먼저 수치화한다.** 크기·정렬·여백은 DOM 좌표와 computed style로 확인한다.
 5. **작은 패치가 세 번 실패하면 접근 방식을 바꾼다.** 보정값을 계속 쌓지 않고 구조를 다시 본다.
 6. **코드와 문서가 다르면 코드를 확인한 뒤 문서를 즉시 고친다.**
@@ -38,19 +38,16 @@
 | Svelte 색상·간격·반응형 | `src/app.css`와 component style |
 | 테이블·RLS·RPC | `supabase/schema.sql` |
 | 현재 상태와 작업 규칙 | `docs/common/PROJECT_CONTEXT.md`와 본 문서 |
-| Streamlit legacy 유지보수 | `folio_app/`, `app.py`, `docs/streamlit/` |
+| Streamlit historical reference | `archive/streamlit_app_20260909.zip`, `docs/streamlit/` |
 
-Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase query와 외부 API 호출은 `src/lib` 또는 `src/lib/server` 경계에 둔다. Streamlit legacy는 기존 facade/service 경계를 유지한다.
+Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase query와 외부 API 호출은 `src/lib` 또는 `src/lib/server` 경계에 둔다. Streamlit 원본은 로컬 백업 zip에서만 참조한다.
 
 ### 리팩토링 후 모듈 경계
 
-- `folio_app/services/auth.py`, `projects.py`, `comments.py`는 public facade다. 기존 페이지·테스트 import 경로를 깨지 않도록 public API를 re-export하고, 실제 구현은 `auth_*`, `project_*`, `comment_*` 하위 모듈에 둔다.
-- 새 인증 기능은 계정 작업이면 `auth_account.py`, 세션·토큰이면 `auth_session.py`, 쿠키 복구면 `auth_restore.py`, 비밀번호 재설정이면 `auth_password_reset.py`에 추가한다.
-- 새 프로젝트 조회·검색·캐시 로직은 `project_queries.py`, 생성·수정·삭제·좋아요·조회수 변경은 `project_mutations.py`, payload/URL/태그 정규화는 `project_normalizers.py`에 둔다.
-- 새 댓글 조회 로직은 `comment_queries.py`, 작성·삭제는 `comment_mutations.py`, 읽음 상태는 `comment_reads.py`, 댓글 수·최신 댓글 시각 캐시는 `comment_stats.py`, 트리/시간 변환 유틸은 `comment_utils.py`에 둔다.
-- `components/auth_forms.py`는 인증 UI facade다. 로그인/회원가입/비밀번호 재설정 화면 구현은 각각 `auth_login.py`, `auth_signup.py`, `auth_password_reset.py`, 입력·정책 검증은 `auth_validation.py`에 둔다.
-- 프로젝트 등록·수정 흐름은 `project_editor.py`, 공용 입력 폼은 `project_form.py`, Quill 본문 파싱은 `project_body.py`가 맡는다. 상세 대표 결과물/본문은 `project_detail_content.py`, 댓글 UI는 `project_comments.py`, 홈 카드 레일은 `home_gallery.py`에 둔다.
-- Power BI 콘텐츠 화면은 `pages/powerbi.py`에 두되 CSV 로딩, 그룹핑, 뉴스 아이템 병합은 `services/powerbi_content.py`, 한국어 요약·라벨 규칙은 `services/powerbi_i18n.py`에 둔다. 새 수집원을 추가하면 `tools/collect_powerbi_all.py`의 `Collector` registry와 `docs/curation/powerbi_CONTENT_OPS.md`를 함께 갱신한다.
+- 인증 흐름은 `src/lib/auth.ts`와 `src/routes/login|signup|reset-password`에 둔다.
+- 프로젝트 조회·저장·좋아요·댓글·알림은 `src/lib/*.ts`에 두고, service role이나 외부 API가 필요한 작업은 `src/lib/server/` 또는 `src/routes/api/**/+server.ts`에 둔다.
+- 프로젝트 등록·수정 UI는 `src/routes/submit`, `src/routes/projects/[id]/edit`, `src/lib/projectForm.ts`, `src/lib/components/ProjectBodyEditor.svelte` 경계를 우선한다.
+- Power BI 콘텐츠 화면은 `src/routes/powerbi`와 `src/lib/server/powerbi-content.ts`에 둔다. 새 수집원을 추가하면 `tools/collect_powerbi_all.py`의 `Collector` registry와 `docs/curation/powerbi_CONTENT_OPS.md`를 함께 갱신한다.
 - 테스트가 과거 facade의 private helper를 patch하고 있다면 먼저 public 동작으로 바꿀 수 있는지 본다. 불가피하게 내부를 patch해야 하면 실제 구현 모듈을 patch한다.
 
 ## 3. 인증과 세션 정책
@@ -75,12 +72,10 @@ Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase q
 
 ## 5. 입력과 콘텐츠 보안
 
-- 프로젝트 본문은 저장 전과 출력 전에 모두 `sanitize_project_html()`을 통과시킨다.
+- 프로젝트 본문은 저장 전과 출력 전에 모두 `sanitizeProjectHtml()`을 통과시킨다.
 - 외부 URL은 `http://` 또는 `https://`만 허용한다.
 - Power BI iframe 전체 입력을 받더라도 `src` URL만 추출해 저장한다.
-- 사용자 문자열을 HTML에 넣을 때 `html.escape()`를 사용한다.
-- 여러 줄 HTML을 `st.markdown()`으로 렌더링할 때 들여쓰기로 코드 블록이 생기지 않도록 `clean_html()` 또는 한 줄 조합을 사용한다.
-- `st.markdown(..., unsafe_allow_html=True)`에 조각 HTML을 중첩 삽입할 때는 최종 출력 문자열을 확인한다. 여러 줄 속성을 가진 `<img>`처럼 Markdown 렌더러가 블록을 오해할 수 있는 태그는 한 줄 HTML로 조합하거나 `clean_html()`을 통과시킨다.
+- 사용자 문자열을 HTML에 넣을 때 Svelte 기본 escaping을 우선하고, `{@html ...}`는 sanitizer를 통과한 콘텐츠에만 사용한다.
 
 ### 오류 메시지와 진단 로그
 
@@ -90,37 +85,24 @@ Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase q
 - 재시도 버튼은 필요한 캐시를 비운 뒤 rerun하며, 실패한 작업을 완료 상태로 기록하지 않는다.
 - 예상 가능한 사용자 오류와 운영 장애를 구분한다. 인증 정보 불일치는 안내 메시지로, 네트워크·RLS·공급자 장애는 로그와 재시도 흐름으로 처리한다.
 
-## 6. Streamlit 상태와 이동 정책
+## 6. SvelteKit 상태와 이동 정책
 
-- 내부 이동은 `navigate()`를 사용한다.
-- 인증 상태나 데이터를 변경하는 동작에는 HTML `<a>`를 사용하지 않는다.
-- 성공 메시지는 `session_state`에 임시 저장해 rerun 뒤 한 번 표시한다.
-- 상세 조회수는 `viewed_<project_id>` 세션 key로 중복 증가를 막는다.
-- 위젯 key는 페이지와 역할을 드러내도록 안정적으로 작성한다.
-- query parameter를 변경할 때 이전 화면의 불필요한 값을 정리한다.
-- 프로젝트 초안은 `사용자 ID + submit/edit:프로젝트 ID` 단위로 분리해 현재 `session_state`에 저장한다.
-- 초안은 등록·수정 성공, 수정 취소, 사용자의 명시적 초기화 때만 삭제한다.
-- 렌더된 위젯 key는 같은 실행에서 삭제하지 않는다. 삭제 요청을 기록하고 다음 rerun의 위젯 렌더 전 정리한다.
-- 세션 초안은 브라우저 하드 리로드나 종료 이후까지 보장하지 않으며 인증 정보는 저장하지 않는다.
+- 내부 이동은 SvelteKit 라우팅과 일반 anchor/form 흐름을 우선한다.
+- 보호 라우트는 클라이언트 안내와 서버 endpoint 인증을 함께 확인한다.
+- 성공·오류 메시지는 route state나 명시적 query parameter로 짧게 유지하고, 민감한 원문은 화면에 노출하지 않는다.
+- 프로젝트 초안은 브라우저 local state로 다루되 등록·수정 성공, 수정 취소, 사용자의 명시적 초기화 때 정리한다.
+- 로그인 후 불필요한 별도 약관 온보딩 페이지로 보내지 않는다. 필수 정책 동의는 회원가입 단계에서 수집한다.
 
 ## 7. CSS와 반응형 정책
 
-- 전역 선택자보다 `.st-key-*` 컨테이너 스코프를 우선한다.
-- 새 선택자를 추가하기 전에 실제 Python 렌더링 클래스와 key를 검색한다.
-- Streamlit 내부 emotion class처럼 버전마다 바뀌는 클래스에 의존하지 않는다.
-- `st.columns()` 내부 래퍼를 추측하지 말고 필요하면 DOM을 측정한다.
-- `.st-key-*`가 실제로 어느 DOM 노드에 붙는지 확인한다. key class가 target 요소 자체에 붙은 경우와 조상/자손에 붙은 경우는 selector가 다르다. 예: `.st-key-x[data-testid="stHorizontalBlock"]`와 `.st-key-x [data-testid="stHorizontalBlock"]`는 완전히 다르며, 틀리면 CSS가 조용히 무시된다.
-- PC 기본 검증은 1440×900, 모바일은 390×844로 한다.
+- 전역 토큰은 `src/styles/00-foundation.css`, 화면별 스타일은 `src/styles/*`에 둔다.
+- 컴포넌트 상태와 밀접한 스타일은 가장 가까운 Svelte component/class 경계를 우선한다.
+- PC 기본 검증은 1440x1000, 모바일은 390x844 기준으로 한다.
 - PC의 2·3열 입력 폼은 모바일에서 1열로 전환한다.
 - 모바일 버튼 텍스트가 줄마다 한 글자씩 꺾이지 않는지 확인한다.
 - 모든 primary 버튼은 파란 배경·흰 글자로 구분하되, 좋아요처럼 문맥별 스타일이 있는 버튼은 더 구체적인 선택자로 오버라이드한다.
-- 전역 CSS는 `st.html()`의 style-only 콘텐츠로 한 번 주입한다. 인증 rerun 중 스타일이 사라지는 플래시를 줄이기 위함이다.
-- `folio_app/styles/__init__.py`만 CSS 모듈을 조합한다. 페이지·컴포넌트에서 개별 style module을 직접 import하지 않는다.
-- 새 CSS는 가장 가까운 UI 영역 모듈의 `CSS` 상수에 넣는다. 새 모듈을 만들면 반드시 `_SECTIONS`에 추가하고, 순서가 cascade 결과에 영향을 주는지 확인한다.
-- 홈 카드 본체는 `cards.py`, 자동 커버는 `project_card_cover.py`, 카드 레일은 `gallery_rail.py`에 둔다. 상세 대표 결과물은 `project_detail_content.py`, 댓글은 `project_comments.py`, 상세 footer 액션 정렬은 `hero_footer.py`에 둔다.
-- **`styles/*.py`의 CSS 문자열(주석 포함)에 `<a>`, `<div>` 같은 리터럴 태그 형태 텍스트를 쓰지 않는다.** `apply_global_styles()`가 모든 모듈을 이어붙여 `st.html()`로 한 번에 주입하는데, 이 문자열 안에 실제 태그 형태 텍스트가 있으면(주석이라도) 그 지점부터 스타일시트 전체가 깨질 수 있다. 태그를 설명해야 하면 "anchor", "div" 같은 단어로 풀어 쓴다. CSS 변경 후 `folio_app.styles._SECTIONS`를 이어붙인 최종 문자열에 리터럴 태그가 남아있지 않은지 확인한다(문법 오류가 아니라서 `py_compile`/유닛테스트로는 못 잡는다).
-- **Streamlit의 마크다운 렌더러는 `<a>`가 블록 요소(`<div>` 등)를 감싸는 걸 허용하지 않는다.** 하나의 `<a>`로 `<div>`를 감싸면, 렌더러가 이를 텍스트 조각(각 인라인 런)별로 여러 개의 작은 `<a>`로 쪼개버려서, `<div>`로 감싸진 배경·이미지 영역은 어떤 링크에도 속하지 못해 클릭이 안 된다. 카드 전체를 클릭 가능하게 만들어야 하면, 카드를 감싸지 말고 `position: absolute; inset: 0;`로 카드 위에 빈 오버레이 `<a>`를 얹는 "stretched link" 패턴을 쓴다(`folio_app/components/ui.py`의 `render_project_card_html()` 참고). 오버레이의 `z-index`는 카드 내부에서 가장 높은 `z-index`보다 확실히 높게 잡는다(동점이면 나중에 그려지는 요소가 클릭을 가로챌 수 있다).
-- 카드 hover 테두리는 카드 자체 border보다 `::after` 오버레이로 처리한다. 썸네일, 그라데이션, stretched link가 카드 표면을 덮기 때문에 base border만 바꾸면 화면에서 안 보일 수 있다.
+- 텍스트 overflow, hero/toolbar/button 크기, horizontal scroll은 Playwright screenshot과 DOM metrics로 확인한다.
+- 카드 hover 테두리는 카드 자체 border보다 overlay나 box-shadow처럼 썸네일에 가려지지 않는 방식으로 처리한다.
 
 ## 8. UI/UX 정책
 
@@ -132,16 +114,14 @@ Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase q
 - 비어 있는 상태, 로딩 실패, 실제 데이터 없음은 서로 다른 메시지와 재시도 흐름을 제공한다.
 - 모바일 임베드 콘텐츠는 내부 스크롤과 화면 길이를 확인하고 필요하면 외부 열기 중심으로 단순화한다.
 
-## 9. Streamlit 브라우저 테스트 체크리스트
+## 9. 브라우저 테스트 체크리스트
 
-- 브라우저 런타임은 별도 검증 표면이다. 연결된 브라우저 세션이 없으면 DOM/캡처 판정을 unknown으로 남기고, 다른 브라우저 자동화 도구로 조용히 대체하지 않는다. 서버/포트 점검은 별도 preflight에서 수행한다.
-- 스크롤 문제는 `window.scrollY`를 기준으로 단정하지 않는다. `section.stMain`, `[data-testid="stMain"]`, `.block-container` 등 실제 스크롤 가능한 요소의 `scrollHeight`, `clientHeight`, `scrollTop`을 먼저 측정한다.
-- sentinel 기반 무한스크롤은 sentinel의 `getBoundingClientRect()`와 실제 스크롤 컨테이너 위치를 함께 기록한다.
-- `components.html` 스크립트는 iframe sandbox 안에서 실행된다. 상위 페이지 URL 변경, top navigation, 직접 reload는 브라우저 정책에 막힐 수 있으므로 Streamlit 버튼 클릭, query param 콜백, `st.rerun()`처럼 앱 내부 동작을 태운다.
-- 자동 로딩과 수동 fallback 버튼은 같은 Python 콜백을 공유하게 만든다. 둘이 별도 상태를 가지면 남은 개수, 버튼 노출, 마지막 상태가 쉽게 어긋난다.
-- 브라우저 로그에서 `Unsafe attempt to initiate navigation`, `sandbox`, iframe 관련 오류가 보이면 JavaScript 권한 문제가 원인 후보 1순위다.
-- 완료 검증은 시작 상태, 1회 로딩 후 상태, 마지막 상태를 모두 남긴다. 예: 카드 수, URL query, sentinel 문구, fallback 버튼 존재 여부.
-
+- Playwright UI 테스트는 `tests/uiux/`에 둔다.
+- 공개 라우트 smoke는 `npm.cmd run test:ui`로 확인한다.
+- 인증 라우트는 `FOLIO_TEST_ID`와 `FOLIO_TEST_PW`가 필요하며, 원격 데이터 변경 가능성이 있는 테스트는 명시 승인 후 실행한다.
+- 로컬 검증 서버를 임시로 띄웠다면 확인 후 즉시 종료한다.
+- 스크롤 문제는 `document.documentElement.scrollWidth/clientWidth`, 주요 컨테이너 bounding box, sticky header 높이를 함께 본다.
+- 완료 검증은 시작 상태, 주요 상호작용 후 상태, 모바일 상태를 모두 남긴다.
 ## 10. 캐시 정책
 
 - 캐시된 원본 row를 직접 수정하지 않는다. 필터·정렬 전 복사한다.
@@ -171,7 +151,7 @@ flowchart TD
 2. 1차 수정이 다르면 `getBoundingClientRect()`와 computed style을 측정한다.
 3. 버튼은 `stElementContainer → stButton → stTooltipHoverTarget → button` 전체를 확인한다.
 4. 같은 UI 문제를 두 번 이상 수정했는데 재발하면 다음 패치 전에 반드시 DOM을 계측한다. 최소한 문제 요소, 부모 wrapper, 형제 요소의 `getBoundingClientRect()`, `display`, `flex`, `width`, `min-width`, `margin-left`, `justify-content`, selector 매치 여부를 출력한다.
-5. Streamlit UI는 Python의 `st.columns()` 비율, `st.container(key=...)`, custom component iframe, 실제 DOM wrapper가 함께 만든 결과다. 정렬이 어긋날 때 CSS 값만 바꾸면 다른 wrapper가 그대로 남아 효과가 없어 보일 수 있으므로, 렌더 구조와 wrapper를 먼저 확인한다.
+5. Svelte UI는 component markup, route wrapper, global style cascade가 함께 만든 결과다. 정렬이 어긋날 때 CSS 값만 바꾸면 다른 wrapper가 그대로 남아 효과가 없어 보일 수 있으므로, 렌더 구조와 wrapper를 먼저 확인한다.
 6. 같은 줄처럼 보이는 요소는 실제로도 같은 flex/grid 컨테이너 안에 있어야 한다. 조회수, 공개 상태, 링크 복사, 좋아요처럼 한 묶음으로 읽히는 요소를 여러 column/context에 흩어놓으면 gap과 vertical alignment가 계속 따로 논다.
 7. hover 확대, iframe preview, transform 같은 강한 인터랙션은 기본값으로 두지 않는다. 홈/레퍼런스 카드는 약한 transition과 테두리 강조만 쓰고, 등록 페이지 카드 미리보기와 상세 썸네일은 같은 클래스를 공유하더라도 추가 동작이 번지지 않게 scope를 확인한다.
 8. 보이는 UI를 custom component iframe에 넣고 Streamlit button과 한 줄에 섞는 구조는 마지막 수단이다. iframe viewport는 바깥 overflow를 보여줄 수 없어 폭 계산이 조금만 틀려도 clipping이 생긴다. 보이는 칩/버튼은 가능하면 페이지 DOM에 렌더링하고, iframe은 script bridge처럼 보이지 않는 기능에만 쓴다.
@@ -222,12 +202,13 @@ flowchart TD
 기본 명령:
 
 ```powershell
-python -m unittest discover -s tests -v
-python -m compileall -q app.py folio_app tests
-python -m pyflakes folio_app app.py
+npm.cmd run check
+npm.cmd run test:unit
+npm.cmd run build
+npm.cmd run smoke:security
 ```
 
-`py_compile`/`compileall`은 문법만 검사하고 `NameError`(누락된 import 등)는 잡지 못한다. 특히 여러 파일에 걸쳐 새 함수 호출을 추가했다면(예: 여러 페이지에 `track_event()` 호출 추가), 그 함수를 실제로 실행하는 테스트가 없을 수 있으므로 `pyflakes`로 undefined-name을 정적으로 한 번 더 검사한다.
+인증 UI나 실제 Supabase fixture가 필요한 Playwright 테스트는 `FOLIO_TEST_ID`, `FOLIO_TEST_PW`를 확인하고, 원격 데이터 변경 가능성이 있는 케이스는 사용자 승인을 받은 뒤 실행한다.
 
 ## 13. 완료 정의
 
@@ -244,15 +225,15 @@ python -m pyflakes folio_app app.py
 
 - **세션 사용자가 있다고 API도 인증된 것은 아니다.** Auth와 PostgREST 상태를 분리해서 본다.
 - **CSS가 적용됐다는 것과 원하는 요소가 움직였다는 것은 다르다.** 실제 좌표를 측정한다.
-- **Streamlit 컨테이너 문맥과 브라우저 DOM 중첩은 항상 같지 않다.** key만 믿지 말고 렌더 결과를 확인한다.
-- **오래된 서버 프로세스는 최신 코드를 가릴 수 있다.** 현재 개발 설정은 `.streamlit/config.toml`의 `fileWatcherType = "auto"`와 `runOnSave = true`다. 수정 반영이 이상하면 자동 reload를 탓하기 전에 8501 리스너가 하나인지 확인하고, 필요하면 서버를 재시작한다.
+- **컴포넌트 문맥과 브라우저 DOM 중첩은 항상 같지 않다.** class명만 믿지 말고 렌더 결과를 확인한다.
+- **오래된 서버 프로세스는 최신 코드를 가릴 수 있다.** 수정 반영이 이상하면 현재 사용하는 Vite/Cloudflare preview 포트와 process를 확인하고, 필요하면 서버를 재시작한다.
 - **문서 드리프트도 결함이다.** 현재 동작을 설명하지 못하는 문서는 다음 작업의 진입 비용을 높인다.
 - **프레임워크 한계를 인정하는 것도 설계다.** 작은 시각 보정을 위해 복잡하고 깨지기 쉬운 CSS를 쌓지 않는다.
 - **범위를 묻는 질문은 승인이 아니다.** "이거 범위가 커?" 같은 정보성 질문에는 답만 하고 멈춘다. "진행해" 같은 명시적 지시가 있어야 구현한다.
 - **범위 정정은 이전 승인을 덮어쓴다.** 사용자가 중간에 "문서 업데이트해야지"처럼 작업 범위를 다시 지정하면, 그 순간 이전의 커밋/검증 흐름은 취소된 것으로 본다. 새 범위를 끝낸 뒤 다음 단계는 반드시 다시 확인한다.
-- **CSS 문자열에는 리터럴 태그를 쓰지 않는다.** 주석이라도 `<a>`/`<div>` 같은 실제 태그 형태 텍스트를 쓰면, `st.html()`로 전체 스타일시트를 이어붙여 주입하는 구조상 그 지점부터 뒤따르는 모든 CSS가 깨질 수 있다. 겉보기엔 "전체 화면이 깨졌다"처럼 보여도 원인은 국소적인 CSS 주석 하나일 수 있다는 뜻이므로, 최근에 건드린 CSS 파일부터 의심한다.
+- **HTML을 직접 주입하는 경계는 작게 유지한다.** `{@html ...}`는 sanitizer를 통과한 콘텐츠에만 쓰고, 최근에 건드린 HTML/CSS 경계를 먼저 의심한다.
 - **"완전히 깨졌다"는 보고를 받으면 추측보다 실제 DOM/스타일시트를 확인한다.** `document.styleSheets`로 규칙이 실제로 로드됐는지, 특정 셀렉터가 존재하는지 직접 조회하면 CSS 주입 실패·부분 로드 같은 문제를 훨씬 빠르게 좁힐 수 있다.
-- **로컬 개발 서버는 사용자가 직접 기동·재시작한다.** 검증을 위해 서버를 임시로 띄웠다면 확인 후 즉시 종료한다. 양쪽이 각자 `streamlit run app.py`를 띄우면 포트 충돌·중복 프로세스로 "재시작해도 반영이 안 되는" 혼란이 생긴다.
+- **로컬 개발 서버는 사용자가 직접 기동·재시작한다.** 검증을 위해 서버를 임시로 띄웠다면 확인 후 즉시 종료한다. 여러 Vite/preview 서버가 떠 있으면 포트 충돌·중복 프로세스로 "재시작해도 반영이 안 되는" 혼란이 생긴다.
 - **서버 검증이 10초 이상 애매하면 중단하고 포트부터 본다.** `localhost:8501` 확인 전에 `netstat -ano | Select-String ':8501'`로 리스너가 하나인지 확인한다. 여러 리스너가 있거나 캡처가 코드와 맞지 않으면 추가 서버를 띄우지 말고, 기존 서버를 신뢰할 수 없는 상태로 보고 사용자가 재시작한 단일 서버에서 다시 검증한다.
 - **Streamlit Cloud keepalive는 root보다 내부 앱 프레임을 친다.** `https://*.streamlit.app/`는 비브라우저 클라이언트에서 303 redirect loop를 만들 수 있다. 가벼운 HTTP ping은 `https://*.streamlit.app/~/+/`를 사용하고, sleep 해제 버튼 클릭이 필요할 때만 브라우저 기반 wake workflow를 사용한다.
 - **Streamlit Cloud 실서비스 측정도 root와 내부 앱 프레임을 구분한다.** 사용자가 보는 URL은 `https://folio-gapyear.streamlit.app`이지만, headless Playwright나 `urllib` 같은 비브라우저 클라이언트는 root에서 303 loop 또는 shell-only 상태를 볼 수 있다. 빈 body를 봤다고 장애로 단정하지 말고, 실제 브라우저 확인과 `https://folio-gapyear.streamlit.app/~/+/` 측정을 함께 본다.

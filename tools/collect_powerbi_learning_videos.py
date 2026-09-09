@@ -17,7 +17,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 LEARNING_OUTPUT_PATH = ROOT_DIR / "docs" / "curation" / "powerbi_learning_videos" / "all.csv"
 UPDATE_OUTPUT_PATH = ROOT_DIR / "docs" / "curation" / "powerbi_update_videos" / "all.csv"
 PROGRAM_OUTPUT_PATH = ROOT_DIR / "docs" / "curation" / "powerbi_learning_programs" / "all.csv"
-THUMBNAIL_DIR = ROOT_DIR / "folio_app" / "static" / "powerbi_learning_thumbs"
+THUMBNAIL_DIR = ROOT_DIR / "static" / "powerbi_learning_thumbs"
 MAX_PER_CHANNEL = 3
 MAX_ROWS = 30
 
@@ -277,7 +277,7 @@ def _download_thumbnail(video_id: str, thumbnail_url: str) -> str:
         return ""
     THUMBNAIL_DIR.mkdir(parents=True, exist_ok=True)
     asset_name = f"powerbi_learning_thumbs/{video_id}.jpg"
-    output_path = ROOT_DIR / "folio_app" / "static" / asset_name
+    output_path = ROOT_DIR / "static" / asset_name
     request = urllib.request.Request(thumbnail_url, headers={"User-Agent": "folio-powerbi-curator/1.0"})
     try:
         with urllib.request.urlopen(request, timeout=20) as response:

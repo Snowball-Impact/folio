@@ -172,8 +172,8 @@
 - [x] Svelte UIUX 검증 도구를 Playwright 기준으로 정리한다.
   - 현재 표준 실행 경로는 root `package.json`의 `test:ui`, `test:ui:auth`, `capture:ui`와 root `playwright.config.ts`다.
   - Svelte 수동 캡처는 `scripts/capture-ui.mjs`를 사용한다.
-  - Selenium 기반 Svelte 과거 캡처·프로브 스크립트는 `tools/legacy_selenium/`로 분리했다.
-  - `requirements-dev.txt`의 `selenium`은 Streamlit/외부 갤러리 수집 legacy 도구 때문에 현재 유지한다.
+  - Selenium 기반 과거 캡처·프로브 스크립트는 로컬 백업 zip으로만 보관하고 활성 root에서는 제거했다.
+  - Python `requirements*.txt`는 Streamlit 앱 백업 자료로만 남아 있으며, 현재 앱 검증은 Node/Playwright를 기준으로 한다.
 - [x] Svelte UIUX 디자인 시스템과 화면별 QA 기준을 문서화한다.
   - 기준 문서: `docs/svelte/SVELTE_UIUX_DESIGN_SYSTEM.md`
   - font/size/spacing/control/card-list token, 화면별 QA checklist, Playwright 검증 루틴을 한 문서로 고정했다.

@@ -194,10 +194,6 @@ npm.cmd run measure:routes
 
 Svelte의 표준 검증, 캡처, 성능 측정은 Playwright를 사용한다.
 
-Selenium은 다음 legacy 영역에만 남긴다.
+Selenium 기반 도구는 repository root의 활성 검증 경로에서 제거했고, 필요한 과거 재현 자료는 로컬 백업 zip에만 보관한다.
 
-- Streamlit 원본 캡처
-- 외부 갤러리 수집
-- 과거 migration evidence 재현
-
-Svelte Selenium 스크립트는 `tools/legacy_selenium/`에 보관하며 새 작업에서는 사용하지 않는다.
+새 Svelte 작업은 `npm.cmd run test:ui`, `npm.cmd run capture:ui`, `npm.cmd run measure:routes`를 기준으로 검증한다.

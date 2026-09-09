@@ -4,9 +4,14 @@ import { testEnv } from './test-env';
 
 const focusRoutes = [
 	{ name: 'home', path: '/' },
+	{ name: 'login', path: '/login' },
+	{ name: 'signup', path: '/signup' },
+	{ name: 'reset-password', path: '/reset-password' },
 	{ name: 'my-page', path: '/my' },
 	{ name: 'notifications', path: '/notifications' },
-	{ name: 'submit', path: '/submit' }
+	{ name: 'submit', path: '/submit' },
+	{ name: 'powerbi', path: '/powerbi' },
+	{ name: 'references-powerbi', path: '/references/powerbi' }
 ];
 
 const publicDetailProjectId = testEnv('PLAYWRIGHT_PUBLIC_DETAIL_PROJECT_ID', 'PLAYWRIGHT_PROJECT_ID');
@@ -66,6 +71,19 @@ for (const route of focusRoutes) {
 		await page.screenshot({ path: testInfo.outputPath(`${route.name}.png`), fullPage: true });
 	});
 }
+
+test('signup exposes resend confirmation fallback', async ({ page }) => {
+	const response = await page.goto('/signup', { waitUntil: 'networkidle' });
+	expect(response, '/signup did not return a document').not.toBeNull();
+	expect(response?.status(), '/signup returned a server error').toBeLessThan(500);
+
+	await expect(page.getByRole('button', { name: '인증 메일 다시 받기' })).toBeEnabled();
+	await page.getByRole('button', { name: '인증 메일 다시 받기' }).click();
+	await expect(page.getByText('인증 메일을 받지 못했거나 링크가 만료됐다면 다시 요청하세요.')).toBeVisible();
+	await page.getByLabel('인증 메일 재발송 이메일').fill('name@example');
+	await page.getByRole('button', { name: '인증 메일 다시 보내기' }).click();
+	await expect(page.locator('.resend-confirmation-form .auth-message.error')).toContainText('재발송할 이메일을 올바르게 입력하세요.');
+});
 
 test('public detail fixture renders anonymous state', async ({ page }, testInfo) => {
 	test.skip(!publicDetailProjectId, 'PLAYWRIGHT_PUBLIC_DETAIL_PROJECT_ID 또는 PLAYWRIGHT_PROJECT_ID가 필요합니다.');

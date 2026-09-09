@@ -81,7 +81,7 @@ Thumbnail capture:
 - [ ] Signup metadata creates or updates `profiles`.
 - [ ] `/login` restores browser session.
 - [ ] `/reset-password` accepts Supabase recovery callbacks.
-- [ ] Required policy onboarding blocks authenticated routes until accepted.
+- [ ] Signup requires active terms/privacy consent before account creation.
 - [ ] `/my` lists only the signed-in user's non-deleted projects.
 - [ ] Profile name, organization, and bio updates persist.
 

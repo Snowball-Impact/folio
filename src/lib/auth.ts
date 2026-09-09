@@ -76,6 +76,8 @@ export async function signInWithEmail(email: string, password: string): Promise<
 	if (error) {
 		return { ok: false, message: friendlyAuthError('로그인', error.message) };
 	}
+	const { data } = await supabase.auth.getSession();
+	await applySignupPolicyConsents(data.session);
 	return { ok: true, message: '로그인되었습니다.' };
 }
 
@@ -128,13 +130,8 @@ export async function signUpWithEmail(input: {
 	if (data.user?.identities?.length === 0) {
 		return { ok: false, message: '이미 가입된 이메일입니다. 로그인 화면에서 로그인하세요.' };
 	}
-	if (data.session && consentedPolicyVersionIds.length > 0) {
-		await supabase.from('user_policy_consents').insert(
-			consentedPolicyVersionIds.map((policyId) => ({
-				user_id: data.session!.user.id,
-				policy_version_id: policyId
-			}))
-		);
+	if (data.session) {
+		await applySignupPolicyConsents(data.session);
 	}
 	if (data.session) {
 		return { ok: true, message: '회원가입이 완료되었습니다.' };
@@ -160,6 +157,30 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
 		return { ok: false, message: friendlyAuthError('비밀번호 재설정', error.message) };
 	}
 	return { ok: true, message: '비밀번호 재설정 메일 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.' };
+}
+
+export async function resendSignupConfirmation(email: string): Promise<AuthResult> {
+	const supabase = getSupabaseClient();
+	if (!supabase) {
+		return { ok: false, message: 'Supabase 환경 변수가 설정되지 않았습니다.' };
+	}
+
+	const normalizedEmail = normalizeEmail(email);
+	if (!normalizedEmail || !isValidEmail(normalizedEmail)) {
+		return { ok: false, message: '인증 메일을 받을 이메일을 올바르게 입력하세요.' };
+	}
+
+	const { error } = await supabase.auth.resend({
+		type: 'signup',
+		email: normalizedEmail,
+		options: {
+			emailRedirectTo: `${window.location.origin}/login?verified=1`
+		}
+	});
+	if (error) {
+		return { ok: false, message: friendlyAuthError('인증 메일 재발송', error.message) };
+	}
+	return { ok: true, message: '인증 메일 재발송 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.' };
 }
 
 export async function completePasswordReset(input: {
@@ -264,6 +285,30 @@ function profileFromUser(user: User): AuthProfile {
 function nullableString(value: unknown) {
 	const text = String(value ?? '').trim();
 	return text || null;
+}
+
+async function applySignupPolicyConsents(session: Session | null) {
+	const supabase = getSupabaseClient();
+	const policyIds = signupPolicyConsentIds(session?.user);
+	if (!supabase || !session || policyIds.length === 0) {
+		return;
+	}
+
+	await supabase.from('user_policy_consents').upsert(
+		policyIds.map((policyId) => ({
+			user_id: session.user.id,
+			policy_version_id: policyId
+		})),
+		{
+			onConflict: 'user_id,policy_version_id',
+			ignoreDuplicates: true
+		}
+	);
+}
+
+function signupPolicyConsentIds(user: User | undefined) {
+	const value = user?.user_metadata?.consented_policy_version_ids;
+	return [...new Set(Array.isArray(value) ? value.map((item) => String(item ?? '').trim()).filter(Boolean) : [])];
 }
 
 function friendlyAuthError(action: string, message: string) {

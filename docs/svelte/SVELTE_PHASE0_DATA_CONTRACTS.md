@@ -35,7 +35,7 @@ Phase 0은 구현 스파이크가 아니라 계약 고정 단계다.
 
 ## 2. 홈 공개 조회 계약
 
-현재 Streamlit 홈 기본 진입은 `folio_app/pages/home.py`에서 아래 조건일 때 fast path를 탄다.
+당시 Streamlit 홈 기본 진입은 `folio_app/pages/home.py`에서 아래 조건일 때 fast path를 탔다.
 
 ```text
 검색어 없음
@@ -151,7 +151,7 @@ type ProjectCard = {
 
 ## 3. 상세 공개 조회 계약
 
-현재 상세는 `folio_app/pages/project_detail.py`에서 홈과 레퍼런스가 함께 사용한다.
+당시 상세는 `folio_app/pages/project_detail.py`에서 홈과 레퍼런스가 함께 사용했다.
 
 호출:
 
@@ -258,7 +258,7 @@ Svelte P0 결정:
 
 ## 5. Enum 계약
 
-현재 enum 후보는 `folio_app/services/project_normalizers.py`와 `supabase/schema.sql`이 일치한다.
+당시 enum 후보는 `folio_app/services/project_normalizers.py`와 `supabase/schema.sql`이 일치했다.
 
 ```ts
 type ThumbnailMode = 'auto_cover' | 'manual_url' | 'capture' | 'upload';
@@ -430,7 +430,7 @@ type PowerBIEmbedConfig = {
 
 ## 10. Power BI 콘텐츠 허브 계약
 
-현재 `folio_app/services/powerbi_content.py`는 CSV를 읽어 `PowerBIContent`로 묶는다.
+당시 Streamlit 구현의 `folio_app/services/powerbi_content.py`는 CSV를 읽어 `PowerBIContent`로 묶었다. 현재 루트 SvelteKit 구현은 `src/lib/server/powerbi-content.ts`가 같은 역할을 맡는다.
 
 입력 파일:
 
@@ -523,13 +523,13 @@ docs/contracts/samples/project_detail_snapshot.sample.json
 - 개인 이메일은 `public_profiles` view에 없어야 한다.
 - 필요하면 title/url을 익명화하되 필드 shape는 유지한다.
 
-권장 명령 후보:
+당시 권장 명령 후보이며, 현재 root 활성 도구가 아니다:
 
 ```powershell
 python tools\profile_home_snapshot.py --warm-runs 0
 ```
 
-상세 샘플은 공개 프로젝트 ID 하나를 확보한 뒤 별도 작은 도구 또는 임시 Python one-liner로 `get_project(project_id)` 결과를 JSON 저장한다.
+현재 root 기준 샘플이 다시 필요하면 Supabase RPC를 직접 호출하는 Node/TypeScript 도구를 새로 만든다. 삭제된 Streamlit profiling 도구는 로컬 백업 zip의 historical material로만 취급한다.
 
 샘플 저장 전 선행 확인:
 

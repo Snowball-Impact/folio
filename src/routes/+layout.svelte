@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
-	import OnboardingGate from '$lib/components/OnboardingGate.svelte';
 	import { initRum } from '$lib/rum';
 
 	let { children } = $props();
@@ -20,7 +19,6 @@
 
 <div class="app-shell">
 	{#if !isThumbnailCapture}
-		<OnboardingGate />
 		<header class="site-header">
 			<div class="site-header-inner">
 				<a class="brand" href="/" aria-label="FOLIO 홈으로 이동">
@@ -37,7 +35,7 @@
 		<footer class="site-footer">
 			<div class="site-footer-inner">
 				<span>Copyright © 2026 Snowball Impact. All rights reserved.</span>
-				<span class="site-footer-version">v2026.09.01.01</span>
+				<span class="site-footer-version">v2026.09.09.01</span>
 				<nav aria-label="푸터 링크">
 					<a href="/policy/terms">이용약관</a>
 					<a href="/policy/privacy">개인정보 처리방침</a>
