@@ -12,14 +12,29 @@
 **FOLIO** — 공개된 우수 데이터 시각화 프로젝트를 선별해 소개하고, 사용자가 직접 경험한 뒤 의견을 나눌 수 있도록 하는 콘텐츠 기반 커뮤니티.
 핵심 메시지: "좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티 / AI 시대에도 사람의 질문과 해석은 중요한 자산이다."
 
-2026-08 기준 제품 방향은 `docs/common/MVP_PRD.md`를 기본으로 하며, 커뮤니티 게시판은 `docs/common/FOLIO_Community_PRD.md`, 운영자 화면은 `docs/common/FOLIO_Admin_PRD.md`를 따른다. 기존 코드는 아직 "사용자 직접 등록 포트폴리오 MVP" 구조가 많이 남아 있으므로, 다음 큰 작업은 기존 기능을 보존하면서 Power BI-first 콘텐츠, 데이터 시각화 갤러리 경험, 커뮤니티/운영 기능을 단계적으로 결합하는 것이다.
+2026-09 기준 제품 방향은 `docs/common/MVP_PRD.md`를 기본으로 하며, 커뮤니티 게시판은 `docs/common/FOLIO_Community_PRD.md`, 운영자 화면은 `docs/common/FOLIO_Admin_PRD.md`를 따른다. 기존 기능을 보존하면서 Power BI-first 콘텐츠, 데이터 시각화 갤러리 경험, 커뮤니티/운영 기능을 단계적으로 결합한다.
 
-- **스택**: Streamlit + Supabase (PostgreSQL + Auth)
-- **실행**: `streamlit run app.py` → `http://localhost:8501`
-- **엔트리**: 루트 `app.py` → `folio_app/app.py:main()`
-- **배포 채널**: Docker 기반 PaaS로 전환 준비 중이다. Streamlit 앱 구조는 유지하고, 컨테이너에서 `0.0.0.0:${PORT:-8501}`로 실행한다.
+- **스택**: SvelteKit + Cloudflare Pages runtime + Supabase (PostgreSQL + Auth + Storage)
+- **실행**: `npm.cmd run dev:managed -- --Port 5174`
+- **엔트리**: 루트 `src/routes/`, `src/lib/`, `package.json`
+- **배포 채널**: Cloudflare Pages. Root directory는 비우거나 repository root로 두고, build command는 `npm run build`, output은 `.svelte-kit/cloudflare`이다.
+- **레거시**: 루트 `app.py`, `folio_app/`, Python 테스트, `docs/streamlit/`은 Streamlit 원본 비교·참조용으로 유지한다.
+
+### 현재 핸드오프 상태 (2026-09-09)
+
+다음 대화에서는 아래 상태에서 이어가면 된다.
+
+- `main`은 PR #198 merge commit `a6caee3` 기준으로 SvelteKit 앱을 repository root로 이동했다.
+- `svelte_app/` 디렉터리는 삭제 완료했다. Git 추적 파일도 0개다.
+- Cloudflare Pages 배포는 repository root 기준으로 완료했다.
+- 현재 주요 실행 명령은 루트에서 `npm.cmd run check`, `npm.cmd run build`, `npm.cmd run test:unit`, `npm.cmd run verify`이다.
+- Windows 로컬 개발은 Wrangler/Miniflare profile path `EPERM`을 피하기 위해 `npm.cmd run dev:managed -- --Port 5174`를 기본으로 쓴다.
+- 현재 문서 기준은 `README.md`, `docs/README.md`, `docs/common/ARCHITECTURE.md`, `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`, `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`이다.
+- `docs/migration/`과 날짜가 붙은 refactor/checklist 문서는 과거 작업 증거다. 현재 경로와 다르면 실제 루트 코드와 active 문서를 우선한다.
 
 ### 현재 핸드오프 상태 (2026-08-24)
+
+Historical note: 아래 섹션은 Streamlit 중심 운영 및 Svelte 이전 전 상태를 기록한 과거 로그다. 현재 실행 기준으로 사용하지 않는다.
 
 다음 대화에서는 아래 상태에서 이어가면 된다.
 

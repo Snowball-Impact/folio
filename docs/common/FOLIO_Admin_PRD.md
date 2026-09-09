@@ -531,7 +531,7 @@ compileall / Power BI 콘텐츠 테스트 실행
   ↓
 main push
   ↓
-Streamlit Community Cloud 자동 반영
+Cloudflare Pages production 자동 배포
 ```
 
 ### GitHub Actions

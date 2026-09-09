@@ -1,5 +1,7 @@
 # Svelte Phase 0 데이터 계약 점검
 
+> Historical note: 이 문서는 최초 Svelte 데이터 계약 점검 기록이다. 현재 구현은 repository root 기준이며, migration-era 경로와 브랜치는 당시 상태로 읽는다.
+
 - 작성일: 2026-08-24
 - 기준 브랜치: `docs/svelte-migration-prd`
 - 목적: Svelte 구현 전에 홈/상세/콘텐츠 흐름이 의존하는 실제 Streamlit 서비스, Supabase RPC, 스키마 계약을 고정한다.

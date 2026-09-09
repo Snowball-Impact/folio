@@ -32,14 +32,15 @@
 
 | 변경 내용 | 우선 수정 위치 |
 |---|---|
-| 화면 문구·화면 조합 | `folio_app/pages/` |
-| 반복 UI·프로젝트 폼 | `folio_app/components/` |
-| 인증·CRUD·검증·캐시 | `folio_app/services/` |
-| 색상·간격·반응형 | `folio_app/styles/` |
+| Svelte 화면 문구·라우트 조합 | `src/routes/` |
+| Svelte 반복 UI·프로젝트 폼 | `src/lib/components/` |
+| Svelte 인증·CRUD·검증·캐시 | `src/lib/`와 `src/lib/server/` |
+| Svelte 색상·간격·반응형 | `src/app.css`와 component style |
 | 테이블·RLS·RPC | `supabase/schema.sql` |
 | 현재 상태와 작업 규칙 | `docs/common/PROJECT_CONTEXT.md`와 본 문서 |
+| Streamlit legacy 유지보수 | `folio_app/`, `app.py`, `docs/streamlit/` |
 
-페이지가 Supabase query를 직접 만들거나 서비스가 Streamlit 레이아웃을 렌더링하지 않는다.
+Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase query와 외부 API 호출은 `src/lib` 또는 `src/lib/server` 경계에 둔다. Streamlit legacy는 기존 facade/service 경계를 유지한다.
 
 ### 리팩토링 후 모듈 경계
 
@@ -180,7 +181,7 @@ flowchart TD
 ### 로딩 성능 문제
 
 1. 먼저 사용자 증상을 단계로 나눈다. 예: Streamlit shell 표시, 내부 앱 iframe 표시, 헤더, 상세 히어로, 본문, 댓글, 외부 대시보드 iframe.
-2. 로컬 서버가 아니라 실제 배포 URL에서 최소 2회 이상 측정한다. Streamlit Community Cloud는 shell/iframe 부팅, cold start, 외부 iframe 정책이 로컬과 다르다.
+2. 로컬 서버가 아니라 실제 배포 URL에서 최소 2회 이상 측정한다. Cloudflare Pages는 Pages runtime, Worker compatibility, 외부 iframe 정책, remote env/secrets가 로컬 Vite와 다르다.
 3. 홈과 상세는 milestone이 다르므로 같은 측정 스크립트를 억지로 재사용하지 않는다. 홈은 갤러리 카드, 상세는 `detailHero`, `visualPanel`, `reportContent`, `comments`, 외부 iframe placeholder를 따로 본다.
 4. 측정 도구는 `tools/measure_home_load.py`, `tools/measure_detail_load.py`처럼 재실행 가능한 스크립트로 남긴다. 긴 JSON 출력은 최종 보고에 그대로 붙이지 말고 milestone 평균과 확인한 사실만 요약한다.
 5. Streamlit 페이지의 체감 로딩은 Python 코드만의 문제가 아니다. 바깥 Streamlit Cloud shell, 내부 `streamlitApp` iframe, `components.html` iframe, 외부 Looker Studio/Power BI iframe을 분리해서 본다.

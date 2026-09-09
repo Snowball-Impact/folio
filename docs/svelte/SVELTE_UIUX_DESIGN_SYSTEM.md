@@ -2,7 +2,7 @@
 
 작성일: 2026-09-01
 
-이 문서는 `svelte_app/` UI를 수정할 때 사용하는 시각 기준과 QA 루틴이다. 현재 기준은 `svelte_app/src/app.css`의 token을 우선하며, 화면별 예외는 token 위에서 좁게 둔다.
+이 문서는 루트 SvelteKit UI를 수정할 때 사용하는 시각 기준과 QA 루틴이다. 현재 기준은 `src/app.css`의 token을 우선하며, 화면별 예외는 token 위에서 좁게 둔다.
 
 ## 원칙
 
@@ -165,7 +165,7 @@ Power BI:
 일반 UI 수정:
 
 ```powershell
-cd C:\workspace\folio\svelte_app
+cd C:\workspace\folio
 npm.cmd run check
 npm.cmd run test:ui
 git diff --check

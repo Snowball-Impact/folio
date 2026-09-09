@@ -78,8 +78,10 @@ Svelte 공개 상세 전환 전에는 상세 RPC 응답이 로컬 `schema.sql`�
 ```text
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
-APP_URL=http://localhost:8501
-COOKIE_PASSWORD=replace-with-a-long-random-cookie-password
+PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
+PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
+APP_URL=http://localhost:5174
 POWERBI_TENANT_ID=your-tenant-id
 POWERBI_CLIENT_ID=your-client-id
 POWERBI_CLIENT_SECRET=your-client-secret
@@ -90,20 +92,20 @@ POWERBI_IMPORT_POLL_SECONDS=30
 
 주의:
 
-- 일반 앱 실행용 `.env`에는 `service_role` key를 넣지 않습니다. 서버측 Storage/운영 작업에 필요할 때만 배포 Secrets 또는 로컬 운영 환경에 별도로 둡니다.
+- `SUPABASE_SERVICE_ROLE_KEY`는 서버 전용입니다. 클라이언트 코드, 브라우저 로그, 문서, 스크린샷에 노출하지 않습니다.
 - `POWERBI_CLIENT_SECRET`은 Power BI 게시와 Embedded Viewer에만 쓰며 저장소에 커밋하지 않습니다.
-- `PBIX_MAX_UPLOAD_MB` 기본값은 100입니다. Streamlit 업로드 설정도 `.streamlit/config.toml`의 `maxUploadSize=100`과 맞춰 둡니다.
+- `PBIX_MAX_UPLOAD_MB` 기본값은 100입니다.
 - `POWERBI_IMPORT_POLL_SECONDS` 기본값은 100입니다. 큰 PBIX import가 10초 안에 끝나지 않는 상황을 피하기 위한 MVP 상한입니다.
 - 기존 프로젝트의 legacy `anon` key는 `SUPABASE_ANON_KEY` 이름으로도 계속 사용할 수 있습니다.
 - `.env`는 `.gitignore`에 포함되어 있으므로 저장소에 커밋되지 않습니다.
-- `COOKIE_PASSWORD`는 로그인 유지용 암호화 쿠키에 사용하므로 운영 환경에서는 긴 임의 문자열로 설정합니다.
+- Streamlit legacy 앱을 별도로 실행할 때만 `COOKIE_PASSWORD`와 `http://localhost:8501` 설정을 사용합니다.
 
 ## 5. 앱 재시작
 
-`.env`를 만든 뒤 Streamlit 서버를 재시작합니다.
+`.env`를 만든 뒤 SvelteKit 개발 서버를 재시작합니다.
 
 ```powershell
-streamlit run app.py
+npm.cmd run dev:managed -- --Port 5174
 ```
 
 ## 6. 인증 테스트
@@ -140,13 +142,13 @@ Supabase Auth에서 이메일 인증이 켜져 있으면 회원가입 직후 자
 
 이메일 인증 링크를 눌렀을 때 브라우저에서 `localhost` 연결이 거부되면 보통 다음 중 하나입니다.
 
-1. Streamlit 서버가 실행 중이 아님
-   - `streamlit run app.py`를 실행한 뒤 `http://localhost:8501`로 직접 접속합니다.
+1. SvelteKit 개발 서버가 실행 중이 아님
+   - `npm.cmd run dev:managed -- --Port 5174`를 실행한 뒤 `http://localhost:5174`로 직접 접속합니다.
 2. Supabase Auth 리다이렉트 URL이 앱 주소와 다름
-   - Supabase Dashboard의 **Authentication > URL Configuration**에서 Site URL을 `http://localhost:8501`로 설정합니다.
-   - Redirect URLs에도 `http://localhost:8501/**` 또는 `http://localhost:8501`을 추가합니다.
+   - Supabase Dashboard의 **Authentication > URL Configuration**에서 Site URL을 `http://localhost:5174` 또는 배포 URL로 설정합니다.
+   - Redirect URLs에도 `http://localhost:5174/**`, 배포 URL, 배포 URL의 callback 경로를 추가합니다.
 3. 이메일 인증 링크는 인증 완료용이고, 앱 로그인은 별도로 해야 함
-   - 인증 완료 후 브라우저에서 `http://localhost:8501`을 직접 열고 `Login` 메뉴에서 같은 이메일/비밀번호로 로그인합니다.
+   - 인증 완료 후 브라우저에서 앱 URL을 직접 열고 `Login` 메뉴에서 같은 이메일/비밀번호로 로그인합니다.
 
 현재 앱은 Supabase 인증 링크 클릭 후 자동 로그인하지 않습니다.
 
@@ -155,7 +157,7 @@ Supabase Auth에서 이메일 인증이 켜져 있으면 회원가입 직후 자
 권장 redirect URL은 다음 형태입니다.
 
 ```text
-http://localhost:8501?page=Login&verified=1
+http://localhost:5174/login?verified=1
 ```
 
 Supabase가 `#access_token=...` fragment를 붙여서 돌려주더라도 앱은 자동 로그인에 사용하지 않습니다. 사용자는 Login 화면에서 직접 로그인합니다.

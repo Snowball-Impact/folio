@@ -2,275 +2,131 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-현재 이 레포지토리는 루트의 SvelteKit 기반 프론트엔드를 메인 애플리케이션으로 사용합니다. 기존 Streamlit 기반 MVP는 아직 루트 `app.py`와 `folio_app/`에 레거시 구현으로 남아 있으며, 새 개발과 배포는 SvelteKit 기준으로 진행합니다.
+현재 FOLIO의 메인 애플리케이션은 저장소 루트의 SvelteKit 앱입니다. 기존 Streamlit MVP는 `app.py`, `folio_app/`, Python 테스트에 레거시 구현으로 남아 있으며, 새 개발과 배포는 SvelteKit + Cloudflare Pages 기준으로 진행합니다.
 
-요약:
-- 메인 프론트엔드: 루트 `src/`, `static/`, `package.json` (SvelteKit + Vite)
-- 레거시: 루트 `app.py`, `folio_app/`, Python `tests/` (원본 Streamlit MVP, 참고용)
-- 백엔드 및 데이터: Supabase를 계속 사용
+## 현재 구조
 
-## 현재 구현 범위
-
-- Supabase Auth 기반 로그인/회원가입/로그아웃
-- 암호화 쿠키 기반 로그인 유지
-- 첫 로그인 후 이용약관·개인정보 처리방침 동의 온보딩
-- 사용자 프로필 자동 생성, 조회 및 수정
-- 프로젝트 등록, 수정, 삭제
-- Quill 자유 입력 본문과 기본 정보 옆 실시간 카드 미리보기 기반 프로젝트 작성
-- 홈 화면 안의 검색·태그·플랫폼 중심 프로젝트 탐색
-- 검색, 태그 필터, 최신순/조회수순/좋아요순 정렬
-- 최근 등록순·조회순·좋아요순 홈 카드 레일
-- Power BI 중심 레퍼런스 서브페이지와 레퍼런스 상세 복귀
-- 레퍼런스 페이지의 브라우저 기반 증분 로딩
-- 레퍼런스 페이지의 클라이언트 기반 최신/조회수/좋아요 정렬
-- 홈 카드 hover 기반 Power BI 미리보기
-- Home 안에서 `project_id` 쿼리 기반 상세 페이지 렌더링
-- 경기청년 갭이어 2026과 Snowball Impact를 소개하는 서비스 소개 페이지
-- 세션별 중복 증가를 방지하는 조회수 RPC 연동
-- `likes` 테이블 기반 좋아요 추가·취소 및 좋아요순 정렬
-- 프로젝트 상세 댓글·1단계 답글·본인 삭제, 댓글 수와 미확인/활동 `NEW` 표시
-- 댓글 작성 시 프로젝트 작성자에게 알림 생성, 헤더 알림 배지, 알림 목록, 선택적 이메일 알림
-- Power BI iframe 또는 embed URL 표시
-- 보고서/GitHub URL 입력과 기본 커버·직접 URL·자동 캡처 기반 썸네일 설정
-- 보고서/GitHub URL 입력과 기본 커버·직접 업로드·직접 URL·자동 캡처 기반 썸네일 설정
-- 수정 화면에서 썸네일 삭제·교체와 Power BI PBIX 재업로드·연결 삭제
-- 프로젝트 본문 HTML 허용 목록 정제
+```text
+package.json              # SvelteKit 앱 스크립트와 의존성
+src/                      # SvelteKit routes, components, client/server lib
+static/                   # 정적 이미지와 폰트
+svelte.config.js          # Cloudflare adapter 설정
+vite.config.ts            # Vite/SvelteKit 설정
+wrangler.jsonc            # Cloudflare Pages runtime 설정
+supabase/                 # Supabase schema
+docs/                     # 현재 기준 문서와 historical 기록
+folio_app/, app.py        # 레거시 Streamlit 구현
+```
 
 ## 실행
 
-프론트엔드(SvelteKit) 개발 서버 실행:
+Windows 로컬 개발은 Wrangler/Miniflare registry를 저장소 내부 `.runtime/`으로 고정하는 managed 명령을 사용합니다.
 
 ```powershell
-npm ci
+npm.cmd ci
 npm.cmd run dev:managed -- --Port 5174
 ```
 
-로컬에서 Playwright E2E를 실행하려면:
+일반 검증:
 
-```bash
-npm ci
-npx playwright test
+```powershell
+npm.cmd run check
+npm.cmd run build
+npm.cmd run test:unit
 ```
 
-기존 Streamlit 앱(레거시)을 로컬에서 확인하려면 루트에서 Python 의존성을 설치한 뒤 실행합니다.
+전체 smoke 묶음:
+
+```powershell
+npm.cmd run verify
+```
+
+Playwright UI 검증:
+
+```powershell
+npm.cmd run test:ui
+```
+
+## 배포
+
+기본 배포 채널은 Cloudflare Pages입니다.
+
+Cloudflare Pages 설정:
+
+```text
+Root directory: 비움 또는 repository root
+Build command: npm run build
+Build output directory: .svelte-kit/cloudflare
+Production branch: main
+```
+
+로컬 Cloudflare preview:
+
+```powershell
+npm.cmd run preview:cloudflare
+```
+
+수동 배포:
+
+```powershell
+npm.cmd run build
+npm.cmd run deploy:cloudflare
+```
+
+필수 배포 문서는 [docs/svelte/CLOUDFLARE_DEPLOYMENT.md](docs/svelte/CLOUDFLARE_DEPLOYMENT.md)를 따릅니다.
+
+## 환경 변수
+
+루트 `.env` 또는 배포 환경 변수에 설정합니다. 값은 문서와 로그에 남기지 않습니다.
+
+필수:
+
+- `PUBLIC_SUPABASE_URL`
+- `PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `APP_URL`
+- `THUMBNAIL_STORAGE_BUCKET`
+
+선택:
+
+- Power BI/PBIX: `POWERBI_TENANT_ID`, `POWERBI_CLIENT_ID`, `POWERBI_CLIENT_SECRET`, `POWERBI_WORKSPACE_ID`, `POWERBI_API_BASE_URL`, `PBIX_MAX_UPLOAD_MB`
+- Thumbnail capture: `THUMBNAIL_CAPTURE_ENABLED`, `THUMBNAIL_CAPTURE_PROVIDER`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_BROWSER_RENDERING_API_TOKEN`
+- Email: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME`, `SMTP_USE_TLS`
+- RUM: `PUBLIC_RUM_ENDPOINT`, `PUBLIC_RUM_SAMPLE_RATE`
+
+## 주요 기능
+
+- Supabase Auth 기반 로그인, 회원가입, 비밀번호 재설정
+- 약관/개인정보 처리방침 온보딩
+- 홈 프로젝트 탐색, 검색, 태그, 정렬, 카드 레일
+- Power BI 레퍼런스와 큐레이션 콘텐츠 허브
+- 프로젝트 등록, 수정, 삭제, 공개/비공개
+- Tiptap 기반 프로젝트 본문 편집과 HTML sanitizer
+- 썸네일 업로드, 직접 URL, 자동 캡처
+- PBIX 업로드와 Power BI 게시/임베드 메타데이터
+- 프로젝트 상세, 좋아요, 댓글, 1단계 답글, 알림, 선택적 이메일 알림
+
+## 문서
+
+새 작업 컨텍스트에서는 먼저 [docs/README.md](docs/README.md)를 읽고, 작업 대상에 맞는 문서를 선택합니다.
+
+- 현재 프로젝트 상태: [docs/common/PROJECT_CONTEXT.md](docs/common/PROJECT_CONTEXT.md)
+- 아키텍처: [docs/common/ARCHITECTURE.md](docs/common/ARCHITECTURE.md)
+- 개발 원칙: [docs/common/ENGINEERING_PLAYBOOK.md](docs/common/ENGINEERING_PLAYBOOK.md)
+- Svelte 개발 환경: [docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md](docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md)
+- Cloudflare 배포: [docs/svelte/CLOUDFLARE_DEPLOYMENT.md](docs/svelte/CLOUDFLARE_DEPLOYMENT.md)
+- Staging QA: [docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md](docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md)
+- 운영 모니터링: [docs/ops/PRODUCTION_MONITORING.md](docs/ops/PRODUCTION_MONITORING.md)
+
+과거 Streamlit 운영 문서와 Svelte migration 증거는 각각 [docs/streamlit/](docs/streamlit/)과 [docs/migration/](docs/migration/)에 보관합니다.
+
+## 레거시 Streamlit
+
+Streamlit 구현은 현재 운영 기준이 아니라 비교와 참조용입니다.
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 streamlit run app.py
-```
-
-Streamlit 레거시의 Windows 개발 환경에서는 `.streamlit/config.toml`의 `runOnSave = true`와 `fileWatcherType = "auto"`를 사용합니다.
-수정이 반영되지 않거나 같은 포트에 여러 서버가 떠 있는 것처럼 보이면 `8501` 리스너를 확인한 뒤 서버를 하나만 남겨 재시작합니다.
-
-## 애플리케이션 진입 구조
-
-FOLIO에는 이름이 같은 `app.py`가 두 개 있지만 역할이 다릅니다.
-
-```text
-streamlit run app.py
-        │
-        ▼
-루트 app.py
-  - Streamlit 페이지 기본 설정
-  - folio_app.app.main() 호출
-        │
-        ▼
-folio_app/app.py
-  - 환경 설정과 로그인 쿠키 준비
-  - 인증 세션 복구와 온보딩 확인
-  - URL의 page 값에 맞는 화면 함수 호출
-  - 공통 헤더와 푸터 출력
-```
-
-- 루트 `app.py`는 Streamlit이 직접 실행하는 **얇은 실행 진입점**입니다. `st.set_page_config()`를 가장 먼저 호출한 후 실제 앱의 `main()`으로 넘깁니다.
-- `folio_app/app.py`는 애플리케이션의 **실제 조정자**입니다. 인증, 쿠키, 라우팅, 온보딩과 화면 렌더링 순서를 관리합니다.
-- 배포 설정의 Main file path에는 루트의 `app.py`를 지정합니다. `folio_app/app.py`를 직접 실행하지 않습니다.
-
-## URL과 페이지 코드 연결
-
-이 프로젝트는 Streamlit의 파일 기반 멀티페이지 디렉터리를 사용하지 않습니다. `?page=` 쿼리값을 `folio_app/app.py`가 읽어 해당 렌더 함수를 호출합니다.
-
-| URL 또는 `page` 값 | 화면 | 담당 코드 |
-|---|---|---|
-| `/` 또는 `?page=Home` | 홈, 검색, 태그 필터, 프로젝트 목록 | `pages/home.py:render()` |
-| `?page=Home&project_id=...` | 프로젝트 상세 | `pages/project_detail.py:render()` |
-| `?page=Reference&platform=...` | 플랫폼별 레퍼런스 목록 | `pages/reference.py:render()` |
-| `?page=Reference&project_id=...` | 레퍼런스 상세 | `pages/project_detail.py:render()` |
-| `?page=About` | 서비스 소개 | `pages/about.py:render()` |
-| `?page=Login` | 로그인 | `pages/auth.py:render_login()` |
-| `?page=Sign+Up` | 회원가입, 인증 메일 재발송 | `pages/auth.py:render_signup()` |
-| `?page=Submit` | 프로젝트 등록 | `pages/protected.py:render_submit()` |
-| `?page=Notifications` | 댓글 알림 목록, 읽음 처리, 프로젝트 이동 | `pages/notifications.py:render()` |
-| `?page=My+Page` | 프로필, 통계, 내 프로젝트 조회·수정·삭제 | `pages/protected.py:render_my_page()` |
-| `?page=My+Portfolio`, `?page=Profile` | 기존 URL 호환용 My Page 리다이렉트 | `pages/protected.py:render_my_portfolio()`, `render_profile()` |
-| `?page=Gallery` | 기존 URL 호환용 Home 리다이렉트 | `pages/gallery.py:render()` |
-| 로그인 직후 필요한 경우 | 약관·개인정보 동의 온보딩 | `pages/onboarding.py:render()` |
-
-페이지 주소를 추가하거나 변경할 때는 `folio_app/navigation.py`의 `ROUTABLE_PAGES`와 `folio_app/app.py`의 `page_handlers`를 함께 수정합니다.
-
-## Python 파일별 역할
-
-### 실행·설정
-
-| 파일 | 역할 |
-|---|---|
-| `app.py` | Streamlit 페이지 설정 후 `folio_app.app.main()`을 호출하는 실행 진입점 |
-| `folio_app/app.py` | 앱 초기화, 쿠키 세션 복구, 로그아웃, 레거시 URL 정리, 온보딩 검사, 페이지 라우팅, 푸터 출력 |
-| `folio_app/config.py` | 로컬 `.env`, 환경변수, Streamlit Cloud `st.secrets`를 읽어 Supabase·앱·쿠키 설정 제공 |
-| `folio_app/navigation.py` | 허용 페이지 목록과 `st.query_params` + `st.rerun()` 기반 내부 이동 제공 |
-| `folio_app/styles/` | 화면 영역별로 나뉜 CSS 모듈과, 이를 이어붙여 `st.html()`로 1회 주입하는 `apply_global_styles()` |
-| `folio_app/__init__.py` | `folio_app`을 Python 패키지로 인식시키는 초기화 파일 |
-
-### 페이지
-
-| 파일 | 역할 |
-|---|---|
-| `folio_app/pages/home.py` | 홈 히어로, 검색·태그·플랫폼 필터, 공개 프로젝트 카드 목록 렌더링 |
-| `folio_app/pages/reference.py` | 플랫폼별 레퍼런스 히어로, 탭, 카드 그리드, 증분 로딩 렌더링 |
-| `folio_app/pages/powerbi.py` | Power BI 업데이트 소식, 커뮤니티 소식, 학습 콘텐츠, 자격증 화면 조합과 카드 렌더링 |
-| `folio_app/pages/about.py` | 경기청년 갭이어 2026, Snowball Impact, FOLIO 소개와 VISION 렌더링 |
-| `folio_app/pages/project_detail.py` | 프로젝트 본문, 작성자, 조회수, 좋아요, 댓글, Power BI, 첨부 링크 렌더링 |
-| `folio_app/pages/auth.py` | 로그인, 회원가입, 입력 검증, 인증 메일 재발송 UI |
-| `folio_app/pages/onboarding.py` | 최초 로그인 사용자의 프로필 확인과 약관·개인정보 동의 UI |
-| `folio_app/pages/notifications.py` | 댓글 알림 목록, 읽음 처리와 알림 대상 프로젝트 이동 |
-| `folio_app/pages/protected.py` | 로그인이 필요한 프로젝트 등록 화면과, 프로필·통계·내 프로젝트 조회·수정·삭제를 한 화면에 담은 My Page |
-| `folio_app/pages/gallery.py` | 과거 Gallery 주소를 Home으로 보내는 호환용 페이지 |
-| `folio_app/pages/__init__.py` | `pages` 패키지 초기화 파일 |
-
-### 공통 컴포넌트
-
-| 파일 | 역할 |
-|---|---|
-| `folio_app/components/layout.py` | 공통 헤더·메뉴, 페이지 히어로, 정적 이미지 로딩 |
-| `folio_app/components/assets.py` | 정적 이미지를 Streamlit HTML에서 사용할 data URI로 변환 |
-| `folio_app/components/dashboard.py` | Power BI 등 상세 대표 결과물 iframe 렌더링 |
-| `folio_app/components/share.py` | 링크 복사 버튼과 상세 액션 그룹 렌더링 |
-| `folio_app/components/home_gallery.py` | 홈 카드 레일, hover preview script, count-up script 렌더링 |
-| `folio_app/components/project_editor.py` | 프로젝트 등록·수정 제출 흐름과 초안 정리 |
-| `folio_app/components/project_form.py` | 등록·수정 공용 입력 폼, URL 검증, 카드 미리보기 |
-| `folio_app/components/project_body.py` | Quill 본문 편집기, 본문 섹션 파싱, HTML/plain text 변환 |
-| `folio_app/components/project_detail_content.py` | 상세 대표 결과물, 본문 섹션, 외부 결과물 액션 렌더링 |
-| `folio_app/components/project_comments.py` | 상세 댓글·1단계 답글 UI |
-| `folio_app/components/auth_forms.py` | 로그인·회원가입 컴포넌트 facade |
-| `folio_app/components/auth_login.py`, `auth_signup.py`, `auth_password_reset.py`, `auth_validation.py` | 인증 화면과 입력 검증 |
-| `folio_app/components/profile_summary.py`, `portfolio_items.py` | My Page 프로필 요약과 프로젝트 관리 카드 |
-| `folio_app/components/ui.py` | 태그, 프로젝트 카드 HTML, 커버 HTML, 일반 텍스트 변환 등 공통 UI 유틸리티 |
-| `folio_app/components/__init__.py` | `components` 패키지 초기화 파일 |
-
-### Supabase 서비스
-
-| 파일 | 역할 |
-|---|---|
-| `folio_app/services/supabase_client.py` | Streamlit 세션별 Supabase client 생성·폐기와 만료 JWT 복구 |
-| `folio_app/services/auth.py` | 인증 public facade. 기존 import 경로를 유지하며 하위 인증 모듈을 re-export |
-| `folio_app/services/auth_session.py`, `auth_account.py`, `auth_restore.py`, `auth_password_reset.py` | 토큰/session_state, 계정 작업, 쿠키 복구, 비밀번호 재설정 구현 |
-| `folio_app/services/profiles.py` | 프로필 생성·조회·수정, 온보딩 정책과 사용자 동의 처리 |
-| `folio_app/services/projects.py` | 프로젝트 public facade. 기존 import 경로를 유지하며 query/mutation/normalizer/type 모듈을 re-export |
-| `folio_app/services/project_queries.py`, `project_mutations.py`, `project_normalizers.py`, `project_types.py` | 공개 목록·검색·정렬·캐시, CRUD·조회수·좋아요, payload/URL 정규화, 결과 타입 |
-| `folio_app/services/project_references.py` | Tableau, Power BI, Data Studio, Streamlit 레퍼런스 분류 기준 |
-| `folio_app/services/powerbi_content.py` | Power BI 큐레이션 CSV 로딩, 탭 그룹핑, 업데이트/패치로그 뉴스 아이템 조립 |
-| `folio_app/services/powerbi_i18n.py` | Power BI 업데이트와 변경 로그의 한국어 라벨·요약 변환 규칙 |
-| `folio_app/services/project_thumbnails.py` | 직접 URL·기본 커버·Playwright 자동 캡처 썸네일 처리 |
-| `folio_app/services/comments.py` | 댓글 public facade. 기존 import 경로를 유지하며 조회/작성/읽음/통계 모듈을 re-export |
-| `folio_app/services/comment_queries.py`, `comment_mutations.py`, `comment_reads.py`, `comment_stats.py`, `comment_utils.py`, `comment_types.py` | 댓글 조회·작성·삭제, 댓글 읽음 상태, 댓글 수·최신 댓글 캐시, 트리 구성, 결과 타입 |
-| `folio_app/services/notifications.py` | 댓글 알림 생성, 목록 조회, 미확인 알림 수 집계, 읽음 처리 |
-| `folio_app/services/email_notifications.py` | SMTP 기반 댓글 이메일 알림 발송 |
-| `folio_app/services/project_content.py` | 사용자 작성 HTML의 허용 태그·링크 검사와 위험 요소 제거 |
-| `folio_app/services/__init__.py` | `services` 패키지 초기화 파일 |
-
-### 기타 Python 파일
-
-| 경로 | 역할 |
-|---|---|
-| `tests/test_*.py` | 설정, 인증 안정성, 라우팅, 본문 정제, 프로젝트 조회·폼 동작에 대한 단위 테스트 |
-| `tools/capture_streamlit_scroll.py` | UI 변경 후 로컬 Streamlit 화면을 스크롤 캡처하는 개발 도구 |
-| `tools/collect_powerbi_all.py` | Power BI Desktop, 업데이트, 변경 로그, 커뮤니티, 학습 콘텐츠를 통합 수집·검증하는 collector registry |
-
-화면 문구나 버튼은 주로 `pages/`, 반복 UI는 `components/`, 데이터 처리나 Supabase 호출은 `services/`, 색상·간격·폰트는 `styles/`에서 수정합니다.
-
-## 배포
-
-이 앱은 지속 실행되는 Streamlit 서버가 필요하므로 Vercel Functions에 직접 배포하지 않습니다. 현재 기본 무료 배포 채널은 **Streamlit Community Cloud**입니다.
-
-자세한 절차와 자동 캡처 실험 기준은 [`docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md)를 따릅니다.
-
-1. 저장소를 GitHub에 push합니다.
-2. Streamlit Community Cloud에서 저장소와 루트 `app.py`를 선택합니다.
-3. App settings > Secrets에 다음 값을 등록합니다.
-
-```toml
-SUPABASE_URL = "https://your-project-ref.supabase.co"
-SUPABASE_PUBLISHABLE_KEY = "your-supabase-publishable-key"
-APP_URL = "https://your-app.streamlit.app"
-COOKIE_PASSWORD = "replace-with-a-long-random-cookie-password"
-GA_MEASUREMENT_ID = "G-XXXXXXXXXX"
-SUPABASE_SERVICE_ROLE_KEY = "your-service-role-key"
-SMTP_HOST = "smtp.example.com"
-SMTP_PORT = "587"
-SMTP_USERNAME = "your-smtp-user"
-SMTP_PASSWORD = "your-smtp-password"
-SMTP_FROM_EMAIL = "noreply@example.com"
-SMTP_FROM_NAME = "FOLIO"
-SMTP_USE_TLS = "true"
-THUMBNAIL_STORAGE_BUCKET = "project-thumbnails"
-CHROME_BINARY_PATH = "/usr/bin/chromium"
-```
-
-`GA_MEASUREMENT_ID`와 이메일 알림 관련 값은 선택 항목입니다. 비워두면 Google Analytics 태그 또는 이메일 알림이 동작하지 않습니다. 로컬 `.env`에는 운영용 `GA_MEASUREMENT_ID`를 설정하지 않아 로컬 테스트 트래픽이 운영 통계에 섞이지 않게 합니다.
-`THUMBNAIL_STORAGE_BUCKET`은 자동 캡처 썸네일을 저장하는 Supabase Storage public bucket 이름이며, 비워두면 `project-thumbnails`를 사용한다.
-자동 캡처는 Playwright managed Chromium을 먼저 사용하고, 브라우저 바이너리가 준비되지 않은 환경에서는 `CHROME_BINARY_PATH`의 시스템 Chromium으로 fallback합니다.
-Streamlit Community Cloud에서는 루트의 `packages.txt`가 fallback용 `chromium`을 설치합니다.
-
-4. Supabase의 Authentication > URL Configuration에서 배포 주소를 Site URL과 Redirect URL에 등록합니다.
-
-`service_role` 키와 로컬 `.env`는 저장소 또는 배포 설정에 노출하지 않습니다.
-Cloud Secrets 입력란에는 Markdown 코드 블록 표시 없이 TOML 내용만 붙여넣고, 저장 후 앱을 재부팅합니다. 앱은 환경변수(`.env` 포함)와 Streamlit secrets를 읽으며 `[supabase]` 섹션의 `url`과 `key` 형식도 호환합니다.
-
-## 주요 문서
-
-- 전체 문서 안내: [`docs/README.md`](docs/README.md)
-- 시스템 아키텍처: [`docs/common/ARCHITECTURE.md`](docs/common/ARCHITECTURE.md)
-- 핵심 사용자 흐름: [`docs/common/USER_FLOWS.md`](docs/common/USER_FLOWS.md)
-- ERD와 RLS 데이터 모델: [`docs/common/DATA_MODEL.md`](docs/common/DATA_MODEL.md)
-- 주요 설계 결정: [`docs/common/DECISIONS.md`](docs/common/DECISIONS.md)
-- 개발 정책과 교훈: [`docs/common/ENGINEERING_PLAYBOOK.md`](docs/common/ENGINEERING_PLAYBOOK.md)
-- 작업 전 현재 컨텍스트: [`docs/common/PROJECT_CONTEXT.md`](docs/common/PROJECT_CONTEXT.md)
-- 디자인 시스템: [`docs/common/DESIGN_SYSTEM.md`](docs/common/DESIGN_SYSTEM.md)
-- 제품/기획 개요: [`docs/common/MVP_PRD.md`](docs/common/MVP_PRD.md)
-- 커뮤니티 게시판 PRD: [`docs/common/FOLIO_Community_PRD.md`](docs/common/FOLIO_Community_PRD.md)
-- 관리자 페이지 PRD: [`docs/common/FOLIO_Admin_PRD.md`](docs/common/FOLIO_Admin_PRD.md)
-- Supabase 설정: [`docs/common/SUPABASE_SETUP.md`](docs/common/SUPABASE_SETUP.md)
-- Streamlit Cloud 배포와 캡처 실험: [`docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`](docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md)
-- 오래된 초안과 완료 기록: [`docs/legacy/`](docs/legacy/)
-
-현재 우선순위와 작업 기준은 `docs/common/PROJECT_CONTEXT.md`를 따릅니다. SvelteKit 작업은 `docs/svelte/`, Streamlit 작업은 `docs/streamlit/`을 먼저 확인합니다.
-
-## 개발 메모
-
-- 카테고리는 사용하지 않습니다. 탐색은 태그 중심입니다.
-- 회원가입은 상단 메뉴에 노출하지 않고, 로그인 화면의 링크로 진입합니다.
-- 인증 상태나 데이터를 변경하는 이동에는 HTML 링크 대신 공통 `navigate()`와 Streamlit 버튼을 사용합니다.
-- Streamlit 전역 CSS는 다른 화면에 쉽게 영향을 주므로 컨테이너 `key` 기반으로 범위를 좁힙니다.
-- 사용자 프로젝트 본문은 저장 및 출력 시 `sanitize_project_html()`로 정제합니다.
-- 단순 문구/CSS 변경에는 과한 검증을 하지 않고, 파이썬 구조 변경 때 필요한 파일 단위로 확인합니다.
-- UI/UX 수정 후에는 브라우저 스크롤 캡처로 실제 화면을 확인하고, 확인 후 캡처 파일은 삭제합니다.
-
-## 개발 보조 도구
-
-브라우저 스크롤 캡처 확인에는 별도 개발 의존성이 필요합니다.
-
-```powershell
-pip install -r requirements-dev.txt
-```
-
-캡처 산출물은 `artifacts/`에 생성되며 `.gitignore`로 제외됩니다.
-
-## 테스트
-
-표준 라이브러리 기반 단위 테스트는 다음 명령으로 실행합니다.
-
-```powershell
-python -m unittest discover -s tests -v
 ```

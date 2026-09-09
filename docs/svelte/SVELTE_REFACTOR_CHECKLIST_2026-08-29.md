@@ -1,5 +1,7 @@
 # Svelte 리팩토링 및 최적화 체크리스트
 
+> Historical note: 이 체크리스트는 2026-08-29 리팩토링 종료 상태를 기록한다. `svelte_app/` 경로는 루트 이전 전 기준이며, 현재 SvelteKit 소스와 npm 명령은 repository root에서 실행한다.
+
 기준일: 2026-08-29
 
 목표: 기존 UI/데이터 계약을 보존하면서 Svelte 프로젝트의 구조, 상태 흐름, 서버 경계와 초기 로딩 비용을 단계적으로 개선한다.
@@ -168,8 +170,8 @@
 ## 후속 TODO
 
 - [x] Svelte UIUX 검증 도구를 Playwright 기준으로 정리한다.
-  - 현재 표준 실행 경로는 `svelte_app/package.json`의 `test:ui`, `test:ui:auth`, `capture:ui`와 `svelte_app/playwright.config.ts`다.
-  - Svelte 수동 캡처는 `svelte_app/scripts/capture-ui.mjs`를 사용한다.
+  - 현재 표준 실행 경로는 root `package.json`의 `test:ui`, `test:ui:auth`, `capture:ui`와 root `playwright.config.ts`다.
+  - Svelte 수동 캡처는 `scripts/capture-ui.mjs`를 사용한다.
   - Selenium 기반 Svelte 과거 캡처·프로브 스크립트는 `tools/legacy_selenium/`로 분리했다.
   - `requirements-dev.txt`의 `selenium`은 Streamlit/외부 갤러리 수집 legacy 도구 때문에 현재 유지한다.
 - [x] Svelte UIUX 디자인 시스템과 화면별 QA 기준을 문서화한다.

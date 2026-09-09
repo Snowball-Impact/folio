@@ -8,7 +8,7 @@ Validate that the SvelteKit app can replace the Streamlit public/user flows for 
 
 ## Build Gate
 
-- [ ] `npm.cmd install` completes in `svelte_app/`.
+- [ ] `npm.cmd install` completes at the repository root.
 - [ ] `npm.cmd run check` returns 0 Svelte/TypeScript errors.
 - [ ] `npm.cmd run verify` passes the Cloudflare adapter build, Wrangler route smoke, Supabase contract smoke, and security smoke checks.
 - [ ] `npm.cmd run build` completes with `@sveltejs/adapter-cloudflare`.
@@ -51,9 +51,9 @@ SMTP:
 
 Thumbnail capture:
 
-- [ ] Playwright is installed in the server runtime, or capture is explicitly accepted as disabled.
-- [ ] Chromium is available through Playwright or `CHROME_BINARY_PATH`.
-- [ ] The host allows Chromium sandbox requirements, memory, and request time.
+- [ ] Cloudflare Browser Rendering credentials/binding are configured, or capture is explicitly accepted as disabled.
+- [ ] Local-only fallback uses Playwright or `CHROME_BINARY_PATH`; Cloudflare deployment must not depend on local Chromium.
+- [ ] The host allows the required memory, sandbox, and request time for capture.
 
 ## Supabase Contract Gate
 
