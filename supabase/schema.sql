@@ -191,6 +191,20 @@ create table if not exists public.content_reports (
     updated_at timestamptz not null default now()
 );
 
+create table if not exists public.account_deletion_requests (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references public.profiles(id) on delete cascade,
+    email text,
+    request_note text check (request_note is null or char_length(request_note) <= 500),
+    status text not null default 'open' check (status in ('open', 'reviewing', 'resolved', 'cancelled')),
+    requested_at timestamptz not null default now(),
+    reviewed_at timestamptz,
+    resolved_at timestamptz,
+    operator_note text,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
 create table if not exists public.notifications (
     id uuid primary key default gen_random_uuid(),
     user_id uuid not null references public.profiles(id) on delete cascade,
@@ -231,6 +245,11 @@ create index if not exists comments_author_id_idx on public.comments(author_id);
 create index if not exists project_comment_reads_user_id_idx on public.project_comment_reads(user_id);
 create index if not exists content_reports_project_status_idx on public.content_reports(project_id, status, created_at desc);
 create index if not exists content_reports_reporter_id_idx on public.content_reports(reporter_id, created_at desc);
+create index if not exists account_deletion_requests_user_status_idx
+on public.account_deletion_requests(user_id, status, requested_at desc);
+create unique index if not exists account_deletion_requests_active_user_idx
+on public.account_deletion_requests(user_id)
+where status in ('open', 'reviewing');
 create index if not exists notifications_user_read_created_idx on public.notifications(user_id, is_read, created_at desc);
 create index if not exists notifications_project_id_idx on public.notifications(project_id);
 create unique index if not exists notifications_project_comment_unique_idx
@@ -337,7 +356,8 @@ from public.profiles;
 
 grant select on public.public_profiles to anon, authenticated;
 grant select on public.policy_versions to anon, authenticated;
-grant select, insert on public.user_policy_consents to authenticated;
+grant select on public.user_policy_consents to authenticated;
+revoke insert, update, delete on public.user_policy_consents from anon, authenticated;
 grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
 grant select on public.powerbi_reports to anon;
@@ -346,6 +366,8 @@ grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
 grant select, insert, update on public.project_comment_reads to authenticated;
 grant select, insert, update on public.content_reports to authenticated;
+grant select, update on public.account_deletion_requests to authenticated;
+revoke insert, delete on public.account_deletion_requests from anon, authenticated;
 grant select, insert, update on public.notifications to authenticated;
 
 drop function if exists public.home_project_snapshot(integer, integer, integer);
@@ -808,6 +830,7 @@ alter table public.likes enable row level security;
 alter table public.comments enable row level security;
 alter table public.project_comment_reads enable row level security;
 alter table public.content_reports enable row level security;
+alter table public.account_deletion_requests enable row level security;
 alter table public.notifications enable row level security;
 alter table public.project_views enable row level security;
 alter table public.policy_versions enable row level security;
@@ -1068,6 +1091,43 @@ with check (
     )
 );
 
+drop policy if exists "Users can read own account deletion requests" on public.account_deletion_requests;
+create policy "Users can read own account deletion requests"
+on public.account_deletion_requests for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Admins can read account deletion requests" on public.account_deletion_requests;
+create policy "Admins can read account deletion requests"
+on public.account_deletion_requests for select
+using (
+    exists (
+        select 1
+        from public.profiles
+        where profiles.id = auth.uid()
+          and profiles.role = 'admin'
+    )
+);
+
+drop policy if exists "Admins can update account deletion requests" on public.account_deletion_requests;
+create policy "Admins can update account deletion requests"
+on public.account_deletion_requests for update
+using (
+    exists (
+        select 1
+        from public.profiles
+        where profiles.id = auth.uid()
+          and profiles.role = 'admin'
+    )
+)
+with check (
+    exists (
+        select 1
+        from public.profiles
+        where profiles.id = auth.uid()
+          and profiles.role = 'admin'
+    )
+);
+
 drop policy if exists "Users can read own notifications" on public.notifications;
 create policy "Users can read own notifications"
 on public.notifications for select
@@ -1114,61 +1174,58 @@ on public.user_policy_consents for select
 using (auth.uid() = user_id);
 
 drop policy if exists "Users can create own policy consents" on public.user_policy_consents;
-create policy "Users can create own policy consents"
-on public.user_policy_consents for insert
-with check (auth.uid() = user_id);
 
 -- 새 버전을 활성화하기 전에 기존 활성 버전을 비활성화한다. 이미 동의한 사용자는
 -- user_policy_consents가 이전 policy_version_id를 참조하므로 새 버전 재동의가 필요해진다.
 update public.policy_versions
 set is_active = false
 where policy_type in ('terms', 'privacy')
-  and version <> '2026-07-07';
+  and version <> '2026-09-09';
 
 insert into public.policy_versions (policy_type, version, title, content, summary, effective_at, is_active)
 values
     (
         'terms',
-        '2026-07-07',
+        '2026-09-09',
         'FOLIO 서비스 이용약관',
-        'FOLIO는 데이터 분석 프로젝트를 포트폴리오 자산으로 등록, 탐색, 공유하는 서비스입니다.
+        'FOLIO는 데이터 시각화와 Power BI 중심의 디지털 프로젝트를 포트폴리오 자산으로 등록, 탐색, 공유하는 서비스입니다.
 
 1. 사용자는 본인이 등록하는 프로젝트 정보와 첨부 링크에 대해 필요한 권리를 보유해야 합니다.
-2. 타인의 개인정보, 저작권, 영업비밀 또는 법령을 침해하는 콘텐츠를 등록할 수 없습니다.
+2. 타인의 개인정보, 저작권, 영업비밀, 사내 비공개 데이터 또는 법령을 침해하는 콘텐츠를 등록할 수 없습니다.
 3. 서비스 운영자는 안정적인 서비스 운영과 정책 위반 대응을 위해 게시물을 제한하거나 삭제할 수 있습니다.
 4. 서비스는 MVP 단계로 제공되며, 기능과 정책은 사전 고지 후 변경될 수 있습니다.
 5. 서비스 운영자는 시스템 점검, 장애, 서비스 종료 등 불가피한 사정으로 서비스 제공을 일시적으로 중단하거나 종료할 수 있으며, 이 경우 사전에 공지합니다.
 6. 서비스 운영자는 법령상 허용되는 범위에서 서비스 이용과 관련하여 발생한 손해에 대한 책임을 제한할 수 있습니다.
 7. 본 약관과 관련한 분쟁은 대한민국 법령을 준거법으로 합니다.
-8. 약관 문의: ggmaeng@gmail.com
+8. 약관 문의: contact@snowballimpact.com
 9. 사용자는 본 약관에 동의한 뒤 FOLIO 서비스를 이용할 수 있습니다.
 
-공고일자: 2026-07-07
-시행일자: 2026-07-07',
+공고일자: 2026-09-09
+시행일자: 2026-09-09',
         'FOLIO 서비스 이용 조건에 동의합니다.',
         now(),
         true
     ),
     (
         'privacy',
-        '2026-07-07',
+        '2026-09-09',
         'FOLIO 개인정보 처리방침',
-        'FOLIO는 회원가입, 로그인, 프로젝트 등록 및 서비스 운영을 위해 필요한 최소한의 개인정보를 처리합니다.
+        'FOLIO는 회원가입, 로그인, 프로젝트 등록, 댓글·신고 처리 및 서비스 운영을 위해 필요한 개인정보를 처리합니다.
 
-1. 수집 항목: 이메일, 이름, 소속, 서비스 이용 기록, 프로젝트 등록 정보, 조회수 중복 집계 방지를 위한 익명 방문자 식별자
-2. 이용 목적: 회원 식별, 로그인, 프로젝트 관리, 서비스 제공 및 운영 개선
-3. 보유 및 이용 기간: 회원 탈퇴 또는 처리 목적 달성 시까지 보관하며, 법령상 보관 의무가 있는 경우 해당 기간 동안 보관합니다.
+1. 수집 항목: 이메일, 이름, 소속, 자기소개, 프로젝트 등록 정보, 댓글·신고·알림 기록, 약관 동의 이력, 동의 시점의 IP 주소와 User-Agent, 조회수 중복 집계 방지를 위한 익명 방문자 식별자, 서비스 이용 기록 및 성능 지표
+2. 이용 목적: 회원 식별, 로그인, 프로젝트 관리, 댓글·신고 처리, 알림 발송, 서비스 제공, 보안 점검, 장애 대응 및 운영 개선
+3. 보유 및 이용 기간: 회원 탈퇴, 삭제 요청 또는 처리 목적 달성 시까지 보관하며, 법령상 보관 의무가 있는 경우 해당 기간 동안 보관합니다. 프로젝트 삭제 시 공개 노출은 중단되며, 백업·외부 연동 리소스는 운영 정책에 따라 순차적으로 삭제 또는 보존될 수 있습니다.
 4. 제3자 제공: 법령에 따른 경우를 제외하고 사용자의 동의 없이 개인정보를 제3자에게 제공하지 않습니다.
-5. 처리위탁: 데이터베이스 운영과 로그인 인증 기능을 위해 Supabase Inc.에 개인정보 처리를 위탁하고 있으며, 실제 데이터는 Northeast Asia(Seoul) 리전 서버에 저장됩니다.
-6. 쿠키 등 자동 수집 장치: 로그인 상태 유지를 위한 암호화된 쿠키와, 프로젝트 조회수 중복 집계를 막기 위한 익명 방문자 식별 쿠키를 사용합니다. 사용자는 브라우저 설정에서 쿠키 저장을 거부할 수 있으나, 이 경우 로그인 유지와 조회수 집계 등 일부 기능이 제한될 수 있습니다.
-7. 파기절차 및 방법: 개인정보는 보유 기간이 지나거나 처리 목적을 달성하면 지체 없이 파기합니다. 전자적 파일 형태로 저장된 개인정보는 복구할 수 없는 방법으로 삭제합니다.
-8. 안전성 확보조치: 전송 구간 암호화(HTTPS), 비밀번호 암호화 저장, 데이터베이스 행 수준 보안(RLS)을 통한 접근 통제, 최소 권한 원칙에 따른 접근 권한 관리를 시행합니다.
+5. 처리위탁 및 외부 서비스: 데이터베이스·인증·스토리지 운영을 위해 Supabase Inc., 애플리케이션 배포와 보안·로그 처리를 위해 Cloudflare, Inc., Power BI 보고서 게시·임베드를 위해 Microsoft 서비스를 이용합니다. 댓글 이메일 알림을 켠 경우 SMTP 제공자를 통해 이메일 발송이 처리될 수 있고, 선택형 RUM endpoint를 설정한 경우 비식별 성능 이벤트가 해당 endpoint로 전송될 수 있습니다.
+6. 쿠키 및 브라우저 저장소: 로그인 세션, 프로젝트 작성 초안, 조회수 중복 집계 방지를 위한 익명 방문자 식별자 등을 쿠키 또는 localStorage 같은 브라우저 저장소에 저장할 수 있습니다. 사용자는 브라우저 설정에서 쿠키나 저장소 사용을 제한할 수 있으나, 이 경우 로그인 유지, 초안 보존, 조회수 집계 등 일부 기능이 제한될 수 있습니다.
+7. 파기절차 및 방법: 개인정보는 보유 기간이 지나거나 처리 목적을 달성하면 지체 없이 파기합니다. 전자적 파일 형태의 개인정보는 복구하기 어려운 방법으로 삭제하거나 접근할 수 없도록 조치합니다.
+8. 안전성 확보조치: 전송 구간 암호화(HTTPS), 비밀번호 암호화 저장, 데이터베이스 행 수준 보안(RLS), 서버 전용 비밀값 관리, 콘텐츠 보안 정책(CSP) 등 보안 헤더, 최소 권한 원칙에 따른 접근 권한 관리를 시행합니다.
 9. 정보주체의 권리와 행사방법: 사용자는 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 아래 연락처로 요청할 수 있습니다.
-10. 개인정보 보호책임자(문의): 이메일 ggmaeng@gmail.com
+10. 개인정보 보호책임자(문의): 이메일 contact@snowballimpact.com
 11. 권익침해 구제방법: 개인정보 관련 분쟁이나 상담이 필요하면 개인정보분쟁조정위원회(국번없이 1833-6972), 개인정보침해신고센터(국번없이 118, privacy.kisa.or.kr), 대검찰청(국번없이 1301), 경찰청 사이버수사국(국번없이 182)에 문의할 수 있습니다.
 
-공고일자: 2026-07-07
-시행일자: 2026-07-07',
+공고일자: 2026-09-09
+시행일자: 2026-09-09',
         '개인정보 수집 및 이용에 동의합니다.',
         now(),
         true

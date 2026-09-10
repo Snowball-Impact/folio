@@ -121,4 +121,4 @@ API endpoints:
 
 ## 7. 레거시 경계
 
-Streamlit 원본 소스와 Python 테스트는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다. repository root에는 SvelteKit 앱만 현재 실행 대상으로 남기며, `docs/streamlit/`은 과거 운영 기준을 설명하는 historical record다.
+Streamlit 원본 소스와 Python 테스트는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다. repository root에는 SvelteKit 앱만 현재 실행 대상으로 남긴다.

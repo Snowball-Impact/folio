@@ -38,7 +38,7 @@
 | Svelte 색상·간격·반응형 | `src/app.css`와 component style |
 | 테이블·RLS·RPC | `supabase/schema.sql` |
 | 현재 상태와 작업 규칙 | `docs/common/PROJECT_CONTEXT.md`와 본 문서 |
-| Streamlit historical reference | `archive/streamlit_app_20260909.zip`, `docs/streamlit/` |
+| Streamlit historical reference | `archive/streamlit_app_20260909.zip` |
 
 Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase query와 외부 API 호출은 `src/lib` 또는 `src/lib/server` 경계에 둔다. Streamlit 원본은 로컬 백업 zip에서만 참조한다.
 
@@ -76,6 +76,7 @@ Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase q
 - 외부 URL은 `http://` 또는 `https://`만 허용한다.
 - Power BI iframe 전체 입력을 받더라도 `src` URL만 추출해 저장한다.
 - 사용자 문자열을 HTML에 넣을 때 Svelte 기본 escaping을 우선하고, `{@html ...}`는 sanitizer를 통과한 콘텐츠에만 사용한다.
+- CSP를 수정할 때는 SvelteKit bootstrap inline script에 요청별 nonce가 붙는지 확인한다. `script-src 'unsafe-inline'`로 넓게 열지 않는다.
 
 ### 오류 메시지와 진단 로그
 
@@ -91,7 +92,7 @@ Svelte route는 화면 조합과 load/action orchestration을 맡고, Supabase q
 - 보호 라우트는 클라이언트 안내와 서버 endpoint 인증을 함께 확인한다.
 - 성공·오류 메시지는 route state나 명시적 query parameter로 짧게 유지하고, 민감한 원문은 화면에 노출하지 않는다.
 - 프로젝트 초안은 브라우저 local state로 다루되 등록·수정 성공, 수정 취소, 사용자의 명시적 초기화 때 정리한다.
-- 로그인 후 불필요한 별도 약관 온보딩 페이지로 보내지 않는다. 필수 정책 동의는 회원가입 단계에서 수집한다.
+- 필수 정책 동의는 회원가입 단계에서 먼저 수집한다. 기존 사용자가 새 활성 정책에 동의하지 않은 경우에만 `/policy/consent`로 보내 재동의를 받으며, 레거시 `/onboarding` 경로는 사용하지 않는다.
 
 ## 7. CSS와 반응형 정책
 

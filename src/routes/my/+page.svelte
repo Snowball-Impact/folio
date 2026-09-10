@@ -1,11 +1,16 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import {
+		getAccountDeletionRequest,
+		requestAccountDeletion,
+		type AccountDeletionRequest
+	} from '$lib/accountDeletion';
 	import { currentProfile, currentSession, updateProfile, type AuthProfile } from '$lib/auth';
 	import { deleteProject, listMyProjects } from '$lib/projects';
-	import { formatCount } from '$lib/format';
+	import { formatCount, formatDateTime } from '$lib/format';
 	import type { ProjectCard } from '$lib/types';
 
+	const ACCOUNT_DELETION_REQUEST_UI_ENABLED = import.meta.env.PUBLIC_ACCOUNT_DELETION_REQUEST_ENABLED === 'true';
 	let profile = $state<AuthProfile | null>(null);
 	let projects = $state<ProjectCard[]>([]);
 	let loading = $state(true);
@@ -19,6 +24,11 @@
 	let message = $state('');
 	let error = $state('');
 	let needsLogin = $state(false);
+	let accountDeletionRequest = $state<AccountDeletionRequest | null>(null);
+	let accountDeletionDialogOpen = $state(false);
+	let accountDeletionNote = $state('');
+	let accountDeletionSubmitting = $state(false);
+	let accountDeletionConfirmed = $state(false);
 	const MY_PROJECTS_PAGE_SIZE = 5;
 	let projectPageIndex = $state(0);
 
@@ -51,7 +61,10 @@
 		}
 		profile = await currentProfile(session.user);
 		syncProfileForm();
-		await refreshProjects();
+		await Promise.all([
+			refreshProjects(),
+			ACCOUNT_DELETION_REQUEST_UI_ENABLED ? refreshAccountDeletionRequest() : Promise.resolve()
+		]);
 	});
 
 	async function refreshProjects() {
@@ -61,6 +74,13 @@
 		error = result.error;
 		projectPageIndex = 0;
 		loading = false;
+	}
+
+	async function refreshAccountDeletionRequest() {
+		const result = await getAccountDeletionRequest();
+		if (result.ok) {
+			accountDeletionRequest = result.request;
+		}
 	}
 
 	function moveProjectPage(direction: -1 | 1) {
@@ -75,6 +95,20 @@
 	function closeDeleteDialog() {
 		if (!deleting) {
 			deleteDialogProject = null;
+		}
+	}
+
+	function openAccountDeletionDialog() {
+		accountDeletionDialogOpen = true;
+		accountDeletionNote = '';
+		accountDeletionConfirmed = false;
+		message = '';
+		error = '';
+	}
+
+	function closeAccountDeletionDialog() {
+		if (!accountDeletionSubmitting) {
+			accountDeletionDialogOpen = false;
 		}
 	}
 
@@ -95,6 +129,25 @@
 		deleteDialogProject = null;
 		message = result.message || `${projectTitle} 프로젝트를 삭제했습니다.`;
 		await refreshProjects();
+	}
+
+	async function submitAccountDeletionRequest() {
+		if (!accountDeletionConfirmed) {
+			error = '계정 삭제 요청 확인에 체크하세요.';
+			return;
+		}
+		message = '';
+		error = '';
+		accountDeletionSubmitting = true;
+		const result = await requestAccountDeletion(accountDeletionNote);
+		accountDeletionSubmitting = false;
+		if (!result.ok) {
+			error = result.message;
+			return;
+		}
+		accountDeletionRequest = result.request;
+		accountDeletionDialogOpen = false;
+		message = result.message;
 	}
 
 	function startProfileEdit() {
@@ -220,6 +273,24 @@
 		</div>
 	</section>
 
+	{#if ACCOUNT_DELETION_REQUEST_UI_ENABLED}
+		<section class="account-danger-section" aria-labelledby="account-deletion-title">
+			<div>
+				<div class="eyebrow">ACCOUNT</div>
+				<h2 id="account-deletion-title">계정 삭제 요청</h2>
+				<p>요청이 접수되면 운영자가 프로젝트, 댓글, 스토리지와 Power BI 연결 상태를 확인한 뒤 처리합니다.</p>
+			</div>
+			{#if accountDeletionRequest}
+				<div class="account-request-status" role="status">
+					<strong>요청 접수됨</strong>
+					<span>{formatDateTime(accountDeletionRequest.requested_at)}</span>
+				</div>
+			{:else}
+				<button type="button" class="danger" onclick={openAccountDeletionDialog}>삭제 요청하기</button>
+			{/if}
+		</section>
+	{/if}
+
 	<section class="portfolio-section">
 		<div class="section-header">
 			<div>
@@ -304,6 +375,29 @@
 			{/if}
 		{/if}
 	</section>
+{/if}
+{#if ACCOUNT_DELETION_REQUEST_UI_ENABLED && accountDeletionDialogOpen}
+	<div class="my-delete-dialog-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeAccountDeletionDialog(); }}>
+		<div class="my-delete-dialog account-deletion-dialog" role="dialog" aria-modal="true" aria-labelledby="account-deletion-dialog-title" aria-describedby="account-deletion-dialog-description">
+			<header>
+				<div class="eyebrow">Account Deletion</div>
+				<h2 id="account-deletion-dialog-title">계정 삭제 요청</h2>
+			</header>
+			<p id="account-deletion-dialog-description">계정 삭제는 프로젝트, 댓글, 업로드 파일, Power BI 게시 리소스를 운영자가 확인한 뒤 처리합니다.</p>
+			<label class="account-deletion-note">
+				<span>운영자에게 남길 메모</span>
+				<textarea bind:value={accountDeletionNote} maxlength="500" placeholder="필요하면 삭제 사유나 연락 가능한 시간을 남겨주세요."></textarea>
+			</label>
+			<label class="account-deletion-confirm">
+				<input type="checkbox" bind:checked={accountDeletionConfirmed} />
+				<span>계정 삭제 요청을 접수하면 운영자 확인 전까지 같은 요청을 다시 보낼 수 없음을 이해했습니다.</span>
+			</label>
+			<div class="my-delete-dialog-actions">
+				<button type="button" class="secondary-action" disabled={accountDeletionSubmitting} onclick={closeAccountDeletionDialog}>취소</button>
+				<button type="button" class="danger" disabled={accountDeletionSubmitting || !accountDeletionConfirmed} onclick={submitAccountDeletionRequest}>{accountDeletionSubmitting ? '접수 중...' : '요청 접수'}</button>
+			</div>
+		</div>
+	</div>
 {/if}
 {#if deleteDialogProject}
 	<div class="my-delete-dialog-backdrop" role="presentation" onclick={(event) => { if (event.target === event.currentTarget) closeDeleteDialog(); }}>

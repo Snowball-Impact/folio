@@ -5,7 +5,7 @@
 - 문서 버전: MVP 통합본 v1.0
 - 제품 단계: MVP 재정렬
 - 작성일: 2026-08
-- 통합 출처: `docs/legacy/FOLIO_Data_Visualization_Community_PRD_v1.1.md` + `docs/legacy/PRD.md`
+- 통합 출처: 초기 legacy PRD 내용을 현재 기준으로 통합
 - 현재 제품 기준 문서: 이 문서
 
 ---
