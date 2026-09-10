@@ -95,6 +95,7 @@ POWERBI_CLIENT_SECRET=your-client-secret
 POWERBI_WORKSPACE_ID=your-workspace-id
 PBIX_MAX_UPLOAD_MB=100
 POWERBI_IMPORT_POLL_SECONDS=30
+PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 주의:
@@ -103,6 +104,7 @@ POWERBI_IMPORT_POLL_SECONDS=30
 - `POWERBI_CLIENT_SECRET`은 Power BI 게시와 Embedded Viewer에만 쓰며 저장소에 커밋하지 않습니다.
 - `PBIX_MAX_UPLOAD_MB` 기본값은 100입니다.
 - `POWERBI_IMPORT_POLL_SECONDS` 기본값은 100입니다. 큰 PBIX import가 10초 안에 끝나지 않는 상황을 피하기 위한 MVP 상한입니다.
+- `PUBLIC_GA_MEASUREMENT_ID`는 선택값입니다. 비어 있으면 Google Analytics는 초기화되지 않습니다.
 - 기존 프로젝트의 legacy `anon` key는 `SUPABASE_ANON_KEY` 이름으로도 계속 사용할 수 있습니다.
 - `.env`는 `.gitignore`에 포함되어 있으므로 저장소에 커밋되지 않습니다.
 - Streamlit legacy 앱을 별도로 실행할 때만 `COOKIE_PASSWORD`와 `http://localhost:8501` 설정을 사용합니다.

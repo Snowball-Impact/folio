@@ -33,6 +33,7 @@
 - 동의 이력 저장은 서버 API `/api/policy-consents`와 service role 경유로 처리한다. 운영 DB에는 `supabase/lock_policy_consent_writes.sql`과 필요 시 `supabase/update_policy_versions_2026_09_09.sql`을 적용한다.
 - 계정 삭제 요청 기반 테이블과 서버 API는 준비되어 있지만 기본 feature flag가 꺼져 있어 마이 페이지 UI와 API 접수는 숨겨둔다. 활성화하려면 `PUBLIC_ACCOUNT_DELETION_REQUEST_ENABLED=true`, `ACCOUNT_DELETION_REQUEST_ENABLED=true`를 함께 설정한다.
 - 후속 TODO: Admin 구현 시 사용자 관리에 `account_deletion_requests` 목록, 상태 필터, `reviewing/resolved/cancelled` 변경 UI를 추가한다. 실제 계정·스토리지·Power BI 리소스 삭제 자동화는 별도 운영 결정 전까지 만들지 않는다.
+- Google Analytics는 `PUBLIC_GA_MEASUREMENT_ID`가 설정된 경우에만 SvelteKit에서 초기화한다. 기존 Streamlit GA4 Web stream을 이어 쓸 수 있으며, Cloudflare 도메인을 GA4 Web stream URL과 내부 트래픽 제외 설정에 반영한다.
 - 현재 주요 실행 명령은 루트에서 `npm.cmd run check`, `npm.cmd run build`, `npm.cmd run test:unit`, `npm.cmd run verify`이다.
 - Windows 로컬 개발은 Wrangler/Miniflare profile path `EPERM`을 피하기 위해 `npm.cmd run dev:managed -- --Port 5174`를 기본으로 쓴다.
 - 현재 문서 기준은 `README.md`, `docs/README.md`, `docs/common/ARCHITECTURE.md`, `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`, `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`이다.

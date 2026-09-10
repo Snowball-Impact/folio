@@ -4,10 +4,13 @@
 	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
 	import PolicyConsentGate from '$lib/components/PolicyConsentGate.svelte';
+	import { initGoogleAnalytics } from '$lib/googleAnalytics';
 	import { initRum } from '$lib/rum';
 
 	let { children } = $props();
 	const isThumbnailCapture = $derived(page.url.searchParams.get('capture') === 'thumbnail');
+
+	initGoogleAnalytics();
 
 	onMount(() => {
 		initRum();
@@ -15,7 +18,7 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/logo.webp" />
+	<link rel="icon" type="image/png" href="/favicon.png" />
 </svelte:head>
 
 <div class="app-shell">
