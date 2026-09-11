@@ -1643,65 +1643,6 @@
 	cursor: wait;
 	opacity: var(--control-disabled-opacity);
 }
-
-.account-danger-section {
-	display: flex;
-	gap: var(--layout-panel-gap);
-	align-items: center;
-	justify-content: space-between;
-	width: min(100%, var(--content-wide));
-	margin: 0 auto var(--space-2xl);
-	padding: 20px 22px;
-	border: 1px solid rgba(200, 20, 56, 0.18);
-	border-radius: 8px;
-	background: #fff8f9;
-}
-
-.account-danger-section h2 {
-	margin: 4px 0 6px;
-	color: var(--folio-navy);
-	font-size: 20px;
-	line-height: 1.35;
-}
-
-.account-danger-section p {
-	max-width: 720px;
-	margin: 0;
-	color: var(--folio-muted);
-	font-size: 14px;
-	line-height: 1.6;
-	word-break: keep-all;
-}
-
-.account-danger-section button.danger {
-	flex: 0 0 auto;
-	min-height: 38px;
-	padding: 0 16px;
-	border: 1px solid #c81438;
-	border-radius: var(--control-radius);
-	background: #c81438;
-	color: white;
-	cursor: pointer;
-	font-weight: var(--font-weight-semibold);
-}
-
-.account-request-status {
-	display: grid;
-	gap: 4px;
-	min-width: 156px;
-	padding: 10px 12px;
-	border: 1px solid rgba(10, 122, 114, 0.24);
-	border-radius: 8px;
-	background: #edf8f6;
-	color: #0a625c;
-	font-size: 13px;
-	text-align: right;
-}
-
-.account-request-status strong {
-	font-size: 14px;
-}
-
 .my-delete-dialog-backdrop {
 	position: fixed;
 	inset: 0;
@@ -1750,53 +1691,6 @@
 	color: #9c1d34;
 	font-size: 13px;
 	font-weight: var(--font-weight-semibold);
-}
-
-.account-deletion-dialog {
-	width: min(100%, 500px);
-}
-
-.account-deletion-note {
-	display: grid;
-	gap: 8px;
-}
-
-.account-deletion-note span,
-.account-deletion-confirm span {
-	color: var(--folio-muted);
-	font-size: 13px;
-	line-height: 1.5;
-}
-
-.account-deletion-note textarea {
-	min-height: 96px;
-	padding: 12px;
-	border: 1px solid var(--input-border);
-	border-radius: var(--control-radius);
-	resize: vertical;
-	color: var(--folio-navy);
-	font: inherit;
-	line-height: 1.5;
-}
-
-.account-deletion-note textarea:focus {
-	border-color: var(--input-focus-border);
-	outline: none;
-	box-shadow: var(--input-focus-shadow);
-}
-
-.account-deletion-confirm {
-	display: grid;
-	grid-template-columns: 18px 1fr;
-	gap: 9px;
-	align-items: flex-start;
-}
-
-.account-deletion-confirm input {
-	width: 16px;
-	height: 16px;
-	margin-top: 2px;
-	accent-color: #c81438;
 }
 
 .my-delete-dialog-actions {

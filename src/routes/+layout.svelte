@@ -3,7 +3,6 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
-	import PolicyConsentGate from '$lib/components/PolicyConsentGate.svelte';
 	import { initRum } from '$lib/rum';
 
 	let { children } = $props();
@@ -19,9 +18,6 @@
 </svelte:head>
 
 <div class="app-shell">
-	{#if !isThumbnailCapture}
-		<PolicyConsentGate />
-	{/if}
 	{#if !isThumbnailCapture}
 		<header class="site-header">
 			<div class="site-header-inner">

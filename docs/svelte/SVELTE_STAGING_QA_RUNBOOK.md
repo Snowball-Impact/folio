@@ -113,9 +113,8 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 3. `profiles` row가 생성되거나 첫 로그인 후 생성되는지 확인한다.
 4. `/login`으로 로그인한다.
 5. 가입 페이지에서 필수 약관 동의 체크가 없으면 가입 제출이 막히는지 확인한다.
-6. 최신 활성 정책에 이미 동의한 사용자는 로그인 후 별도 `/policy/consent` 화면으로 이동하지 않는지 확인한다.
-7. 활성 정책 버전에 동의 이력이 없는 기존 사용자는 로그인 후 `/policy/consent`로 이동하고, 재동의 후 원래 목적지로 돌아가는지 확인한다.
-8. `/reset-password` recovery link 흐름은 Supabase redirect URL이 staging URL로 잡힌 뒤 별도 확인한다.
+6. 로그인 후 별도 `/onboarding` 약관 동의 페이지로 강제 이동하지 않는지 확인한다.
+7. `/reset-password` recovery link 흐름은 Supabase redirect URL이 staging URL로 잡힌 뒤 별도 확인한다.
 
 기록:
 

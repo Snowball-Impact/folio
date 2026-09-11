@@ -18,13 +18,6 @@
    - `projects`
    - `powerbi_reports`
    - `likes`
-   - `comments`
-   - `content_reports`
-   - `notifications`
-   - `policy_versions`
-   - `user_policy_consents`
-   - `account_deletion_requests`
-   - `project_views`
 5. Database Triggers에서 `on_auth_user_created` 트리거가 생성되었는지 확인합니다.
 
 기존 프로젝트도 인증/RLS 정책이 변경되면 최신 `supabase/schema.sql`을 다시 실행합니다. 스키마는 `if not exists`, `drop policy if exists` 구문을 사용하므로 정책 갱신에도 같은 파일을 사용합니다.
@@ -190,33 +183,3 @@ Supabase가 `#access_token=...` fragment를 붙여서 돌려주더라도 앱은 
 5. 메일함과 스팸함을 확인합니다.
 
 Supabase rate limit에 걸리면 잠시 후 다시 시도합니다.
-
-## 10. 약관 동의 이력 저장
-
-현재 회원가입은 활성 `terms`, `privacy` 정책 버전이 모두 있어야 제출됩니다.
-
-동의 이력은 브라우저가 `user_policy_consents`에 직접 insert하지 않고, 서버 API `/api/policy-consents`가 `SUPABASE_SERVICE_ROLE_KEY`로 저장합니다. 이때 정책 버전, 동의 시각, IP 주소, User-Agent가 함께 기록될 수 있습니다.
-
-기존 사용자가 현재 활성 `terms`, `privacy` 중 동의하지 않은 버전이 있으면 로그인 후 `/policy/consent`로 이동합니다. 모든 필수 정책에 재동의하면 원래 접근하려던 내부 경로로 돌아갑니다.
-
-운영 DB에서 클라이언트 직접 쓰기를 막으려면 Supabase SQL Editor에서 다음 파일을 적용합니다.
-
-```text
-supabase/lock_policy_consent_writes.sql
-```
-
-정책 본문을 2026-09-09 버전으로 갱신하려면 운영자 문구 확인과 기존 사용자 재동의 여부 판단 후 다음 파일을 적용합니다.
-
-```text
-supabase/update_policy_versions_2026_09_09.sql
-```
-
-## 11. 계정 삭제 요청
-
-계정 삭제 요청은 활성화 시 Auth 사용자를 즉시 삭제하지 않고 `account_deletion_requests`에 접수 이력을 남깁니다. 운영 DB에 부분 적용할 때는 다음 파일을 실행합니다.
-
-```text
-supabase/create_account_deletion_requests.sql
-```
-
-현재 UI와 API 접수는 기본 feature flag off 상태입니다. Admin 사용자 관리 화면과 함께 활성화할 때 `PUBLIC_ACCOUNT_DELETION_REQUEST_ENABLED=true`, `ACCOUNT_DELETION_REQUEST_ENABLED=true`를 설정한 뒤 로그인한 테스트 계정으로 요청 접수와 중복 요청 방지를 확인합니다.

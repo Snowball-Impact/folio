@@ -1,12 +1,11 @@
-# FOLIO MVP PRD
+# FOLIO PRD v1.5
 
 ## 데이터 시각화 프로젝트 발견, 체험, 게시 커뮤니티
 
-- 문서 버전: MVP 통합본 v1.0
+- 문서 버전: v1.5
 - 제품 단계: MVP 재정렬
 - 작성일: 2026-08
-- 통합 출처: `docs/legacy/FOLIO_Data_Visualization_Community_PRD_v1.1.md` + `docs/legacy/PRD.md`
-- 현재 제품 기준 문서: 이 문서
+- 기준 문서: `FOLIO_Data_Visualization_Community_PRD_v1.1.md` + 기존 `PRD.md` v2.0
 
 ---
 
@@ -152,7 +151,7 @@ MVP는 Supabase Free Tier 범위 내 운영을 기본 원칙으로 한다.
 ```text
 Users
   ↓
-FOLIO / SvelteKit on Cloudflare Pages
+FOLIO / Streamlit Community Cloud
   ├──────────────→ Power BI REST API / Embedded
   ↓
 Supabase
@@ -171,7 +170,7 @@ Local Windows Worker / Future Worker
 - **Power BI**: PBIX Import, Report, Semantic Model, Embed Token, Interactive Rendering
 - **Worker**: 향후 콘텐츠 수집, 썸네일 처리, 정제, 중복 제거, 로그
 
-현재 기본 배포 채널은 Cloudflare Pages다. Power BI Embedded/PBIX 처리, Browser Rendering 기반 캡처, 배치 수집의 안정성이 Pages 런타임 한계를 넘으면 앱 전체 이전보다 캡처·수집 worker를 Cloud Run, Azure, Render Cron 같은 별도 런타임으로 분리하는 방식을 먼저 검토한다.
+현재 무료 배포 채널은 Streamlit Community Cloud다. Power BI Embedded/PBIX 처리, Chrome 실행, 배치 수집의 안정성이 Community Cloud 한계를 넘으면 앱 전체 이전보다 캡처·수집 worker를 Cloud Run, Azure, Render Cron 같은 별도 런타임으로 분리하는 방식을 먼저 검토한다.
 
 ---
 
@@ -386,10 +385,10 @@ MVP 정책:
 - 원본 업로드 크기 상한 설정
 - 저장 전 리사이징/압축
 - 최종 저장 파일은 가급적 500KB 이하 목표
-- PBIX 게시 성공 시 자동 캡처 모드이면 Power BI report HTML을 서버에서 직접 렌더링해 대표 썸네일을 생성
+- 자동 대시보드 캡처는 MVP 필수 기능에서 제외
 - 프로젝트 영구 삭제 시 연결 썸네일도 정리
 
-자동 캡처는 사용자 업로드 썸네일을 대체하는 기본 흐름이 아니라, PBIX 게시 성공 후 대표 이미지가 필요할 때 쓰는 보조 기능이다.
+현재 자동캡처 코드가 존재하더라도, Power BI/PBIX MVP의 핵심 완료 조건으로 보지 않는다.
 
 ---
 
@@ -477,8 +476,6 @@ PBIX Storage Policy:
 - 업로드 후 임시 처리한다.
 - Power BI Import 성공 확인 후 PBIX 임시 원본을 삭제한다.
 - Supabase Storage 1GB를 PBIX 보관 용도로 사용하지 않는다.
-- PBIX 업로드 상한은 MVP 기본값 100MB다.
-- Power BI Import polling은 MVP 기본값 100초다.
 - MVP에서는 PBIX 교체와 버전 관리를 지원하지 않는다.
 
 ---
@@ -765,7 +762,7 @@ pbix_import_failed
 - Kafka / Spark / Kubernetes
 - 과도한 MSA
 - 모든 콘텐츠 수집처 동시 개발
-- 모든 프로젝트에 자동 썸네일 캡처를 강제하는 것
+- 자동 썸네일 캡처를 MVP 필수 조건으로 삼는 것
 
 ---
 

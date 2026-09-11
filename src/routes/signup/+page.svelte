@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { isValidEmail, normalizeEmail, resendSignupConfirmation, signUpWithEmail } from '$lib/auth';
 	import { getActivePolicyVersions, type PolicyVersion } from '$lib/onboarding';
-	import { requiredPolicyAvailabilityMessage } from '$lib/policyRequirements';
 
 	const resendCooldownSeconds = 60;
 	let email = $state('');
@@ -25,7 +24,6 @@
 	let resendAvailableAt = $state(0);
 	let now = $state(Date.now());
 	const requiredPolicyIds = $derived(policies.map((policy) => policy.id));
-	const policyUnavailableError = $derived(policyError || requiredPolicyAvailabilityMessage(policies));
 	const sharedPolicyEffectiveDate = $derived(sharedEffectiveDate(policies));
 	const resendCooldownRemaining = $derived(
 		Math.max(0, Math.ceil((resendAvailableAt - now) / 1000))
@@ -46,12 +44,12 @@
 
 	async function submitSignup(event: SubmitEvent) {
 		event.preventDefault();
-		if (policyUnavailableError) {
+		if (policyError) {
 			status = 'error';
-			message = policyUnavailableError;
+			message = policyError;
 			return;
 		}
-		if (!requiredPolicyIds.every((policyId) => agreedPolicyIds.includes(policyId))) {
+		if (policies.length > 0 && !requiredPolicyIds.every((policyId) => agreedPolicyIds.includes(policyId))) {
 			status = 'error';
 			message = '서비스 이용약관과 개인정보 처리방침에 동의해 주세요.';
 			return;
@@ -190,8 +188,10 @@
 				</div>
 				{#if policyLoading}
 					<p>정책 정보를 불러오는 중입니다.</p>
-				{:else if policyUnavailableError}
-					<p class="error-text">{policyUnavailableError}</p>
+				{:else if policyError}
+					<p class="error-text">{policyError}</p>
+				{:else if policies.length === 0}
+					<p>현재 필수 동의 항목이 없습니다.</p>
 				{:else}
 					{#each policies as policy}
 						<label class="signup-policy-check">
@@ -211,7 +211,7 @@
 					{/each}
 				{/if}
 			</section>
-			<button type="submit" disabled={submitting || policyLoading || Boolean(policyUnavailableError)}>
+			<button type="submit" disabled={submitting || policyLoading || Boolean(policyError)}>
 				{submitting ? '가입 처리 중...' : '회원가입'}
 			</button>
 		</form>

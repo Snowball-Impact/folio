@@ -288,22 +288,22 @@ function nullableString(value: unknown) {
 }
 
 async function applySignupPolicyConsents(session: Session | null) {
+	const supabase = getSupabaseClient();
 	const policyIds = signupPolicyConsentIds(session?.user);
-	if (!session || policyIds.length === 0) {
+	if (!supabase || !session || policyIds.length === 0) {
 		return;
 	}
 
-	const response = await fetch('/api/policy-consents', {
-		method: 'POST',
-		headers: {
-			Authorization: `Bearer ${session.access_token}`,
-			'content-type': 'application/json'
-		},
-		body: JSON.stringify({ policy_version_ids: policyIds })
-	});
-	if (!response.ok) {
-		console.warn('Failed to apply signup policy consents');
-	}
+	await supabase.from('user_policy_consents').upsert(
+		policyIds.map((policyId) => ({
+			user_id: session.user.id,
+			policy_version_id: policyId
+		})),
+		{
+			onConflict: 'user_id,policy_version_id',
+			ignoreDuplicates: true
+		}
+	);
 }
 
 function signupPolicyConsentIds(user: User | undefined) {

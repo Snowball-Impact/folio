@@ -2,7 +2,7 @@
 
 새 대화에서 작업을 이어갈 때 이 문서를 먼저 읽어라.
 코드와 문서가 다르면 코드베이스를 확인한 뒤 이 문서를 고쳐라.
-문서 영역은 `docs/common/`, `docs/svelte/`, `docs/migration/`, `docs/ops/`, `docs/curation/`로 나뉜다. SvelteKit 작업은 `docs/svelte/README.md`, 이전 증거는 `docs/migration/README.md`, 운영 점검은 `docs/ops/`를 이어서 읽는다.
+문서 영역은 `docs/common/`, `docs/svelte/`, `docs/streamlit/`, `docs/migration/`, `docs/legacy/`로 나뉜다. SvelteKit 작업은 `docs/svelte/README.md`, Streamlit 원본 백업·과거 기록은 `docs/streamlit/README.md`, 이전 증거는 `docs/migration/README.md`를 이어서 읽는다.
 민감 정보(API 키, 비밀번호 등)는 이 문서에 기록하지 않는다.
 
 ---
@@ -18,7 +18,7 @@
 - **실행**: `npm.cmd run dev:managed -- --Port 5174`
 - **엔트리**: 루트 `src/routes/`, `src/lib/`, `package.json`
 - **배포 채널**: Cloudflare Pages. Root directory는 비우거나 repository root로 두고, build command는 `npm run build`, output은 `.svelte-kit/cloudflare`이다.
-- **레거시**: Streamlit 원본은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에만 보관한다.
+- **레거시**: Streamlit 원본은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)과 `docs/streamlit/` historical record로만 보관한다.
 
 ### 현재 핸드오프 상태 (2026-09-09)
 
@@ -29,10 +29,6 @@
 - Cloudflare Pages 배포는 repository root 기준으로 완료했다.
 - Streamlit 원본 백업은 `archive/streamlit_app_20260909.zip`에 보관한다. `archive/`는 로컬 전용이며 Git 추적에서 제외한다.
 - 푸터 배포 확인 버전은 `v2026.09.09.01`이다.
-- 필수 정책 동의는 회원가입 단계에서 수집하고, 기존 사용자가 새 활성 정책에 동의하지 않은 경우 `/policy/consent`에서 재동의를 받는다.
-- 동의 이력 저장은 서버 API `/api/policy-consents`와 service role 경유로 처리한다. 운영 DB에는 `supabase/lock_policy_consent_writes.sql`과 필요 시 `supabase/update_policy_versions_2026_09_09.sql`을 적용한다.
-- 계정 삭제 요청 기반 테이블과 서버 API는 준비되어 있지만 기본 feature flag가 꺼져 있어 마이 페이지 UI와 API 접수는 숨겨둔다. 활성화하려면 `PUBLIC_ACCOUNT_DELETION_REQUEST_ENABLED=true`, `ACCOUNT_DELETION_REQUEST_ENABLED=true`를 함께 설정한다.
-- 후속 TODO: Admin 구현 시 사용자 관리에 `account_deletion_requests` 목록, 상태 필터, `reviewing/resolved/cancelled` 변경 UI를 추가한다. 실제 계정·스토리지·Power BI 리소스 삭제 자동화는 별도 운영 결정 전까지 만들지 않는다.
 - 현재 주요 실행 명령은 루트에서 `npm.cmd run check`, `npm.cmd run build`, `npm.cmd run test:unit`, `npm.cmd run verify`이다.
 - Windows 로컬 개발은 Wrangler/Miniflare profile path `EPERM`을 피하기 위해 `npm.cmd run dev:managed -- --Port 5174`를 기본으로 쓴다.
 - 현재 문서 기준은 `README.md`, `docs/README.md`, `docs/common/ARCHITECTURE.md`, `docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md`, `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`이다.
@@ -105,8 +101,7 @@ src/routes/
   policy/[type]/, powerbi/, references/[platform]/
 src/lib/
   auth.ts                 # Supabase Auth, 가입 동의 metadata, 메일 재발송
-  accountDeletion.ts      # 마이 페이지 계정 삭제 요청 API client
-  onboarding.ts           # 가입/재동의용 활성 정책 버전 조회와 동의 완료 API 호출
+  onboarding.ts           # 가입 페이지용 활성 정책 버전 조회
   projects.ts             # 프로젝트 조회, 저장, 삭제, 조회수
   projectForm.ts          # 등록/수정 폼 payload와 검증
   projectBody.ts          # Tiptap HTML sanitizer와 본문 처리
@@ -130,9 +125,8 @@ archive/                  # 로컬 전용 Streamlit 백업 zip, Git 추적 제�
 |------|------|------|
 | 회원가입 / 이메일 인증 | `src/routes/signup/+page.svelte`, `src/lib/auth.ts` | Supabase Auth, 인증 메일 재발송 |
 | 로그인 / 로그아웃 | `src/routes/login/+page.svelte`, `src/lib/auth.ts`, `src/lib/components/AuthNav.svelte` | Supabase browser session |
-| 약관 동의 | `src/routes/signup/+page.svelte`, `src/routes/policy/consent/+page.svelte`, `src/lib/onboarding.ts`, `src/lib/auth.ts` | 회원가입 폼에서 활성 이용약관/개인정보 처리방침 동의를 필수로 수집한다. 기존 사용자가 새 활성 정책에 동의하지 않은 경우 `/policy/consent`에서 재동의를 받는다. |
+| 약관 동의 | `src/routes/signup/+page.svelte`, `src/lib/onboarding.ts`, `src/lib/auth.ts` | 회원가입 폼에서 활성 이용약관/개인정보 처리방침 동의를 필수로 수집한다. 로그인 후 별도 약관 온보딩 페이지는 Svelte 앱에서 제거했다. |
 | 프로필 조회 / 수정 | `src/routes/my/+page.svelte` | 이름, 소속, 자기소개 |
-| 계정 삭제 요청 | `src/routes/my/+page.svelte`, `src/routes/api/account-deletion-requests/+server.ts`, `src/lib/accountDeletion.ts` | 기본 feature flag off. Admin 구현 시 사용자 관리와 함께 UI 재설계 후 활성화 |
 | 프로젝트 등록 / 수정 / 삭제 | `src/routes/submit/+page.svelte`, `src/routes/projects/[id]/edit/+page.svelte`, `src/lib/projectForm.ts`, `src/lib/projects.ts` | Tiptap 본문 편집 포함 |
 | 홈 탐색 (검색, 태그, 정렬) | `src/routes/+page.svelte`, `src/lib/projects.ts`, `src/lib/components/ProjectRail.svelte` | Home이 탐색 허브 |
 | 프로젝트 상세 | `src/routes/projects/[id]/+page.svelte`, `src/routes/projects/[id]/+page.server.ts` | 상세, 임베드, 댓글 |
@@ -417,11 +411,11 @@ user_policy_consents (user_id, policy_version_id, consented_at)
 - `python -m unittest discover -s tests -v`
 - 라우팅, 인증 클라이언트 격리, 온보딩 오류 처리, 프로필 보존
 - 프로젝트 HTML 정제, 본문 섹션 파싱, URL 정규화, 태그·검색 필터
-- 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. 당시 Streamlit 기준 상세 결과는 로컬 백업 zip의 검증 문서에 보관했다.
+- 실제 로그인, 신규 회원가입, 이메일 인증, 최초 온보딩, 프로젝트 CRUD, 공개→비공개 전환, 작성자 비공개 열람, 서로 다른 두 계정 간 권한 격리, 좋아요, 조회수, 댓글 알림과 이메일 알림은 배포 환경에서 검증을 완료했다. Streamlit 기준 상세 결과는 `docs/streamlit/INTEGRATION_VALIDATION.md`를 참고한다.
 
 ### Streamlit Community Cloud 배포
 
-- Streamlit 원본 배포 문서는 로컬 백업 zip에 보관한다. SvelteKit 현재 배포 문서는 `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`다.
+- Streamlit 원본 배포 문서는 `docs/streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md`, SvelteKit 현재 배포 문서는 `docs/svelte/CLOUDFLARE_DEPLOYMENT.md`다.
 - 배포 Main file path는 루트 `app.py`다.
 - Linux 패키지는 `packages.txt`로 설치한다. 현재 자동 캡처 fallback을 위해 `chromium`이 들어 있다.
 - Streamlit Cloud Secrets에는 시스템 Chromium fallback을 위해 `CHROME_BINARY_PATH=/usr/bin/chromium`을 둘 수 있다.
@@ -539,7 +533,7 @@ Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내�
    - ADR-012에 따른 `project_views`, RPC, 익명 방문자 쿠키와 앱 호출 로직을 로컬과 원격 Supabase에 적용했다.
    - 쿠키 유지, RPC 결과 구분, 실패 후 재시도, SQL 중복·작성자 제외 계약 테스트를 추가했다.
    - 실제 anon 호출, 하드 리로드, 작성자 본인 열람 제외와 직접 테이블 접근 차단을 검증했다.
-   - 기존 조회수와 검증 기록을 초기화하고 새 정책 기준으로 집계를 시작했다. 당시 상세 결과는 로컬 백업 zip의 Streamlit 검증 문서에 보관했다.
+   - 기존 조회수와 검증 기록을 초기화하고 새 정책 기준으로 집계를 시작했다. 상세 결과는 `docs/streamlit/INTEGRATION_VALIDATION.md`를 참고한다.
 3. **미검증 인증 흐름 확인**
    - 별도 테스트 계정 사용 승인 후 회원가입, 이메일 인증, 최초 온보딩을 확인한다.
    - 서로 다른 두 계정 사이의 작성자 전용 수정·삭제 RLS를 확인한다.
@@ -555,7 +549,7 @@ Streamlit 1.41.1 → 1.58.0 업그레이드로 근본 해결(`st.columns()` 내�
 
 ### 개발 서버 파일 감시 설정 (2026-07-26)
 
-Historical note: 당시 `.streamlit/config.toml`은 개발 편의를 위해 `fileWatcherType = "auto"`와 `runOnSave = true`를 사용했다. 현재 repository root에는 SvelteKit 앱만 남기며 Streamlit 설정 파일은 로컬 백업 zip에 보관한다.
+`.streamlit/config.toml`은 개발 편의를 위해 `fileWatcherType = "auto"`와 `runOnSave = true`를 사용한다. Streamlit 1.58.0/Windows 환경에서 자동 reload가 동작하므로 CSS·문구 수정은 서버를 매번 재시작하지 않고 확인할 수 있다.
 
 다만 과거에는 자동 reload 중 오래된 Uvicorn 프로세스가 8501 포트를 계속 잡아 최신 코드가 가려지는 혼선이 있었다. 반영이 이상하면 먼저 `netstat -ano -p tcp`로 `0.0.0.0:8501` 리스너가 하나인지 확인하고, 필요하면 서버를 재시작한다.
 
@@ -589,7 +583,7 @@ Historical note: 당시 `.streamlit/config.toml`은 개발 편의를 위해 `fil
 
 - **회원가입 폼에 필수 동의 체크박스 추가**: `auth.py`의 `render_signup()`이 `get_required_policy_versions()`로 활성 정책을 가져와 `components/policy_consent.py`의 공용 `render_policy_agreement_fields()`로 렌더링한다. 제출 시 모든 필수 정책에 동의했는지 검증한다.
 - **동의 이력은 가입 시점에 Auth user_metadata로만 저장**: 이메일 인증 전에는 세션이 없어 RLS(`auth.uid() = user_id`) 때문에 `user_policy_consents`에 바로 insert할 수 없다. 대신 `sign_up()`이 동의한 `policy_version_id` 목록을 Supabase Auth의 `options.data`(`consented_policy_version_ids`)에 저장해두고, 이후 `sign_in()`/`restore_session()`에서 인증된 세션이 생기는 즉시 `complete_onboarding()`으로 조용히 커밋한다(이미 기록된 정책은 건너뜀). 이 조용한 커밋이 실패해도 로그인 자체는 막지 않고 로그만 남긴다.
-- **Svelte 전환 후 온보딩 화면 재정의**: 가입 페이지의 필수 동의가 정착되면서 독립 `/onboarding` 화면은 제거했다. 단, 기존 사용자가 새 활성 정책에 동의하지 않은 경우 전역 게이트가 `/policy/consent`로 보내 재동의를 받고 원래 목적지로 돌려보낸다. 약관/개인정보 전문은 `/policy/terms`, `/policy/privacy`에서 유지한다.
+- **Svelte 전환 후 온보딩 화면 제거**: 가입 페이지의 필수 동의가 정착되면서 로그인 후 독립 `/onboarding` 화면과 전역 강제 이동 게이트는 제거했다. 약관/개인정보 전문은 `/policy/terms`, `/policy/privacy`에서 유지한다.
 - 검증: `py_compile` + 단위 테스트 67개 전체 통과. 실제 이메일 인증 흐름을 포함한 브라우저 검증은 아직 하지 않았다 — 다음에 실제 신규 계정으로 가입~로그인까지 확인 필요.
 
 ### 완료: GitHub 이슈 #178 GA(Google Analytics) 연동 (2026-07-07)
@@ -622,7 +616,7 @@ Streamlit은 `st.markdown()`/`st.html()`로 넣은 `<script>`를 보안상 실�
 
 ### 계획 변경: 프로젝트 범위 확대와 댓글 MVP 단순화 (2026-08-01)
 
-기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이 내용은 현재 `docs/common/MVP_PRD.md`에 통합되어 있고, 당시 legacy PRD 원문은 로컬 백업 zip에 보관했다.
+기획 범위는 데이터 분석 프로젝트 전용에서 데이터·AI·웹 앱 등 디지털 프로젝트 전반으로 확대한다. 데이터 분석은 초기 강점과 진입 시장으로 유지하되, 프로젝트 유형은 대시보드, AI 실험, 웹 앱, 자동화, 서비스 기획 산출물까지 포괄한다. 이 내용은 현재 `docs/common/MVP_PRD.md`에 통합되어 있고, 당시 기준 PRD는 `docs/legacy/PRD.md`에 보존했다.
 
 #189 댓글 기능은 구조화 피드백 질문·유형·알림까지 한 번에 구현하지 않고, 먼저 단순 댓글과 1단계 대댓글로 실증한다. 1차 포함 범위는 댓글 작성·조회·삭제, 대댓글 작성, 작성자 배지, 댓글 수 표시다. 댓글 수정, 피드백 유형, 작성자 질문, 알림, 관리자 댓글 관리는 실제 사용 반응 확인 후 후속 이슈로 분리한다.
 
@@ -1010,4 +1004,4 @@ Looker Studio/Data Studio Gallery의 Featured, Marketing Templates, Community, C
    - 우선 후보는 `SvelteKit + Cloudflare Pages + Supabase + 캡처 전용 Worker/API`다.
    - 도메인은 가비아/후이즈/Namecheap 등에서 구매하고, 네임서버를 Cloudflare로 넘겨 DNS/SSL/보안/Pages 연결을 한곳에서 관리하는 방식을 우선한다.
    - 공개 조회 화면부터 이전하고, Auth/댓글/신고/등록/수정/캡처는 단계적으로 옮긴다.
-   - 예상 리소스와 리스크는 당시 Streamlit PaaS 배포 계획의 `TODO: SvelteKit 전환 검토`에 기록했다. 현재는 SvelteKit 이전이 완료되어 historical note로만 남긴다.
+   - 예상 리소스와 리스크는 `docs/streamlit/PAAS_DEPLOYMENT.md`의 `TODO: SvelteKit 전환 검토`를 따른다.

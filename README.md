@@ -2,7 +2,7 @@
 
 좋은 데이터 시각화 프로젝트를 발견하고, 직접 경험하고, 함께 이야기하는 커뮤니티.
 
-현재 FOLIO의 메인 애플리케이션은 저장소 루트의 SvelteKit 앱입니다. 기존 Streamlit MVP는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관하며, 새 개발과 배포는 SvelteKit + Cloudflare Pages 기준으로 진행합니다.
+현재 FOLIO의 메인 애플리케이션은 저장소 루트의 SvelteKit 앱입니다. 기존 Streamlit MVP는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)과 historical 문서로만 보관하며, 새 개발과 배포는 SvelteKit + Cloudflare Pages 기준으로 진행합니다.
 
 ## 현재 구조
 
@@ -14,7 +14,7 @@ svelte.config.js          # Cloudflare adapter 설정
 vite.config.ts            # Vite/SvelteKit 설정
 wrangler.jsonc            # Cloudflare Pages runtime 설정
 supabase/                 # Supabase schema
-docs/                     # 현재 기준 문서와 migration 기록
+docs/                     # 현재 기준 문서와 historical 기록
 archive/                  # 로컬 전용 백업(zip), Git 추적 제외
 ```
 
@@ -97,7 +97,7 @@ npm.cmd run deploy:cloudflare
 ## 주요 기능
 
 - Supabase Auth 기반 로그인, 회원가입, 비밀번호 재설정
-- 회원가입 단계의 필수 약관/개인정보 처리방침 동의와 기존 사용자 재동의
+- 회원가입 단계의 필수 약관/개인정보 처리방침 동의
 - 홈 프로젝트 탐색, 검색, 태그, 정렬, 카드 레일
 - Power BI 레퍼런스와 큐레이션 콘텐츠 허브
 - 프로젝트 등록, 수정, 삭제, 공개/비공개
@@ -118,7 +118,7 @@ npm.cmd run deploy:cloudflare
 - Staging QA: [docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md](docs/svelte/SVELTE_STAGING_QA_RUNBOOK.md)
 - 운영 모니터링: [docs/ops/PRODUCTION_MONITORING.md](docs/ops/PRODUCTION_MONITORING.md)
 
-과거 Streamlit 원본은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관하고, Svelte migration 증거는 [docs/migration/](docs/migration/)에 historical record로 보관합니다.
+과거 Streamlit 운영 문서와 Svelte migration 증거는 각각 [docs/streamlit/](docs/streamlit/)과 [docs/migration/](docs/migration/)에 historical record로 보관합니다.
 
 ## 레거시 Streamlit
 

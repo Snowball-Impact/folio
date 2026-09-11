@@ -9,8 +9,9 @@
 | 공통 제품·데이터·개발 원칙 | [common/README.md](common/README.md) |
 | 현재 SvelteKit·Cloudflare | [svelte/README.md](svelte/README.md) |
 | 운영 모니터링·롤백 | [ops/PRODUCTION_MONITORING.md](ops/PRODUCTION_MONITORING.md) |
-| 개인정보·정책 운영 | [ops/PRIVACY_OPERATIONS.md](ops/PRIVACY_OPERATIONS.md) |
+| Streamlit 원본 백업·기존 운영 기록 | [streamlit/README.md](streamlit/README.md) |
 | Streamlit↔Svelte 전환·UIUX 증거 | [migration/README.md](migration/README.md) |
+| 과거 초안·완료 기록 | [legacy/README.md](legacy/README.md) |
 
 ## 공통 기준
 
@@ -30,6 +31,14 @@
 - [common/COMMENT_FEATURE_PLAN.md](common/COMMENT_FEATURE_PLAN.md): 댓글 기능 계획
 - [common/COLLABORATION_RETROSPECTIVE.md](common/COLLABORATION_RETROSPECTIVE.md): AI 협업 회고
 
+## Streamlit
+
+Streamlit 원본 백업과 과거 실행·배포·통합 검증 기록이다. 현재 운영 배포 기준은 SvelteKit이며, Streamlit 원본 소스는 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다.
+
+- [streamlit/PAAS_DEPLOYMENT.md](streamlit/PAAS_DEPLOYMENT.md): Docker 기반 Streamlit PaaS 배포 과거 계획
+- [streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md](streamlit/STREAMLIT_CLOUD_DEPLOYMENT.md): Streamlit Community Cloud 과거 기록
+- [streamlit/INTEGRATION_VALIDATION.md](streamlit/INTEGRATION_VALIDATION.md): Streamlit 기준 원격 Supabase 검증 과거 기록
+
 ## SvelteKit
 
 현재 루트 SvelteKit 구현과 Cloudflare runtime의 기준 문서다.
@@ -46,7 +55,6 @@
 ## Ops
 
 - [ops/PRODUCTION_MONITORING.md](ops/PRODUCTION_MONITORING.md): Cloudflare Pages 배포 이후 모니터링·롤백 체크리스트
-- [ops/PRIVACY_OPERATIONS.md](ops/PRIVACY_OPERATIONS.md): 개인정보 처리방침, 약관 버전, 동의 이력 운영 체크리스트
 
 ## Migration
 
@@ -74,4 +82,4 @@
 
 ## Legacy
 
-Streamlit 원본과 과거 초안은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)에 보관한다. 현재 구현과 충돌하면 공통 기준 문서, 실제 코드, 스키마 순서로 확인한다.
+[legacy/](legacy/)에는 초안, 완료 체크리스트, 이전 와이어프레임과 당시의 상세 개선 기록을 보관한다. 현재 구현과 충돌하면 공통 기준 문서, 실제 코드, 스키마 순서로 확인한다.

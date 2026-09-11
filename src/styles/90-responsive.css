@@ -560,18 +560,6 @@
 		padding: 22px 20px;
 	}
 
-	.account-danger-section {
-		align-items: stretch;
-		flex-direction: column;
-		padding: 18px;
-	}
-
-	.account-danger-section button.danger,
-	.account-request-status {
-		width: 100%;
-		text-align: left;
-	}
-
 	.profile-fields {
 		grid-template-columns: 1fr 1fr;
 		gap: 18px;

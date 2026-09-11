@@ -12,7 +12,6 @@ erDiagram
     PROJECTS ||--o{ LIKES : "receives"
     PROJECTS ||--o{ PROJECT_VIEWS : "is viewed through"
     PROFILES ||--o{ USER_POLICY_CONSENTS : "records"
-    PROFILES ||--o{ ACCOUNT_DELETION_REQUESTS : "requests"
     POLICY_VERSIONS ||--o{ USER_POLICY_CONSENTS : "is accepted by"
 
     AUTH_USERS {
@@ -90,20 +89,6 @@ erDiagram
         text user_agent
         timestamptz created_at
     }
-
-    ACCOUNT_DELETION_REQUESTS {
-        uuid id PK
-        uuid user_id FK
-        text email
-        text request_note
-        text status
-        timestamptz requested_at
-        timestamptz reviewed_at
-        timestamptz resolved_at
-        text operator_note
-        timestamptz created_at
-        timestamptz updated_at
-    }
 ```
 
 ## 2. 핵심 관계와 삭제 규칙
@@ -116,10 +101,9 @@ erDiagram
 | `projects` | `likes` | 1:N | 프로젝트 삭제 시 좋아요 cascade |
 | `projects` | `project_views` | 1:N | 프로젝트 삭제 시 조회 기록 cascade |
 | `profiles` | `user_policy_consents` | 1:N | profile 삭제 시 동의 기록 cascade |
-| `profiles` | `account_deletion_requests` | 1:N | profile 삭제 시 요청 기록 cascade |
 | `policy_versions` | `user_policy_consents` | 1:N | 동의가 있으면 정책 버전 삭제 restrict |
 
-`likes`는 `(project_id, user_id)` 복합 기본키를 사용해 한 사용자가 같은 프로젝트에 중복 좋아요를 만들 수 없게 한다. `project_views`는 `(project_id, viewer_hash, viewed_on)` 복합 기본키로 같은 열람자의 프로젝트별 일간 중복 집계를 막는다. `user_policy_consents`는 `(user_id, policy_version_id)` unique 제약으로 정책 버전별 중복 동의를 막는다. `account_deletion_requests`는 부분 unique index로 사용자별 활성 요청(`open`, `reviewing`)을 1건만 허용한다.
+`likes`는 `(project_id, user_id)` 복합 기본키를 사용해 한 사용자가 같은 프로젝트에 중복 좋아요를 만들 수 없게 한다. `project_views`는 `(project_id, viewer_hash, viewed_on)` 복합 기본키로 같은 열람자의 프로젝트별 일간 중복 집계를 막는다. `user_policy_consents`는 `(user_id, policy_version_id)` unique 제약으로 정책 버전별 중복 동의를 막는다.
 
 ## 3. 공개 프로필 View
 
@@ -146,8 +130,7 @@ flowchart LR
 | `likes` | 전체 집계용 읽기 | 전체 읽기 | `user_id = auth.uid()` | 불가 | 본인 좋아요 |
 | `project_views` | 직접 접근 불가 | 직접 접근 불가 | RPC만 허용 | 불가 | 불가 |
 | `policy_versions` | 활성 버전 | 활성 버전 | 운영 SQL | 운영 SQL | 운영 SQL |
-| `user_policy_consents` | 불가 | 본인 기록 | 서버 API | 불가 | 불가 |
-| `account_deletion_requests` | 불가 | 본인 기록, 관리자 전체 | 서버 API | 관리자 | 불가 |
+| `user_policy_consents` | 불가 | 본인 기록 | 본인 기록 | 불가 | 불가 |
 
 ## 5. 트리거와 RPC
 
@@ -188,8 +171,6 @@ RPC는 집계 여부를 boolean으로 반환한다. 앱은 실패와 정상적�
 - `policy_versions(policy_type, is_active, effective_at desc)`: 활성 정책 선택
 - `user_policy_consents(user_id)`: 온보딩 완료 검사
 - `user_policy_consents(policy_version_id)`: 정책별 동의 추적
-- `account_deletion_requests(user_id, status, requested_at desc)`: 활성 계정 삭제 요청 확인
-- `account_deletion_requests(user_id) where status in ('open', 'reviewing')`: 중복 활성 요청 방지
 
 ## 7. 모델링 원칙
 
@@ -197,4 +178,3 @@ RPC는 집계 여부를 boolean으로 반환한다. 앱은 실패와 정상적�
 - 좋아요 수는 중복 저장하지 않고 `likes` 관계에서 계산한다.
 - 조회수 합계는 읽기 성능을 위해 `projects.view_count`에 유지하고, 일간 중복 여부는 `project_views`가 판정한다.
 - 정책 본문과 사용자 동의를 버전별로 분리해 이후 약관 개정에도 이력을 보존한다.
-- 계정 삭제는 즉시 물리 삭제가 아니라 운영 검토 요청으로 먼저 기록해 외부 Power BI 리소스와 스토리지 정리 누락을 줄인다.

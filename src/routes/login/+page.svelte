@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { signInWithEmail } from '$lib/auth';
-	import { safeInternalNextPath } from '$lib/navigation';
 
 	let email = $state('');
 	let password = $state('');
@@ -11,7 +10,7 @@
 	let submitting = $state(false);
 	const verified = $derived(page.url.searchParams.get('verified') === '1');
 	const reset = $derived(page.url.searchParams.get('reset') === '1');
-	const nextPath = $derived(safeInternalNextPath(page.url.searchParams.get('next')));
+	const nextPath = $derived(page.url.searchParams.get('next') || '/');
 
 	async function submitLogin(event: SubmitEvent) {
 		event.preventDefault();
