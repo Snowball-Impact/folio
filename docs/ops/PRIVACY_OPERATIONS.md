@@ -12,9 +12,8 @@
 | 약관 동의 | `/api/policy-consents`, `user_policy_consents` | 정책 버전, 동의 시각, IP, User-Agent |
 | 계정 삭제 요청 | `/api/account-deletion-requests`, `account_deletion_requests` | 요청 시각, 계정 이메일, 처리 상태, 선택 메모 |
 | 조회수 | `localStorage` 익명 visitor id, DB에는 hash 저장 | 조회수 중복 집계용 익명 식별자 |
-| Google Analytics | 선택형 `PUBLIC_GA_MEASUREMENT_ID` | 페이지 경로, 브라우저·기기·유입 정보 등 GA4 기본 측정 항목 |
 | 관측성 | 선택형 `PUBLIC_RUM_ENDPOINT` | 경로, Web Vitals, Power BI load metric 같은 비식별 성능 이벤트 |
-| 외부 서비스 | Cloudflare, Supabase, Microsoft Power BI/Fabric, Google Analytics, SMTP provider | 배포, 인증·DB·스토리지, 보고서 게시·임베드, 방문 분석, 이메일 알림 |
+| 외부 서비스 | Cloudflare, Supabase, Microsoft Power BI/Fabric, SMTP provider | 배포, 인증·DB·스토리지, 보고서 게시·임베드, 이메일 알림 |
 
 ## 정책 버전 운영
 
@@ -50,6 +49,5 @@
 - 개인정보 처리방침의 수집 항목이 실제 코드의 저장 항목과 맞는지 확인한다.
 - footer 문의 이메일, 약관 문의 이메일, 개인정보 문의 이메일을 하나로 맞춘다.
 - `PUBLIC_RUM_ENDPOINT`를 켠 경우 endpoint 운영자, 보관 기간, payload 예시를 별도로 기록한다.
-- `PUBLIC_GA_MEASUREMENT_ID`를 켠 경우 GA4 Web stream URL, 데이터 보관 기간, 내부 트래픽 제외 설정, 개인정보 처리방침 문구를 확인한다.
 - SMTP 제공자를 바꾸면 처리방침의 외부 서비스 항목도 같이 확인한다.
 - 계정 삭제 요청을 실제 삭제까지 자동화하기 전에는 Auth user, profile, project, storage, Power BI 리소스 처리 범위를 운영자가 최종 확인한다.

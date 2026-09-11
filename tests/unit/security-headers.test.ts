@@ -30,14 +30,3 @@ test('allows nonce-based SvelteKit inline scripts without enabling all inline sc
 	assert.match(csp, /script-src 'self' 'nonce-test-nonce'/);
 	assert.doesNotMatch(csp, /script-src[^;]*'unsafe-inline'/);
 });
-
-test('allows Google Analytics origins only when GA is configured', () => {
-	const disabledCsp = securityHeaders()['Content-Security-Policy'];
-	assert.doesNotMatch(disabledCsp, /googletagmanager/);
-	assert.doesNotMatch(disabledCsp, /google-analytics/);
-
-	const enabledCsp = securityHeaders({ googleAnalyticsMeasurementId: 'G-3VB889G8VK' })['Content-Security-Policy'];
-	assert.match(enabledCsp, /script-src .*https:\/\/www\.googletagmanager\.com/);
-	assert.match(enabledCsp, /connect-src .*https:\/\/www\.google-analytics\.com/);
-	assert.match(enabledCsp, /connect-src .*https:\/\/\*\.google-analytics\.com/);
-});

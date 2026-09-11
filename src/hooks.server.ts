@@ -10,7 +10,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 	applySecurityHeaders(response.headers, {
 		supabaseUrl: publicEnv.PUBLIC_SUPABASE_URL,
 		rumEndpoint: publicEnv.PUBLIC_RUM_ENDPOINT,
-		googleAnalyticsMeasurementId: publicEnv.PUBLIC_GA_MEASUREMENT_ID,
 		scriptNonce
 	});
 	return response;
