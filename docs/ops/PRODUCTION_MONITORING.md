@@ -17,6 +17,8 @@
 - [ ] Cloudflare Pages production deployment가 성공 상태인지 확인한다.
 - [ ] 배포 commit SHA가 기대한 GitHub merge commit과 같은지 확인한다.
 - [ ] `/`, `/powerbi`, `/references/powerbi`, 공개 `/projects/:id`가 200으로 열린다.
+- [ ] Power BI/Fabric fixture와 외부 HTTPS iframe fixture 상세에서 대표 결과물이 렌더링되고, Console에 CSP `frame-src` 또는 `Refused to frame` 오류가 없다. 외부 iframe은 현재 프로젝트 URL의 origin이 상세 HTML CSP에 포함되어야 한다.
+- [ ] 상세 HTML 응답의 `Content-Security-Policy`에 `https://app.fabric.microsoft.com`이 포함된다.
 - [ ] 로그인, 로그아웃, `/my`, `/submit` 접근 흐름이 동작한다.
 - [ ] Supabase Auth/RPC/Storage 요청에 비정상 401, 403, 500이 급증하지 않는다.
 - [ ] 브라우저 Network/Source에 `SUPABASE_SERVICE_ROLE_KEY`, `POWERBI_CLIENT_SECRET`, `SMTP_PASSWORD` 값이 보이지 않는다.
@@ -26,6 +28,7 @@
 - 5분 동안 5xx가 5건 이상이면 장애 후보로 본다.
 - 홈 또는 공개 상세가 2회 연속 실패하면 rollback 여부를 판단한다.
 - 로그인/프로젝트 등록/Power BI embed 중 하나가 production에서 재현 가능하게 실패하면 no-go로 본다.
+- Power BI/Fabric iframe이 비어 있거나 CSP에 의해 차단되면 즉시 no-go로 보고 마지막 정상 Pages deployment로 rollback을 검토한다.
 - Supabase 또는 Power BI provider 장애가 원인이면 앱 rollback보다 provider status와 fallback UI를 먼저 확인한다.
 
 ## 롤백
@@ -52,7 +55,7 @@ git push origin HEAD
 
 - Cloudflare deployment log와 Functions log에서 같은 시각의 request id를 모은다.
 - Supabase Dashboard에서 Auth, Database, Storage error를 같은 시간대로 확인한다.
-- Power BI embed 문제는 embed token endpoint 응답, iframe 생성 여부, provider status를 분리해서 본다.
+- Power BI embed 문제는 embed token endpoint 응답, iframe 생성 여부, iframe 최종 URL, HTML response CSP, provider status를 분리해서 본다. 외부 iframe 프로젝트 상세는 전체 문서 응답의 CSP를 사용해야 한다.
 - 사용자 데이터 변경이 관련되면 DB 수정 전에 affected row, user id, project id를 먼저 기록한다.
 
 ## 후속 정리

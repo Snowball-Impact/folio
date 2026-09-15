@@ -91,7 +91,7 @@
 		{@render CardContent()}
 	</div>
 {:else}
-	<a class="project-card" class:has-thumbnail={hasThumbnail} class:compact href={`/projects/${project.id}`} aria-label={`${project.title} 상세 보기`}>
+	<a class="project-card" class:has-thumbnail={hasThumbnail} class:compact href={`/projects/${project.id}`} data-sveltekit-reload aria-label={`${project.title} 상세 보기`}>
 		{@render CardContent()}
 	</a>
 {/if}

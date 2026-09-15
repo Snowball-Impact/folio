@@ -65,6 +65,7 @@ SMTP를 이번 QA 범위에 포함할 때:
 Thumbnail capture를 이번 QA 범위에 포함할 때:
 
 - Cloudflare Browser Rendering API binding 또는 동등한 server-side capture runtime 사용 가능
+- `THUMBNAIL_CAPTURE_ALLOWED_HOSTS`에 외부 캡처가 필요한 HTTPS 호스트만 등록되어 있음. `APP_URL`, localhost, Cloudflare Preview host는 등록하지 않는다.
 - 로컬 검증에서만 Playwright 또는 system Chromium fallback 사용
 - host memory, sandbox, request timeout 확인
 
@@ -94,7 +95,8 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 6. 업데이트, 학습, 커뮤니티, 자격증 탭 또는 섹션이 로드되는지 확인한다.
 7. 공개 프로젝트 상세 `/projects/:id`를 연다.
 8. 상세 히어로, 본문, 작성자, 링크, 댓글 영역이 깨지지 않는지 확인한다.
-9. private 또는 deleted 프로젝트가 anonymous에서 보이지 않는지 확인한다.
+9. Power BI/Fabric 임베드가 표시되고 브라우저 콘솔에 CSP `frame-src` 차단 오류가 없는지 확인한다.
+10. private 또는 deleted 프로젝트가 anonymous에서 보이지 않는지 확인한다.
 
 기록:
 
@@ -106,6 +108,25 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 | Public project detail |  |  |
 | Private/deleted hidden |  |  |
 
+### iframe/CSP 배포 gate
+
+Cloudflare preview와 실제 staging 배포에서 각각, Power BI/Fabric fixture와 외부 HTTPS iframe fixture 프로젝트 상세를 anonymous browser로 연다.
+
+1. DevTools **Network**에서 상세 HTML 응답의 `Content-Security-Policy`를 열고 `frame-src`에 Power BI/Fabric origin과 현재 프로젝트 iframe URL의 HTTPS origin이 있는지 확인한다. 예: smartHRD는 `https://snowball-impact.github.io`.
+2. 대표 결과물 영역의 iframe 또는 Power BI viewer가 실제 높이를 가진 채 표시되는지 확인한다. 빈 컨테이너나 계속되는 loading overlay는 pass가 아니다.
+3. DevTools **Console**에 `violates Content Security Policy`, `Refused to frame`, Power BI/Fabric embed error가 없는지 확인한다.
+4. 프로젝트 카드·알림·등록 또는 수정 완료 경로로 상세에 진입했을 때 전체 문서 전환이 발생하는지 확인한다. 프로젝트별 `frame-src`는 상세 HTML 응답에서만 적용되므로, 외부 iframe 상세에 client-side navigation을 사용하면 안 된다.
+5. 실패하면 iframe의 최종 URL, response CSP, console message, deployment commit SHA를 함께 기록하고 no-go로 처리한다.
+
+| Check | Preview | Staging | Notes |
+|---|---|---|---|
+| CSP has Fabric frame source |  |  |  |
+| CSP has current external iframe origin |  |  |  |
+| Power BI/Fabric visual renders |  |  |  |
+| External HTTPS iframe renders |  |  |  |
+| No CSP/frame console error |  |  |  |
+| Refresh and SPA navigation |  |  |  |
+
 ## 4. Auth And Onboarding
 
 1. `/signup`에서 새 테스트 계정을 만든다.
@@ -113,8 +134,9 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 3. `profiles` row가 생성되거나 첫 로그인 후 생성되는지 확인한다.
 4. `/login`으로 로그인한다.
 5. 가입 페이지에서 필수 약관 동의 체크가 없으면 가입 제출이 막히는지 확인한다.
-6. 로그인 후 별도 `/onboarding` 약관 동의 페이지로 강제 이동하지 않는지 확인한다.
-7. `/reset-password` recovery link 흐름은 Supabase redirect URL이 staging URL로 잡힌 뒤 별도 확인한다.
+6. 최신 활성 정책에 이미 동의한 사용자는 `/policy/consent`로 이동하지 않는지 확인한다.
+7. 동의 이력이 없는 기존 사용자는 `/policy/consent`로 이동하고 재동의 후 원래 목적지로 돌아가는지 확인한다.
+8. `/reset-password` recovery link 흐름은 Supabase redirect URL이 staging URL로 잡힌 뒤 별도 확인한다.
 
 기록:
 
@@ -160,6 +182,7 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 6. capture 모드를 선택하고 Power BI embed 또는 report URL을 대상으로 캡처한다.
 7. 성공 시 `thumbnail_mode='capture'`와 Storage 파일 생성 여부를 확인한다.
 8. Chromium이 없거나 캡처가 실패하면 프로젝트 생성/수정 자체가 막히지 않고 안전한 오류가 표시되는지 확인한다.
+9. 등록하지 않은 외부 URL과 `127.0.0.1`, `169.254.169.254` 같은 private URL은 `CAPTURE_SOURCE_NOT_ALLOWED`로 차단되는지 확인한다.
 
 기록:
 
@@ -170,6 +193,7 @@ Thumbnail capture를 이번 QA 범위에 포함할 때:
 | Upload DB update |  |  |
 | Capture thumbnail storage |  |  |
 | Capture failure safe |  |  |
+| Untrusted/private capture blocked |  |  |
 
 ## 7. Power BI And PBIX
 
@@ -237,6 +261,7 @@ Power BI tenant와 workspace가 staging용으로 준비됐을 때만 진행한�
 3. 다른 사용자 프로젝트를 수정하거나 삭제할 수 없다.
 4. 다른 사용자의 comment email notification을 요청할 수 없다.
 5. Power BI embed token은 server endpoint 응답으로만 오고 DB에 저장되지 않는다.
+6. authenticated REST client로 `profiles.role` 또는 `powerbi_reports`를 직접 INSERT/UPDATE/DELETE하려 할 때 권한 거부되는지 확인한다. 기존 프로필의 이름·기관·소개 수정은 계속 성공해야 한다.
 
 기록:
 
@@ -247,6 +272,7 @@ Power BI tenant와 workspace가 staging용으로 준비됐을 때만 진행한�
 | Cross-user project mutation blocked |  |  |
 | Cross-user email notification blocked |  |  |
 | Embed token not persisted |  |  |
+| Role and Power BI metadata writes blocked |  |  |
 
 ## 10. Go/No-Go Summary
 
@@ -260,6 +286,7 @@ Power BI tenant와 workspace가 staging용으로 준비됐을 때만 진행한�
 | Project mutation |  |  |  |
 | Thumbnail |  |  |  |
 | Power BI/PBIX |  |  |  |
+| iframe/CSP deployment gate |  |  |  |
 | Community |  |  |  |
 | Security |  |  |  |
 

@@ -288,7 +288,7 @@
 							</div>
 						</div>
 						<div class="portfolio-actions">
-							<a class="button-link" href={`/projects/${project.id}`}>보기</a>
+							<a class="button-link" href={`/projects/${project.id}`} data-sveltekit-reload>보기</a>
 							<a class="button-link" href={`/projects/${project.id}/edit`}>수정</a>
 					<button type="button" disabled={deleting} onclick={() => openDeleteDialog(project)}>삭제</button>
 						</div>

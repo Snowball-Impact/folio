@@ -3,10 +3,14 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
+	import { initGoogleAnalytics } from '$lib/googleAnalytics';
+	import PolicyConsentGate from '$lib/components/PolicyConsentGate.svelte';
 	import { initRum } from '$lib/rum';
 
 	let { children } = $props();
 	const isThumbnailCapture = $derived(page.url.searchParams.get('capture') === 'thumbnail');
+
+	initGoogleAnalytics();
 
 	onMount(() => {
 		initRum();
@@ -18,6 +22,9 @@
 </svelte:head>
 
 <div class="app-shell">
+	{#if !isThumbnailCapture}
+		<PolicyConsentGate />
+	{/if}
 	{#if !isThumbnailCapture}
 		<header class="site-header">
 			<div class="site-header-inner">

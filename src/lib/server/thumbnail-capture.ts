@@ -1,5 +1,6 @@
 import { env } from '$env/dynamic/private';
 import { getSupabaseServerClient } from '$lib/server/supabase';
+import { normalizeCaptureUrl } from '$lib/server/capture-url-policy';
 
 const DEFAULT_BUCKET = 'project-thumbnails';
 const THUMBNAIL_WIDTH = 960;
@@ -10,6 +11,7 @@ const CLOUDFLARE_SCREENSHOT_ENDPOINT = 'https://api.cloudflare.com/client/v4/acc
 
 type ThumbnailCaptureErrorCode =
 	| 'CAPTURE_SOURCE_MISSING'
+	| 'CAPTURE_SOURCE_NOT_ALLOWED'
 	| 'CAPTURE_DISABLED'
 	| 'CAPTURE_PROVIDER_UNSUPPORTED'
 	| 'CAPTURE_CLOUDFLARE_CONFIG_MISSING'
@@ -49,10 +51,19 @@ export class ThumbnailCaptureError extends Error {
 	}
 }
 
-export async function captureProjectThumbnail(projectId: string, sourceUrl: string) {
-	const normalizedUrl = normalizeCaptureUrl(sourceUrl);
+export async function captureProjectThumbnail(projectId: string, sourceUrl: string, trustedOrigin: string) {
+	const normalizedUrl = normalizeCaptureUrl(sourceUrl, {
+		allowedHosts: env.THUMBNAIL_CAPTURE_ALLOWED_HOSTS,
+		appUrl: env.APP_URL,
+		provider: thumbnailCaptureProvider(),
+		requestOrigin: trustedOrigin
+	});
 	if (!normalizedUrl) {
-		throw new ThumbnailCaptureError('캡처할 URL을 찾지 못했습니다.', 400, 'CAPTURE_SOURCE_MISSING');
+		throw new ThumbnailCaptureError(
+			'캡처 URL은 현재 FOLIO 주소 또는 THUMBNAIL_CAPTURE_ALLOWED_HOSTS에 등록된 HTTPS 도메인이어야 합니다.',
+			400,
+			'CAPTURE_SOURCE_NOT_ALLOWED'
+		);
 	}
 
 	if (!isThumbnailCaptureEnabled()) {
@@ -225,23 +236,6 @@ function thumbnailCaptureProvider() {
 		return provider;
 	}
 	return env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_BROWSER_RENDERING_API_TOKEN ? 'cloudflare' : 'local';
-}
-
-function normalizeCaptureUrl(value: string) {
-	let rawValue = value.trim();
-	if (!rawValue) {
-		return null;
-	}
-	if (rawValue.toLowerCase().startsWith('<iframe')) {
-		const match = rawValue.match(/\ssrc=["']([^"']+)["']/i);
-		rawValue = match?.[1]?.trim() || rawValue;
-	}
-	try {
-		const url = new URL(rawValue);
-		return ['http:', 'https:'].includes(url.protocol) && url.hostname ? rawValue : null;
-	} catch {
-		return null;
-	}
 }
 
 function isLoopbackUrl(value: string) {

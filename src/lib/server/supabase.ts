@@ -1,8 +1,9 @@
 import { env as privateEnv } from '$env/dynamic/private';
+import { env as publicEnv } from '$env/dynamic/public';
 import { createClient } from '@supabase/supabase-js';
 
 export function getSupabaseServerClient() {
-	const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
 	const serviceRoleKey = privateEnv.SUPABASE_SERVICE_ROLE_KEY;
 	if (!supabaseUrl || !serviceRoleKey) {
 		return null;
@@ -16,8 +17,8 @@ export function getSupabaseServerClient() {
 }
 
 export function getSupabaseUserClient(accessToken: string) {
-	const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
-	const publishableKey = import.meta.env.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+	const supabaseUrl = publicEnv.PUBLIC_SUPABASE_URL;
+	const publishableKey = publicEnv.PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 	if (!supabaseUrl || !publishableKey || !accessToken) {
 		return null;
 	}

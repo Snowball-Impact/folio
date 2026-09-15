@@ -336,12 +336,16 @@ select
 from public.profiles;
 
 grant select on public.public_profiles to anon, authenticated;
+revoke insert, update, delete on table public.profiles from anon, authenticated;
+grant update (name, organization, bio, avatar_url) on table public.profiles to authenticated;
 grant select on public.policy_versions to anon, authenticated;
-grant select, insert on public.user_policy_consents to authenticated;
+grant select on public.user_policy_consents to authenticated;
+revoke insert, update, delete on public.user_policy_consents from anon, authenticated;
 grant select on public.projects to anon;
 grant select, insert, update, delete on public.projects to authenticated;
 grant select on public.powerbi_reports to anon;
-grant select, insert, update, delete on public.powerbi_reports to authenticated;
+grant select on public.powerbi_reports to authenticated;
+revoke insert, update, delete on table public.powerbi_reports from authenticated;
 grant select on public.comments to anon;
 grant select, insert, delete on public.comments to authenticated;
 grant select, insert, update on public.project_comment_reads to authenticated;
@@ -822,9 +826,6 @@ on public.profiles for select
 using (auth.uid() = id);
 
 drop policy if exists "Users can create own profile" on public.profiles;
-create policy "Users can create own profile"
-on public.profiles for insert
-with check (auth.uid() = id);
 
 drop policy if exists "Users can update own profile" on public.profiles;
 create policy "Users can update own profile"
@@ -870,50 +871,6 @@ using (
               (projects.is_public = true and projects.status = 'published')
               or auth.uid() = projects.author_id
           )
-    )
-);
-
-drop policy if exists "Project authors can create own Power BI reports" on public.powerbi_reports;
-create policy "Project authors can create own Power BI reports"
-on public.powerbi_reports for insert
-with check (
-    exists (
-        select 1
-        from public.projects
-        where projects.id = powerbi_reports.project_id
-          and projects.author_id = auth.uid()
-    )
-);
-
-drop policy if exists "Project authors can update own Power BI reports" on public.powerbi_reports;
-create policy "Project authors can update own Power BI reports"
-on public.powerbi_reports for update
-using (
-    exists (
-        select 1
-        from public.projects
-        where projects.id = powerbi_reports.project_id
-          and projects.author_id = auth.uid()
-    )
-)
-with check (
-    exists (
-        select 1
-        from public.projects
-        where projects.id = powerbi_reports.project_id
-          and projects.author_id = auth.uid()
-    )
-);
-
-drop policy if exists "Project authors can delete own Power BI reports" on public.powerbi_reports;
-create policy "Project authors can delete own Power BI reports"
-on public.powerbi_reports for delete
-using (
-    exists (
-        select 1
-        from public.projects
-        where projects.id = powerbi_reports.project_id
-          and projects.author_id = auth.uid()
     )
 );
 
@@ -1114,9 +1071,6 @@ on public.user_policy_consents for select
 using (auth.uid() = user_id);
 
 drop policy if exists "Users can create own policy consents" on public.user_policy_consents;
-create policy "Users can create own policy consents"
-on public.user_policy_consents for insert
-with check (auth.uid() = user_id);
 
 -- 새 버전을 활성화하기 전에 기존 활성 버전을 비활성화한다. 이미 동의한 사용자는
 -- user_policy_consents가 이전 policy_version_id를 참조하므로 새 버전 재동의가 필요해진다.

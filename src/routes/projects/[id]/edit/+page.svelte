@@ -156,7 +156,7 @@
 		message = result.message;
 		pendingProjectRedirect = `/projects/${result.projectId}`;
 		if (pendingProjectRedirect) {
-			await goto(pendingProjectRedirect);
+			window.location.assign(pendingProjectRedirect);
 		}
 	}
 
@@ -199,7 +199,7 @@
 		clearOperation();
 		pendingProjectRedirect = '';
 		if (redirectPath) {
-			await goto(redirectPath);
+			window.location.assign(redirectPath);
 		}
 	}
 

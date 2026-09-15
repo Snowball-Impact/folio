@@ -107,3 +107,39 @@ test('public detail fixture renders anonymous state', async ({ page }, testInfo)
 	await testInfo.attach('public-detail-metrics.json', { path: metricsPath, contentType: 'application/json' });
 	await page.screenshot({ path: testInfo.outputPath('public-detail.png'), fullPage: true });
 });
+
+test('a public iframe project renders under its CSP allowlist', async ({ page }) => {
+	const consoleErrors: string[] = [];
+	page.on('console', (message) => {
+		if (message.type() === 'error' && /Content Security Policy|violates.+frame-src/i.test(message.text())) {
+			consoleErrors.push(message.text());
+		}
+	});
+
+	const homeResponse = await page.goto('/', { waitUntil: 'domcontentloaded' });
+	expect(homeResponse).not.toBeNull();
+	const projectLinks = page.locator('a[href^="/projects/"]');
+	await expect(projectLinks.first()).toBeVisible({ timeout: 15_000 });
+	const paths = [...new Set(await projectLinks.evaluateAll((links) => links.map((link) => link.getAttribute('href')).filter(Boolean)))].slice(0, 20);
+
+	for (const path of paths) {
+		consoleErrors.length = 0;
+		const response = await page.goto(path!, { waitUntil: 'domcontentloaded' });
+		const frame = page.locator('#project-output iframe').first();
+		const visible = await frame.isVisible({ timeout: 5_000 }).catch(() => false);
+		if (!visible) {
+			continue;
+		}
+		const source = await frame.getAttribute('src');
+		if (!source || !source.startsWith('https://')) {
+			continue;
+		}
+		const iframeOrigin = new URL(source).origin;
+		expect(response?.headers()['content-security-policy']).toContain(iframeOrigin);
+		await page.waitForTimeout(1_000);
+		expect(consoleErrors, `iframe CSP error on ${path}: ${consoleErrors.join('\n')}`).toEqual([]);
+		return;
+	}
+
+	throw new Error('홈에서 찾은 공개 프로젝트 중 렌더링 가능한 HTTPS iframe fixture가 없습니다. 배포 검증용 공개 iframe 프로젝트를 하나 유지하세요.');
+});

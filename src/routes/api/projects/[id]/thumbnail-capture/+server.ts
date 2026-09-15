@@ -33,7 +33,13 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 		projectId,
 		'id,author_id,status,project_type,embed_status,power_bi_url,report_url'
 	).maybeSingle<ProjectRecord>();
-	if (projectError || !project || project.status === 'deleted') {
+	if (projectError) {
+		return json(
+			{ error: '캡처 프로젝트 소유권을 확인하지 못했습니다.', error_code: 'CAPTURE_PROJECT_LOOKUP_FAILED' },
+			{ status: 502 }
+		);
+	}
+	if (!project || project.status === 'deleted') {
 		return json({ error: '캡처할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 
@@ -43,7 +49,7 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 	}
 
 	try {
-		const thumbnailUrl = await captureProjectThumbnail(projectId, sourceUrl);
+		const thumbnailUrl = await captureProjectThumbnail(projectId, sourceUrl, url.origin);
 		return json({ thumbnail_url: thumbnailUrl });
 	} catch (error) {
 		if (error instanceof ThumbnailCaptureError) {

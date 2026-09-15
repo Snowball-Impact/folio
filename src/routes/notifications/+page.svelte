@@ -52,7 +52,7 @@
 			return;
 		}
 		await markNotificationRead(notification.id);
-		await goto(`/projects/${notification.project_id}`);
+		window.location.assign(`/projects/${notification.project_id}`);
 	}
 
 	async function markAllRead() {

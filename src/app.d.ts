@@ -31,7 +31,9 @@ declare module 'cloudflare:sockets' {
 declare global {
 	namespace App {
 		// interface Error {}
-		// interface Locals {}
+		interface Locals {
+			frameSources?: string[];
+		}
 		// interface PageData {}
 		// interface PageState {}
 		// interface Platform {}

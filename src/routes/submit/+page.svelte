@@ -193,7 +193,7 @@
 		clearOperation();
 		pendingProjectRedirect = '';
 		if (redirectPath) {
-			await goto(redirectPath);
+			window.location.assign(redirectPath);
 		}
 	}
 

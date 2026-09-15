@@ -126,7 +126,7 @@ function sanitizedEnv() {
 	const runtimeEnv = Object.fromEntries(
 		Object.entries(process.env).filter(([key, value]) => key && !key.startsWith('=') && value !== undefined)
 	);
-	const runtimeRoot = resolve(process.cwd(), '..', '.runtime');
+	const runtimeRoot = resolve(process.cwd(), '.runtime');
 	const xdgConfigHome = join(runtimeRoot, 'xdg-config');
 	const miniflareRegistryPath = join(runtimeRoot, 'miniflare-registry');
 	mkdirSync(xdgConfigHome, { recursive: true });
@@ -177,7 +177,25 @@ async function assertPublicRoute(route) {
 		const body = await response.text().catch(() => '');
 		throw new Error(`GET ${route} returned ${response.status}. ${body.slice(0, 240)}`);
 	}
+	assertSecurityHeaders(response, route);
 	console.log(`OK ${response.status} ${route}`);
+}
+
+function assertSecurityHeaders(response, route) {
+	const csp = response.headers.get('content-security-policy') || '';
+	if (!csp.includes("default-src 'self'") || !csp.includes("frame-ancestors 'none'")) {
+		throw new Error(`GET ${route} is missing its baseline Content-Security-Policy.`);
+	}
+	if (response.headers.get('x-content-type-options') !== 'nosniff') {
+		throw new Error(`GET ${route} is missing X-Content-Type-Options: nosniff.`);
+	}
+	if (response.headers.get('x-frame-options') !== 'DENY') {
+		throw new Error(`GET ${route} is missing X-Frame-Options: DENY.`);
+	}
+	const expectedFrameOrigin = process.env.SMOKE_EXPECTED_FRAME_ORIGIN?.trim();
+	if (expectedFrameOrigin && route.startsWith('/projects/') && !csp.includes(expectedFrameOrigin)) {
+		throw new Error(`GET ${route} CSP frame-src does not allow ${expectedFrameOrigin}.`);
+	}
 }
 
 async function assertAnonymousPostRejected(path) {
