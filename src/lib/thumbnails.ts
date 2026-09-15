@@ -67,9 +67,12 @@ export async function captureProjectThumbnail(projectId: string) {
 		thumbnail_url?: string;
 	};
 	if (!response.ok || !payload.thumbnail_url) {
+		const message = response.status === 429
+			? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+			: (payload.error || '썸네일 캡처에 실패했습니다.');
 		return {
 			ok: false,
-			message: withErrorCode(payload.error || '썸네일 캡처에 실패했습니다.', payload),
+			message: withErrorCode(message, payload),
 			thumbnailUrl: null
 		};
 	}

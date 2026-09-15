@@ -33,9 +33,12 @@ export async function publishProjectPbix(projectId: string, file: File) {
 	};
 
 	if (!response.ok || payload.ok === false) {
+		const message = response.status === 429
+			? '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.'
+			: (payload.error || payload.message || 'Power BI 게시에 실패했습니다.');
 		return {
 			ok: false,
-			message: withErrorCode(payload.error || payload.message || 'Power BI 게시에 실패했습니다.', payload)
+			message: withErrorCode(message, payload)
 		};
 	}
 

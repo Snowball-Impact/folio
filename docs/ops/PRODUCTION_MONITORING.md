@@ -10,6 +10,7 @@
 | 런타임 오류 | Cloudflare Pages Functions logs | request id, status, route, exception |
 | 트래픽/성능 | Cloudflare Analytics, Web Analytics, 선택형 RUM endpoint | 방문수, 4xx/5xx, LCP/CLS/INP, Power BI iframe init |
 | 외부 의존성 | Supabase Dashboard, Power BI/Fabric Admin, SMTP provider | Auth, RPC, Storage, embed token, email delivery |
+| 인프라 보안 | Cloudflare WAF Dashboard | Sensitive API rate limit 규칙 상태 및 block 이력 |
 | 회귀 | `npm.cmd run verify`, `npm.cmd run test:ui` | build, smoke, security, public route UI |
 
 ## 배포 직후 확인
@@ -22,6 +23,7 @@
 - [ ] 로그인, 로그아웃, `/my`, `/submit` 접근 흐름이 동작한다.
 - [ ] Supabase Auth/RPC/Storage 요청에 비정상 401, 403, 500이 급증하지 않는다.
 - [ ] 브라우저 Network/Source에 `SUPABASE_SERVICE_ROLE_KEY`, `POWERBI_CLIENT_SECRET`, `SMTP_PASSWORD` 값이 보이지 않는다.
+- [ ] Cloudflare WAF에서 `Sensitive API rate limit` 규칙이 Active 상태로 정상 동작 중인지 확인한다. (민감 API 연속 POST 호출 시 429 Too Many Requests 응답 반환 및 UI 에러 팝업 노출 여부 검증)
 
 ## 알림 기준
 
@@ -63,3 +65,25 @@ git push origin HEAD
 - rollback이 끝나면 원인, 영향 범위, 되돌린 deployment/commit, 재배포 여부를 `docs/common/PROJECT_CONTEXT.md` 또는 별도 incident note에 남긴다.
 - 임시 env/secrets 변경을 했다면 Cloudflare와 로컬 `.env` 차이를 확인한다.
 - 같은 장애가 재발할 수 있으면 `npm.cmd run verify` 또는 Playwright smoke에 회귀 케이스를 추가한다.
+
+## 인프라 보안 및 WAF 설정 가이드
+
+### 1. Cloudflare WAF Rate Limiting 룰 개요
+비용 유발 및 보안 민감 API 보호를 위한 Rate Limiting이 아래 사양으로 적용되어 있습니다.
+
+- **규칙명:** `Sensitive API rate limit`
+- **대상 엔드포인트 (POST):**
+  - `/thumbnail-capture` (썸네일 자동 캡처)
+  - `/powerbi-publish` (Power BI 게시/연결)
+  - `/email-notification` (이메일 알림 발송)
+- **차단 조건:** 동일 IP 기준으로 위 3개 API의 POST 요청 합산이 **1분당 5회 초과**할 시 차단
+- **조치 (Action):** Block (HTTP 상태 코드 429 Too Many Requests 발생)
+- **프론트엔드 대응:** API 호출에서 HTTP 429 응답을 수신하는 경우, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." 라는 사용자 친화적인 메시지를 출력합니다.
+
+### 2. WAF 작동 및 429 수동 검증 방법
+배포 직후 또는 주기적 점검 시 아래 방법으로 동작을 검증할 수 있습니다.
+
+1. 개발자 도구(F12)의 Network 탭을 엽니다.
+2. 썸네일 직접 캡처 버튼을 연속하여 6회 이상 누르거나, 스크립트 등을 이용해 `/api/projects/[id]/thumbnail-capture` 또는 `/api/projects/[id]/powerbi-publish`에 연속 POST 요청을 보냅니다.
+3. 6번째 요청부터 HTTP Status `429` 에러가 발생하며, 프론트엔드 UI 화면에 "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." 팝업 메시지가 노출되는지 확인합니다.
+4. Cloudflare WAF Analytics 대시보드에서 `Sensitive API rate limit` 규칙에 의한 차단 로그(Block Event)가 카운트되는지 대조합니다.

@@ -19,6 +19,7 @@
 
 - [common/PROJECT_CONTEXT.md](common/PROJECT_CONTEXT.md): 제품 전체 맥락과 장기 작업 기록
 - [common/ENGINEERING_PLAYBOOK.md](common/ENGINEERING_PLAYBOOK.md): 작업 원칙과 검증 기준
+- [common/SECURITY_PLAYBOOK.md](common/SECURITY_PLAYBOOK.md): 다층 보안 검증 프로세스 가이드라인
 - [common/MVP_PRD.md](common/MVP_PRD.md): 제품 문제와 MVP 범위
 - [common/ARCHITECTURE.md](common/ARCHITECTURE.md): 시스템 구성과 계층
 - [common/DATA_MODEL.md](common/DATA_MODEL.md): ERD, 관계, RLS, RPC
