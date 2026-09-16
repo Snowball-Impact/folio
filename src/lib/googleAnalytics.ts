@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import { afterNavigate } from '$app/navigation';
 import { env } from '$env/dynamic/public';
-import { normalizeGoogleAnalyticsMeasurementId } from '$lib/googleAnalyticsConfig';
+import { createGoogleAnalyticsQueue, normalizeGoogleAnalyticsMeasurementId } from '$lib/googleAnalyticsConfig';
 
 declare global {
 	interface Window {
@@ -20,9 +20,7 @@ export function initGoogleAnalytics() {
 
 	initialized = true;
 	window.dataLayer = window.dataLayer || [];
-	window.gtag = (...args: unknown[]) => {
-		window.dataLayer?.push(args);
-	};
+	window.gtag = createGoogleAnalyticsQueue(window.dataLayer);
 	window.gtag('js', new Date());
 	window.gtag('config', measurementId, { send_page_view: false });
 	loadGoogleAnalyticsScript(measurementId);

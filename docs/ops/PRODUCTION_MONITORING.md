@@ -23,7 +23,8 @@
 - [ ] 로그인, 로그아웃, `/my`, `/submit` 접근 흐름이 동작한다.
 - [ ] Supabase Auth/RPC/Storage 요청에 비정상 401, 403, 500이 급증하지 않는다.
 - [ ] 브라우저 Network/Source에 `SUPABASE_SERVICE_ROLE_KEY`, `POWERBI_CLIENT_SECRET`, `SMTP_PASSWORD` 값이 보이지 않는다.
-- [ ] Cloudflare WAF에서 `Sensitive API rate limit` 규칙이 Active 상태로 정상 동작 중인지 확인한다. (민감 API 연속 POST 호출 시 429 Too Many Requests 응답 반환 및 UI 에러 팝업 노출 여부 검증)
+- [ ] `supabase/add_server_rate_limits_and_secure_views.sql`을 적용한 뒤, 애플리케이션 rate limit이 민감 API 연속 호출에 `429`와 `Retry-After`를 반환하는지 확인한다. 이전 버전의 SQL을 이미 적용했다면 먼저 `supabase/fix_server_rate_limit_request_time.sql`도 적용한다.
+- [ ] Cloudflare WAF에서 `Sensitive API rate limit` 규칙이 Active 상태로 정상 동작 중인지 확인한다. 이는 애플리케이션 제한을 보완하는 외곽 방어 계층이다.
 
 ## 알림 기준
 
@@ -69,21 +70,26 @@ git push origin HEAD
 ## 인프라 보안 및 WAF 설정 가이드
 
 ### 1. Cloudflare WAF Rate Limiting 룰 개요
-비용 유발 및 보안 민감 API 보호를 위한 Rate Limiting이 아래 사양으로 적용되어 있습니다.
+Cloudflare WAF Rate Limiting은 운영 중 제한값을 조정하는 주 제어면이며, 애플리케이션의 서버 측 rate limit은 WAF 설정 누락·우회에 대비한 보조 안전망이다. WAF와 별개로 `supabase/add_server_rate_limits_and_secure_views.sql`을 배포 전에 적용해야 하며, 이 SQL은 서버에서 호출되는 원자적 제한 함수와 조회수 기록 함수를 생성한다. 이미 이전 버전을 적용한 환경은 배포 전에 `supabase/fix_server_rate_limit_request_time.sql`을 한 번 실행한다. 이 hotfix는 함수 정의만 교체하므로 반복 실행해도 안전하다.
 
 - **규칙명:** `Sensitive API rate limit`
-- **대상 엔드포인트 (POST):**
-  - `/thumbnail-capture` (썸네일 자동 캡처)
-  - `/powerbi-publish` (Power BI 게시/연결)
-  - `/email-notification` (이메일 알림 발송)
-- **차단 조건:** 동일 IP 기준으로 위 3개 API의 POST 요청 합산이 **1분당 5회 초과**할 시 차단
+- **현재 match 식:** `http.request.method eq "POST" and (path contains "/thumbnail-capture" or path contains "/powerbi-publish" or path contains "/email-notification")`
+- **대상 엔드포인트:** 썸네일 자동 캡처, Power BI 게시/연결, 이메일 알림 발송
+- **동일 특성:** IP
+- **현재 임계값:** 위 세 경로의 요청을 합산하여 IP당 **10초 동안 5회**
 - **조치 (Action):** Block (HTTP 상태 코드 429 Too Many Requests 발생)
 - **프론트엔드 대응:** API 호출에서 HTTP 429 응답을 수신하는 경우, "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." 라는 사용자 친화적인 메시지를 출력합니다.
+
+애플리케이션 제한은 다음의 고비용 경로에도 적용된다: Power BI embed 토큰 발급, Power BI 게시, 썸네일 캡처·업로드, 본문 이미지 업로드, 댓글 이메일 발송, 공개 프로젝트 조회수 기록. 사용자와 IP 버킷을 함께 사용하며, 제한 저장소를 확인할 수 없을 때는 요청을 거부한다.
+
+일상적인 운영 조정은 Cloudflare Dashboard의 **Edit rate limiting rule**에서 한다. 앱의 `RATE_LIMIT_<ACTION>_MAX_REQUESTS` 및 `RATE_LIMIT_<ACTION>_WINDOW_SECONDS` 환경 변수는 기본값을 덮어쓰는 예외적 조정 수단이므로, 평소에는 등록할 필요가 없다. 값이 누락되거나 유효하지 않으면 안전한 기본값으로 동작한다.
+
+현재 WAF 규칙은 `body-image`, 일반 `thumbnail` 업로드, `GET /powerbi-embed`을 포함하지 않는다. 이 경로들을 WAF로도 보호하려면 기존 규칙을 넓히기보다 별도 규칙을 만들고, 앱 서버 기본 제한과 Cloudflare 임계값을 함께 검토한다. 특히 공개 Power BI embed 토큰 발급에는 GET 전용 규칙을 사용한다.
 
 ### 2. WAF 작동 및 429 수동 검증 방법
 배포 직후 또는 주기적 점검 시 아래 방법으로 동작을 검증할 수 있습니다.
 
 1. 개발자 도구(F12)의 Network 탭을 엽니다.
-2. 썸네일 직접 캡처 버튼을 연속하여 6회 이상 누르거나, 스크립트 등을 이용해 `/api/projects/[id]/thumbnail-capture` 또는 `/api/projects/[id]/powerbi-publish`에 연속 POST 요청을 보냅니다.
-3. 6번째 요청부터 HTTP Status `429` 에러가 발생하며, 프론트엔드 UI 화면에 "요청이 너무 많습니다. 잠시 후 다시 시도해주세요." 팝업 메시지가 노출되는지 확인합니다.
+2. 10초 안에 썸네일 직접 캡처 버튼을 6회 이상 누르거나, 스크립트 등을 이용해 `/api/projects/[id]/thumbnail-capture` 또는 `/api/projects/[id]/powerbi-publish`에 연속 POST 요청을 보냅니다.
+3. WAF 임계값을 넘긴 요청이 HTTP `429`를 반환하는지 확인합니다. 앱 서버 제한으로 응답한 경우에는 `Retry-After` 헤더도 반환됩니다.
 4. Cloudflare WAF Analytics 대시보드에서 `Sensitive API rate limit` 규칙에 의한 차단 로그(Block Event)가 카운트되는지 대조합니다.

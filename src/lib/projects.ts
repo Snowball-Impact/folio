@@ -284,18 +284,17 @@ export async function loadReferenceProjects(
 	};
 }
 
-export async function recordProjectView(projectId: string, anonymousViewerId: string) {
-	const supabase = getSupabaseClient();
-	if (!supabase) {
+export async function recordProjectView(projectId: string) {
+	const session = await currentSession();
+	const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/view`, {
+		method: 'POST',
+		headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined
+	}).catch(() => null);
+	if (!response?.ok) {
 		return false;
 	}
-
-	const { data, error } = await supabase.rpc('increment_project_view_count', {
-		project_id_input: projectId,
-		anonymous_viewer_id_input: anonymousViewerId
-	});
-
-	return !error && data === true;
+	const payload = (await response.json().catch(() => ({}))) as { counted?: boolean };
+	return payload.counted === true;
 }
 
 export async function createProject(input: ProjectSubmitInput) {

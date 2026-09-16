@@ -1,6 +1,8 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { authFailureResponse, authenticateBearerRequest, getOwnedProjectQuery } from '$lib/server/request-auth';
 import { publishPbixForProject, PowerBIServiceError } from '$lib/server/powerbi';
+import { enforceRateLimit, rateLimitResponseInit } from '$lib/server/rate-limit';
+import { rateLimitPolicy } from '$lib/server/rate-limit-policy';
 
 export const GET: RequestHandler = async ({ params, request }) => {
 	const projectId = params.id;
@@ -55,6 +57,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	}>();
 	if (projectError || !project || project.status === 'deleted') {
 		return json({ error: '게시할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+	}
+
+	const rateLimit = await enforceRateLimit(auth.serviceClient, request.headers, rateLimitPolicy('powerbi-publish', auth.user.id));
+	if (!rateLimit.ok) {
+		return json(
+			{ error: rateLimit.reason === 'limited' ? 'PBIX 게시 요청이 너무 많습니다. 한 시간 후 다시 시도하세요.' : '요청 제한 설정을 확인하지 못했습니다.' },
+			rateLimitResponseInit(rateLimit)
+		);
 	}
 
 	const formData = await safeFormData(request);

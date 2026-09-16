@@ -12,7 +12,6 @@
 	import { deleteProject, normalizePowerBIEmbedUrl, recordProjectView } from '$lib/projects';
 	import { PROJECT_REPORT_REASONS, submitProjectReport, type ProjectReportReason } from '$lib/projectReports';
 	import type { PowerBIEmbedConfig } from '$lib/types';
-	import { getOrCreateVisitorId } from '$lib/visitor';
 
 	let { data } = $props();
 	const project = $derived(data.project);
@@ -75,8 +74,7 @@
 
 	onMount(async () => {
 		if (!isThumbnailCapture) {
-			const visitorId = getOrCreateVisitorId();
-			recordProjectView(project.id, visitorId);
+			void recordProjectView(project.id);
 		}
 
 		const session = await currentSession();

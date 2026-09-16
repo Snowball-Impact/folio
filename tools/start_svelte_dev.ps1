@@ -28,6 +28,21 @@ if (Test-Path $repoEnv) {
     }
 }
 
+# Preserve compatibility with the legacy local variable names while SvelteKit reads
+# the browser-safe PUBLIC_* names. Production must set the PUBLIC_* values directly.
+if (-not [Environment]::GetEnvironmentVariable('PUBLIC_SUPABASE_URL', 'Process')) {
+    $legacySupabaseUrl = [Environment]::GetEnvironmentVariable('SUPABASE_URL', 'Process')
+    if ($legacySupabaseUrl) {
+        [Environment]::SetEnvironmentVariable('PUBLIC_SUPABASE_URL', $legacySupabaseUrl, 'Process')
+    }
+}
+if (-not [Environment]::GetEnvironmentVariable('PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'Process')) {
+    $legacyPublishableKey = [Environment]::GetEnvironmentVariable('SUPABASE_PUBLISHABLE_KEY', 'Process')
+    if ($legacyPublishableKey) {
+        [Environment]::SetEnvironmentVariable('PUBLIC_SUPABASE_PUBLISHABLE_KEY', $legacyPublishableKey, 'Process')
+    }
+}
+
 Push-Location $appRoot
 try {
     & npm.cmd run dev -- --host 127.0.0.1 --port $Port

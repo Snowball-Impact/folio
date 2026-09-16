@@ -1,6 +1,8 @@
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { authFailureResponse, authenticateBearerRequest } from '$lib/server/request-auth';
 import { sendProjectCommentEmail } from '$lib/server/email';
+import { enforceRateLimit, rateLimitResponseInit } from '$lib/server/rate-limit';
+import { rateLimitPolicy } from '$lib/server/rate-limit-policy';
 
 type CommentRecord = {
 	id: string;
@@ -55,6 +57,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 		.maybeSingle<ProjectRecord>();
 	if (projectError || !project || project.author_id === auth.user.id) {
 		return json({ ok: true, skipped: true, message: '이메일 알림 대상이 없습니다.' });
+	}
+
+	const rateLimit = await enforceRateLimit(auth.serviceClient, request.headers, rateLimitPolicy('comment-email', auth.user.id));
+	if (!rateLimit.ok) {
+		return json(
+			{ ok: false, skipped: false, message: rateLimit.reason === 'limited' ? '이메일 알림 요청이 너무 많습니다. 한 시간 후 다시 시도하세요.' : '요청 제한 설정을 확인하지 못했습니다.' },
+			rateLimitResponseInit(rateLimit)
+		);
 	}
 
 	const [{ data: recipient }, { data: actor }] = await Promise.all([

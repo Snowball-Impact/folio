@@ -1,6 +1,8 @@
 import { env } from '$env/dynamic/private';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { authFailureResponse, authenticateBearerRequest, getOwnedProjectQuery } from '$lib/server/request-auth';
+import { enforceRateLimit, rateLimitResponseInit } from '$lib/server/rate-limit';
+import { rateLimitPolicy } from '$lib/server/rate-limit-policy';
 
 const DEFAULT_BUCKET = 'project-thumbnails';
 const MAX_THUMBNAIL_BYTES = 5 * 1024 * 1024;
@@ -28,6 +30,14 @@ export const POST: RequestHandler = async ({ params, request }) => {
 	const { data: project, error: projectError } = await getOwnedProjectQuery(auth, projectId, 'id,author_id').maybeSingle();
 	if (projectError || !project) {
 		return json({ error: '수정할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
+	}
+
+	const rateLimit = await enforceRateLimit(auth.serviceClient, request.headers, rateLimitPolicy('thumbnail-upload', auth.user.id));
+	if (!rateLimit.ok) {
+		return json(
+			{ error: rateLimit.reason === 'limited' ? '썸네일 업로드 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' : '요청 제한 설정을 확인하지 못했습니다.' },
+			rateLimitResponseInit(rateLimit)
+		);
 	}
 
 	const formData = await safeFormData(request);
