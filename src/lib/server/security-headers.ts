@@ -18,7 +18,8 @@ const FRAME_SOURCES = [
 	'https://app.powerbi.com',
 	'https://*.powerbi.com',
 	'https://app.fabric.microsoft.com',
-	'https://*.analysis.windows.net'
+	'https://*.analysis.windows.net',
+	'https://share.streamlit.io'
 ];
 
 const META_PIXEL_SCRIPT_SOURCES = ['https://connect.facebook.net'];

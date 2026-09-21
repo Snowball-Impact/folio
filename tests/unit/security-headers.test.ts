@@ -23,6 +23,8 @@ test('allows required Supabase, RUM, Power BI, and Fabric origins in CSP', () =>
 	assert.match(csp, /frame-src .*https:\/\/app\.powerbi\.com/);
 	assert.match(csp, /frame-src .*https:\/\/app\.fabric\.microsoft\.com/);
 	assert.match(csp, /style-src 'self' 'unsafe-inline'/);
+	assert.match(csp, /frame-src .*https:\/\/share\.streamlit\.io/);
+
 });
 
 test('adds only trusted embed origins to the frame policy', () => {

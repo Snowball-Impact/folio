@@ -6,7 +6,8 @@ import {
 	normalizePowerBIEmbedUrl,
 	normalizeTrustedEmbedUrl,
 	projectInputForPbixReplacement,
-	validateProjectInput
+	validateProjectInput,
+	unwrapGoogleRedirectUrl
 } from '../../src/lib/projectInput.ts';
 import type { ProjectSubmitInput } from '../../src/lib/types.ts';
 
@@ -51,6 +52,18 @@ test('normalizes optional URLs and iframe embed URLs', () => {
 	assert.equal(
 		normalizePowerBIEmbedUrl('<iframe src="https://app.powerbi.com/view?r=abc"></iframe>'),
 		'https://app.powerbi.com/view?r=abc'
+	);
+	assert.equal(
+		unwrapGoogleRedirectUrl(
+			'https://accounts.google.com/v3/signin/identifier?continue=https://datastudio.google.com/embed/reporting/123&flowName=GlifWebSignIn'
+		),
+		'https://datastudio.google.com/embed/reporting/123'
+	);
+	assert.equal(
+		normalizePowerBIEmbedUrl(
+			'https://accounts.google.com/v3/signin/identifier?continue=https://lookerstudio.google.com/embed/reporting/456&flowName=GlifWebSignIn'
+		),
+		'https://lookerstudio.google.com/embed/reporting/456'
 	);
 	assert.equal(normalizeTrustedEmbedUrl('https://app.powerbi.com/view?r=abc'), 'https://app.powerbi.com/view?r=abc');
 	assert.equal(

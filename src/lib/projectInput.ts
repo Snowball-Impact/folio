@@ -89,6 +89,29 @@ export function normalizeOptionalUrl(value: string) {
 	}
 }
 
+export function unwrapGoogleRedirectUrl(value: string) {
+	try {
+		const url = new URL(value);
+		if (url.hostname === 'accounts.google.com') {
+			const continueParam = url.searchParams.get('continue');
+			if (continueParam) {
+				const innerUrl = new URL(continueParam);
+				if (
+					['lookerstudio.google.com', 'datastudio.google.com'].includes(
+						innerUrl.hostname.toLowerCase()
+					)
+				) {
+					return continueParam;
+				}
+			}
+		}
+	} catch {
+		// ignore
+	}
+	return value;
+}
+
+
 export function normalizePowerBIEmbedUrl(value: string | null | undefined) {
 	let rawValue = (value ?? '').trim();
 	if (!rawValue) {
@@ -98,6 +121,8 @@ export function normalizePowerBIEmbedUrl(value: string | null | undefined) {
 		const match = rawValue.match(/\ssrc=["']([^"']+)["']/i);
 		rawValue = match?.[1]?.trim() || rawValue;
 	}
+	rawValue = unwrapGoogleRedirectUrl(rawValue);
+
 	return normalizeOptionalUrl(rawValue);
 }
 

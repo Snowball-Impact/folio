@@ -22,6 +22,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"check:embeds": "node scripts/check-powerbi-embeds.mjs",
+		"check:embeds:all": "node scripts/check-powerbi-embeds.mjs --all",
+		"check:embeds:direct": "node scripts/check-powerbi-embeds.mjs --direct",
 		"smoke": "node scripts/smoke-cloudflare.mjs",
 		"smoke:cloudflare": "node scripts/smoke-cloudflare.mjs",
 		"smoke:supabase": "node scripts/smoke-supabase.mjs",
