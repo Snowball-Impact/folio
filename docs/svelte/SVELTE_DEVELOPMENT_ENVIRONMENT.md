@@ -59,6 +59,16 @@ npm.cmd run verify
 
 `verify`는 check, Cloudflare build, Wrangler route smoke, Supabase contract smoke, security smoke를 묶는다. 이것은 브라우저 UIUX parity를 보장하지 않는다.
 
+### 대시보드 임베드 무결성 점검
+
+```powershell
+npm.cmd run check:embeds -- --limit 5
+npm.cmd run check:embeds -- --platform powerbi
+```
+
+Playwright 헤드리스 브라우저를 사용하여 등록된 Power BI/시각화 대시보드의 `<iframe>` 렌더링, Bounding Box 크기, CSP 무차단 여부를 실제 브라우저 환경에서 자동 점검한다.
+
+
 ### UIUX capture gate
 
 ```powershell

@@ -43,6 +43,7 @@ function parseArgs() {
 	const options = {
 		baseUrl: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:5174',
 		timeoutMs: 20000,
+		concurrency: 5,
 		screenshot: false,
 		jsonOutput: null,
 		limit: null,
@@ -56,6 +57,8 @@ function parseArgs() {
 			options.baseUrl = args[++i];
 		} else if (arg === '--timeout' && args[i + 1]) {
 			options.timeoutMs = Number(args[++i]);
+		} else if (arg === '--concurrency' && args[i + 1]) {
+			options.concurrency = Number(args[++i]);
 		} else if (arg === '--limit' && args[i + 1]) {
 			options.limit = Number(args[++i]);
 		} else if (arg === '--platform' && args[i + 1]) {
@@ -129,14 +132,13 @@ if (options.screenshot) {
 }
 
 const browser = await chromium.launch({ headless: true });
-const page = await browser.newPage({
-	viewport: { width: 1440, height: 900 }
-});
-
 const results = [];
+let nextIndex = 0;
+let completedCount = 0;
 
-for (const project of projects) {
+async function checkProject(project, page, index) {
 	const result = {
+		index: index + 1,
 		id: project.id,
 		title: project.title,
 		platform: project.platform_key,
@@ -152,37 +154,27 @@ for (const project of projects) {
 		error: null
 	};
 
-	console.log(`\n▶ [${project.title}] (${project.id})`);
-	console.log(`  🔗 임베드 URL: ${project.power_bi_url}`);
-
 	try {
 		const parsedUrl = new URL(project.power_bi_url);
 		result.trustedHost = isTrustedEmbedHost(parsedUrl.hostname);
-		if (!result.trustedHost) {
-			console.log(`  ⚠️ 신뢰 호스트 목록에 없음: ${parsedUrl.hostname}`);
+		if (parsedUrl.hostname.includes('accounts.google.com')) {
+			result.error = '구글 로그인 리다이렉트 URL이 등록됨 (continue 파라미터 확인 필요)';
 		}
 	} catch (e) {
 		result.error = `유효하지 않은 URL: ${e.message}`;
 		result.status = 'FAIL';
-		console.log(`  ❌ ${result.error}`);
-		results.push(result);
-		continue;
+		return result;
 	}
 
 	try {
 		const probeRes = await fetch(project.power_bi_url, {
 			method: 'GET',
 			headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-			signal: AbortSignal.timeout(8000)
+			signal: AbortSignal.timeout(6000)
 		});
 		result.httpProbeStatus = probeRes.status;
-		const xFrame = probeRes.headers.get('x-frame-options');
-		if (xFrame && (xFrame.toLowerCase().includes('deny') || xFrame.toLowerCase().includes('sameorigin'))) {
-			console.log(`  ⚠️ 외부 원본 서버에서 iframe 차단 헤더 설정됨 (X-Frame-Options: ${xFrame})`);
-		}
 	} catch (probeErr) {
 		result.httpProbeStatus = `Error: ${probeErr.message}`;
-		console.log(`  ⚠️ 원본 URL 직접 접근 시도 실패: ${probeErr.message}`);
 	}
 
 	const detailUrl = `${options.baseUrl}/projects/${project.id}`;
@@ -202,7 +194,7 @@ for (const project of projects) {
 
 	try {
 		await page.goto(detailUrl, { waitUntil: 'domcontentloaded', timeout: options.timeoutMs });
-		await page.waitForTimeout(3000);
+		await page.waitForTimeout(2000);
 
 		const evalResult = await page.evaluate(() => {
 			const iframe = document.querySelector('iframe.dashboard-frame');
@@ -232,23 +224,18 @@ for (const project of projects) {
 
 		if (evalResult.hasIframe && result.iframeRendered && cspErrors.length === 0) {
 			result.status = 'PASS';
-			console.log(`  ✅ iframe 정상 로딩 완료 (${evalResult.iframeWidth}x${evalResult.iframeHeight})`);
 		} else if (evalResult.hasFallback) {
 			result.status = 'FALLBACK';
-			result.error = '외부 사이트 열람 상태로 폴백됨';
-			console.log(`  ℹ️ 폴백 상태: 연결된 산출물을 새 탭에서 확인하세요.`);
+			if (!result.error) result.error = '외부 사이트 열람 상태로 폴백됨 (화이트리스트 외 도메인)';
 		} else if (evalResult.hasFailed) {
 			result.status = 'FAIL';
 			result.error = evalResult.failedText || '임베드 게시 실패 상태';
-			console.log(`  ❌ 실패 상태: ${result.error}`);
 		} else if (cspErrors.length > 0) {
 			result.status = 'FAIL';
 			result.error = `CSP 차단 발생: ${cspErrors.join(', ')}`;
-			console.log(`  ❌ ${result.error}`);
 		} else {
 			result.status = 'WARN';
-			result.error = 'iframe 요소를 찾을 수 없거나 크기가 0입니다.';
-			console.log(`  ⚠️ ${result.error}`);
+			if (!result.error) result.error = 'iframe 요소를 찾을 수 없거나 크기가 0입니다.';
 		}
 
 		if (options.screenshot) {
@@ -259,13 +246,36 @@ for (const project of projects) {
 	} catch (navErr) {
 		result.status = 'FAIL';
 		result.error = `페이지 탐색 시간 초과 또는 오류: ${navErr.message}`;
-		console.log(`  ❌ ${result.error}`);
 	} finally {
 		page.off('console', consoleHandler);
 	}
 
-	results.push(result);
+	return result;
 }
+
+async function worker(workerId) {
+	const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+	const page = await context.newPage();
+
+	while (true) {
+		const currentIndex = nextIndex++;
+		if (currentIndex >= projects.length) break;
+		const project = projects[currentIndex];
+
+		const res = await checkProject(project, page, currentIndex);
+		results.push(res);
+		completedCount++;
+
+		const icon = res.status === 'PASS' ? '✅' : res.status === 'FAIL' ? '❌' : res.status === 'FALLBACK' ? 'ℹ️' : '⚠️';
+		console.log(`[${completedCount}/${projects.length}] ${icon} ${project.title.slice(0, 35)} (${res.status}${res.error ? `: ${res.error.slice(0, 40)}` : ''})`);
+	}
+
+	await context.close();
+}
+
+console.log(`🚀 동시 실행(Concurrency): ${options.concurrency}개 워커로 검사 시작...\n`);
+const workerCount = Math.min(options.concurrency, projects.length);
+await Promise.all(Array.from({ length: workerCount }, (_, id) => worker(id)));
 
 await browser.close();
 

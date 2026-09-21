@@ -20,6 +20,7 @@
 - [ ] `/`, `/powerbi`, `/references/powerbi`, 공개 `/projects/:id`가 200으로 열린다.
 - [ ] Power BI/Fabric fixture와 외부 HTTPS iframe fixture 상세에서 대표 결과물이 렌더링되고, Console에 CSP `frame-src` 또는 `Refused to frame` 오류가 없다. 외부 iframe은 현재 프로젝트 URL의 origin이 상세 HTML CSP에 포함되어야 한다.
 - [ ] 상세 HTML 응답의 `Content-Security-Policy`에 `https://app.fabric.microsoft.com`이 포함된다.
+- [ ] 등록된 Power BI 및 시각화 대시보드 임베드 무결성 점검 스크립트를 실행해 정상 로딩을 확인한다 (`npm.cmd run check:embeds -- --base-url https://folio.it.kr --platform powerbi`).
 - [ ] 로그인, 로그아웃, `/my`, `/submit` 접근 흐름이 동작한다.
 - [ ] Supabase Auth/RPC/Storage 요청에 비정상 401, 403, 500이 급증하지 않는다.
 - [ ] 브라우저 Network/Source에 `SUPABASE_SERVICE_ROLE_KEY`, `POWERBI_CLIENT_SECRET`, `SMTP_PASSWORD` 값이 보이지 않는다.
@@ -92,4 +93,32 @@ Cloudflare WAF Rate Limiting은 운영 중 제한값을 조정하는 주 제어�
 1. 개발자 도구(F12)의 Network 탭을 엽니다.
 2. 10초 안에 썸네일 직접 캡처 버튼을 6회 이상 누르거나, 스크립트 등을 이용해 `/api/projects/[id]/thumbnail-capture` 또는 `/api/projects/[id]/powerbi-publish`에 연속 POST 요청을 보냅니다.
 3. WAF 임계값을 넘긴 요청이 HTTP `429`를 반환하는지 확인합니다. 앱 서버 제한으로 응답한 경우에는 `Retry-After` 헤더도 반환됩니다.
+
+## 대시보드 임베드 무결성 점검 가이드 (`check:embeds`)
+
+등록된 Power BI, Fabric, Tableau, Streamlit, GitHub Pages 대시보드의 임베드 아이프레임이 정상 로딩되는지 Playwright 헤드리스 브라우저를 통해 실시간 교차 검증한다.
+
+### 1. 점검 파이프라인 구조
+1. **도메인 화이트리스트 검증**: 신뢰할 수 있는 도메인(Power BI, Fabric, Tableau, Looker Studio, Streamlit, GitHub Pages) 여부 확인
+2. **HTTP 소스 프로브**: 원본 URL의 200 OK 수신 및 `X-Frame-Options` 차단 헤더 존재 여부 감지
+3. **실제 브라우저 렌더링 (Playwright)**:
+   - 각 프로젝트 상세 페이지(`/projects/:id`)에 접속하여 `iframe.dashboard-frame` 생성 및 크기(너비×높이 > 0) 확인
+   - 브라우저 콘솔에서 CSP `frame-src` 위반 이벤트 실시간 리스닝
+   - 외부 링크 폴백(`embed-external-state`) 또는 에러(`embed-failed-state`) 상태 자동 판별
+
+### 2. 실행 명령어
+```powershell
+# 로컬 개발 서버 기준 전체 대시보드 점검
+npm.cmd run check:embeds
+
+# 프로덕션 운영 서버 기준 Power BI 대시보드 점검
+npm.cmd run check:embeds -- --base-url https://folio.it.kr --platform powerbi
+
+# 최근 N개 프로젝트만 신속 점검
+npm.cmd run check:embeds -- --limit 10
+
+# 스크린샷 캡처 및 JSON 결과 보고서 저장
+npm.cmd run check:embeds -- --screenshot --json artifacts/reports/embed-report.json
+```
+
 4. Cloudflare WAF Analytics 대시보드에서 `Sensitive API rate limit` 규칙에 의한 차단 로그(Block Event)가 카운트되는지 대조합니다.

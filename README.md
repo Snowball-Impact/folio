@@ -47,6 +47,14 @@ Playwright UI 검증:
 npm.cmd run test:ui
 ```
 
+대시보드 임베드 무결성 점검:
+
+```powershell
+npm.cmd run check:embeds
+npm.cmd run check:embeds -- --platform powerbi
+```
+
+
 ## 배포
 
 기본 배포 채널은 Cloudflare Pages입니다.
