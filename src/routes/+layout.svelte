@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import AuthNav from '$lib/components/AuthNav.svelte';
 	import { initGoogleAnalytics } from '$lib/googleAnalytics';
@@ -11,6 +12,17 @@
 	const isThumbnailCapture = $derived(page.url.searchParams.get('capture') === 'thumbnail');
 
 	initGoogleAnalytics();
+
+	let isFirstNavigation = true;
+	afterNavigate(() => {
+		if (isFirstNavigation) {
+			isFirstNavigation = false;
+			return;
+		}
+		if (typeof window !== 'undefined' && typeof (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq === 'function') {
+			(window as unknown as { fbq: (...args: unknown[]) => void }).fbq('track', 'PageView');
+		}
+	});
 
 	onMount(() => {
 		initRum();

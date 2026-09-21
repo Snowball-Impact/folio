@@ -50,3 +50,10 @@ test('allows Google Analytics origins only when GA is configured', () => {
 	assert.match(enabledCsp, /connect-src .*https:\/\/www\.google-analytics\.com/);
 	assert.match(enabledCsp, /connect-src .*https:\/\/\*\.google-analytics\.com/);
 });
+
+test('allows Meta Pixel origins in CSP', () => {
+	const csp = securityHeaders()['Content-Security-Policy'];
+	assert.match(csp, /script-src .*https:\/\/connect\.facebook\.net/);
+	assert.match(csp, /connect-src .*https:\/\/connect\.facebook\.net/);
+	assert.match(csp, /connect-src .*https:\/\/www\.facebook\.com/);
+});

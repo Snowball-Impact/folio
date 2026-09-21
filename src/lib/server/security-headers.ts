@@ -21,6 +21,12 @@ const FRAME_SOURCES = [
 	'https://*.analysis.windows.net'
 ];
 
+const META_PIXEL_SCRIPT_SOURCES = ['https://connect.facebook.net'];
+const META_PIXEL_CONNECT_SOURCES = [
+	'https://connect.facebook.net',
+	'https://www.facebook.com'
+];
+
 const GOOGLE_ANALYTICS_SCRIPT_SOURCES = ['https://www.googletagmanager.com'];
 const GOOGLE_ANALYTICS_CONNECT_SOURCES = [
 	'https://www.google-analytics.com',
@@ -50,6 +56,7 @@ function contentSecurityPolicy(options: SecurityHeaderOptions) {
 	const googleAnalyticsEnabled = isGoogleAnalyticsMeasurementId(options.googleAnalyticsMeasurementId);
 	const connectSources = uniqueSources([
 		...STATIC_CONNECT_SOURCES,
+		...META_PIXEL_CONNECT_SOURCES,
 		...(googleAnalyticsEnabled ? GOOGLE_ANALYTICS_CONNECT_SOURCES : []),
 		originSource(options.supabaseUrl),
 		webSocketSource(options.supabaseUrl),
@@ -68,6 +75,7 @@ function contentSecurityPolicy(options: SecurityHeaderOptions) {
 			'script-src',
 			"'self'",
 			nonceSource(options.scriptNonce),
+			...META_PIXEL_SCRIPT_SOURCES,
 			...(googleAnalyticsEnabled ? GOOGLE_ANALYTICS_SCRIPT_SOURCES : [])
 		],
 		['connect-src', ...connectSources],
