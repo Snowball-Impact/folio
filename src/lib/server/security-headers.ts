@@ -41,7 +41,7 @@ export function securityHeaders(options: SecurityHeaderOptions = {}) {
 		'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
 		'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
 		'Referrer-Policy': 'strict-origin-when-cross-origin',
-		'Strict-Transport-Security': 'max-age=15552000',
+		'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
 		'X-Content-Type-Options': 'nosniff',
 		'X-Frame-Options': 'DENY'
 	};

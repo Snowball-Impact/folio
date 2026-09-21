@@ -6,6 +6,7 @@ test('builds baseline security headers', () => {
 	const headers = securityHeaders();
 	assert.equal(headers['X-Content-Type-Options'], 'nosniff');
 	assert.equal(headers['X-Frame-Options'], 'DENY');
+	assert.equal(headers['Strict-Transport-Security'], 'max-age=31536000; includeSubDomains; preload');
 	assert.match(headers['Content-Security-Policy'], /default-src 'self'/);
 	assert.match(headers['Content-Security-Policy'], /frame-ancestors 'none'/);
 	assert.match(headers['Content-Security-Policy'], /object-src 'none'/);
