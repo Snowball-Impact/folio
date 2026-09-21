@@ -30,7 +30,9 @@
 </script>
 
 <svelte:head>
-	<link rel="icon" href="/logo.webp" />
+	<link rel="icon" href="/favicon.ico" sizes="any" />
+	<link rel="icon" href="/favicon.png" type="image/png" />
+	<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 	<meta property="og:type" content="website" />
 	<meta property="og:site_name" content="FOLIO" />
 	<meta property="og:title" content="FOLIO | 데이터 시각화 커뮤니티" />
