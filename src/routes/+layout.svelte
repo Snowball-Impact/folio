@@ -19,6 +19,17 @@
 
 <svelte:head>
 	<link rel="icon" href="/logo.webp" />
+	<meta property="og:type" content="website" />
+	<meta property="og:site_name" content="FOLIO" />
+	<meta property="og:title" content="FOLIO | 데이터 시각화 커뮤니티" />
+	<meta property="og:description" content="올리면 만나요, 폴리오. 좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 커뮤니티" />
+	<meta property="og:image" content="/og.png" />
+	<meta property="og:image:width" content="1920" />
+	<meta property="og:image:height" content="1080" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="FOLIO | 데이터 시각화 커뮤니티" />
+	<meta name="twitter:description" content="올리면 만나요, 폴리오. 좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 커뮤니티" />
+	<meta name="twitter:image" content="/og.png" />
 </svelte:head>
 
 <div class="app-shell">

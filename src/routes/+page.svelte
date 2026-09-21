@@ -99,8 +99,20 @@
 	<title>FOLIO</title>
 	<meta
 		name="description"
-		content="좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 FOLIO 공개 갤러리"
+		content="올리면 만나요, 폴리오. 좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 커뮤니티"
 	/>
+	<meta property="og:title" content="FOLIO | 데이터 시각화 커뮤니티" />
+	<meta
+		property="og:description"
+		content="올리면 만나요, 폴리오. 좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 커뮤니티"
+	/>
+	<meta property="og:image" content="/og.png" />
+	<meta name="twitter:title" content="FOLIO | 데이터 시각화 커뮤니티" />
+	<meta
+		name="twitter:description"
+		content="올리면 만나요, 폴리오. 좋은 데이터 시각화 프로젝트를 발견하고 직접 경험하는 커뮤니티"
+	/>
+	<meta name="twitter:image" content="/og.png" />
 </svelte:head>
 
 <section class="home-hero-shell" aria-label="FOLIO 홈 소개">
