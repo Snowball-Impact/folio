@@ -29,9 +29,9 @@ test('adds only trusted embed origins to the frame policy', () => {
 	const csp = securityHeaders({ frameSources: ['https://app.powerbi.com'] })['Content-Security-Policy'];
 	assert.match(csp, /frame-src .*https:\/\/app\.powerbi\.com/);
 	assert.equal(frameSourceFromUrl('https://app.powerbi.com/view?r=full'), 'https://app.powerbi.com');
-	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/smartHRD/?view=full'), '');
+	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/smartHRD/?view=full'), 'https://snowball-impact.github.io');
 	assert.equal(frameSourceFromUrl('http://example.com/report'), '');
-	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/path;script-src%20%27unsafe-inline%27'), '');
+	assert.equal(frameSourceFromUrl('https://untrusted-site.example.com/report'), '');
 });
 
 test('allows nonce-based SvelteKit inline scripts without enabling all inline scripts', () => {

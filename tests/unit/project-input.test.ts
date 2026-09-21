@@ -53,7 +53,11 @@ test('normalizes optional URLs and iframe embed URLs', () => {
 		'https://app.powerbi.com/view?r=abc'
 	);
 	assert.equal(normalizeTrustedEmbedUrl('https://app.powerbi.com/view?r=abc'), 'https://app.powerbi.com/view?r=abc');
-	assert.equal(normalizeTrustedEmbedUrl('https://snowball-impact.github.io/report'), null);
+	assert.equal(
+		normalizeTrustedEmbedUrl('https://snowball-impact.github.io/report'),
+		'https://snowball-impact.github.io/report'
+	);
+	assert.equal(normalizeTrustedEmbedUrl('https://untrusted-site.example.com/report'), null);
 	assert.equal(normalizeTrustedEmbedUrl('http://app.powerbi.com/report'), null);
 });
 

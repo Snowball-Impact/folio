@@ -29,7 +29,7 @@ export function validateProjectInput(input: ProjectSubmitInput) {
 		return '프로젝트 본문을 한 섹션 이상 입력하세요.';
 	}
 	if (input.power_bi_url.trim() && !normalizeTrustedEmbedUrl(input.power_bi_url)) {
-		return 'Embed Code는 지원되는 Power BI, Tableau, Looker Studio 또는 Streamlit HTTPS 주소만 사용할 수 있습니다.';
+		return 'Embed Code는 지원되는 Power BI, Tableau, Looker Studio, Streamlit 또는 GitHub Pages HTTPS 주소만 사용할 수 있습니다.';
 	}
 	if (input.report_url.trim() && !normalizeOptionalUrl(input.report_url)) {
 		return 'Web App URL은 http:// 또는 https://로 시작해야 합니다.';
@@ -116,7 +116,11 @@ export function normalizeTrustedEmbedUrl(value: string | null | undefined) {
 
 export function isTrustedEmbedHost(hostname: string) {
 	const normalized = hostname.trim().toLowerCase();
-	return TRUSTED_EMBED_HOSTS.has(normalized) || normalized.endsWith('.streamlit.app');
+	return (
+		TRUSTED_EMBED_HOSTS.has(normalized) ||
+		normalized.endsWith('.streamlit.app') ||
+		normalized.endsWith('.github.io')
+	);
 }
 
 function tagsWithPlatform(tags: string, platformKey: SubmitPlatformKey) {
