@@ -8,7 +8,7 @@ import {
 	popularTagStatsFromTagLists,
 	projectTagsInclude
 } from '$lib/projectTags';
-export { normalizePowerBIEmbedUrl } from '$lib/projectInput';
+export { normalizePowerBIEmbedUrl, normalizeTrustedEmbedUrl } from '$lib/projectInput';
 import type {
 	HomeSnapshot,
 	PlatformKey,
@@ -417,27 +417,21 @@ export async function listMyProjects() {
 }
 
 export async function deleteProject(projectId: string) {
-	const supabase = getSupabaseClient();
 	const session = await currentSession();
-	if (!supabase || !session) {
+	if (!session) {
 		return { ok: false, message: '로그인 후 프로젝트를 삭제할 수 있습니다.' };
 	}
 
-	const { error } = await supabase
-		.from('projects')
-		.update({
-			status: 'deleted',
-			deleted_at: new Date().toISOString(),
-			is_public: false
-		})
-		.eq('id', projectId)
-		.eq('author_id', session.user.id);
-
-	if (error) {
+	const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}`, {
+		method: 'DELETE',
+		headers: { Authorization: `Bearer ${session.access_token}` }
+	}).catch(() => null);
+	const payload = (await response?.json().catch(() => ({}))) as { ok?: boolean; error?: string; message?: string };
+	if (!response?.ok || payload.ok === false) {
 		return { ok: false, message: '프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.' };
 	}
 
-	return { ok: true, message: '프로젝트가 삭제되었습니다.' };
+	return { ok: true, message: payload.message || '프로젝트가 삭제되었습니다.' };
 }
 
 const projectListColumns = [

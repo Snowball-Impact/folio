@@ -1,4 +1,5 @@
 import { env } from '$env/dynamic/private';
+import { encodeSmtpData } from '$lib/server/smtp';
 
 type ProfileRecord = {
 	email: string | null;
@@ -135,7 +136,7 @@ async function sendEnvelope(session: SmtpSession, from: string, to: string, mess
 	await command(session, `MAIL FROM:<${from}>`, undefined, 'SMTP MAIL FROM');
 	await command(session, `RCPT TO:<${to}>`, undefined, 'SMTP RCPT TO');
 	await command(session, 'DATA', 354, 'SMTP DATA');
-	await writeSmtp(session, `${message}\r\n.\r\n`, 'SMTP message write');
+	await writeSmtp(session, encodeSmtpData(message), 'SMTP message write');
 	await session.reader.expect(undefined, 'SMTP message body');
 	await command(session, 'QUIT', 221, 'SMTP QUIT');
 }

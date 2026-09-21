@@ -25,12 +25,13 @@ test('allows required Supabase, RUM, Power BI, and Fabric origins in CSP', () =>
 	assert.match(csp, /style-src 'self' 'unsafe-inline'/);
 });
 
-test('adds only the current project iframe HTTPS origin to the frame policy', () => {
-	const csp = securityHeaders({ frameSources: ['https://snowball-impact.github.io'] })['Content-Security-Policy'];
-	assert.match(csp, /frame-src .*https:\/\/snowball-impact\.github\.io/);
-	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/smartHRD/?view=full'), 'https://snowball-impact.github.io');
+test('adds only trusted embed origins to the frame policy', () => {
+	const csp = securityHeaders({ frameSources: ['https://app.powerbi.com'] })['Content-Security-Policy'];
+	assert.match(csp, /frame-src .*https:\/\/app\.powerbi\.com/);
+	assert.equal(frameSourceFromUrl('https://app.powerbi.com/view?r=full'), 'https://app.powerbi.com');
+	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/smartHRD/?view=full'), '');
 	assert.equal(frameSourceFromUrl('http://example.com/report'), '');
-	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/path;script-src%20%27unsafe-inline%27'), 'https://snowball-impact.github.io');
+	assert.equal(frameSourceFromUrl('https://snowball-impact.github.io/path;script-src%20%27unsafe-inline%27'), '');
 });
 
 test('allows nonce-based SvelteKit inline scripts without enabling all inline scripts', () => {

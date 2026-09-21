@@ -283,6 +283,16 @@ alter table public.projects
 add constraint projects_thumbnail_mode_check
 check (thumbnail_mode in ('auto_cover', 'manual_url', 'capture', 'upload'));
 
+alter table public.projects
+drop constraint if exists projects_power_bi_url_allowed_check;
+
+alter table public.projects
+add constraint projects_power_bi_url_allowed_check
+check (
+    power_bi_url is null
+    or power_bi_url ~* '^https://(app\\.powerbi\\.com|app\\.fabric\\.microsoft\\.com|public\\.tableau\\.com|lookerstudio\\.google\\.com|datastudio\\.google\\.com|share\\.streamlit\\.io|[a-z0-9-]+\\.streamlit\\.app)(/|:|$)'
+);
+
 do $$
 begin
     if not exists (
@@ -350,7 +360,8 @@ grant select on public.policy_versions to anon, authenticated;
 grant select on public.user_policy_consents to authenticated;
 revoke insert, update, delete on public.user_policy_consents from anon, authenticated;
 grant select on public.projects to anon;
-grant select, insert, update, delete on public.projects to authenticated;
+grant select, insert, update on public.projects to authenticated;
+revoke delete on public.projects from authenticated;
 grant select on public.powerbi_reports to anon;
 grant select on public.powerbi_reports to authenticated;
 revoke insert, update, delete on table public.powerbi_reports from authenticated;
@@ -378,9 +389,9 @@ as $$
 with
 safe_args as (
     select
-        greatest(coalesce(p_limit, 6), 0) as rail_limit,
-        greatest(coalesce(p_tag_limit, 10), 0) as tag_limit,
-        greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0) as like_sample_limit,
+        least(greatest(coalesce(p_limit, 6), 0), 24) as rail_limit,
+        least(greatest(coalesce(p_tag_limit, 10), 0), 40) as tag_limit,
+        least(greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0), 240) as like_sample_limit,
         nullif(lower(trim(coalesce(p_platform_key, ''))), '') as platform_key
 ),
 visible_projects as (
@@ -611,7 +622,7 @@ selected_project as (
     from public.projects p
     where p.id = p_project_id
       and p.is_public = true
-      and coalesce(p.status, 'published') <> 'deleted'
+      and p.status = 'published'
     limit 1
 ),
 like_counts as (
@@ -976,12 +987,9 @@ drop policy if exists "Users can update own projects" on public.projects;
 create policy "Users can update own projects"
 on public.projects for update
 using (auth.uid() = author_id)
-with check (auth.uid() = author_id);
+with check (auth.uid() = author_id and status is distinct from 'deleted');
 
 drop policy if exists "Users can delete own projects" on public.projects;
-create policy "Users can delete own projects"
-on public.projects for delete
-using (auth.uid() = author_id);
 
 drop policy if exists "Visible Power BI reports are readable" on public.powerbi_reports;
 create policy "Visible Power BI reports are readable"

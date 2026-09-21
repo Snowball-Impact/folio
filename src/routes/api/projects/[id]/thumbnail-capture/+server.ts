@@ -4,6 +4,7 @@ import { authFailureResponse, authenticateBearerRequest, getOwnedProjectQuery } 
 import { captureProjectThumbnail, ThumbnailCaptureError } from '$lib/server/thumbnail-capture';
 import { enforceRateLimit, rateLimitResponseInit } from '$lib/server/rate-limit';
 import { rateLimitPolicy } from '$lib/server/rate-limit-policy';
+import { normalizeTrustedEmbedUrl } from '$lib/projectInput';
 
 type ProjectRecord = {
 	id: string;
@@ -71,6 +72,9 @@ export const POST: RequestHandler = async ({ params, request, url }) => {
 
 function captureSourceUrl(project: ProjectRecord, projectId: string, requestUrl: URL) {
 	if (project.project_type === 'powerbi' && project.embed_status === 'supported') {
+		if (!normalizeTrustedEmbedUrl(project.power_bi_url)) {
+			return null;
+		}
 		const detailUrl = new URL(`/projects/${encodeURIComponent(projectId)}`, captureDetailOrigin(requestUrl));
 		detailUrl.searchParams.set('capture', 'thumbnail');
 		return detailUrl.toString();

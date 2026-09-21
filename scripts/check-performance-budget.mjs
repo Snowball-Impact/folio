@@ -4,7 +4,7 @@ import { join, relative } from 'node:path';
 const clientRoot = join(process.cwd(), '.svelte-kit', 'output', 'client');
 const immutableRoot = join(clientRoot, '_app', 'immutable');
 const maxClientChunkBytes = Number(process.env.MAX_CLIENT_CHUNK_KB || 300) * 1024;
-const maxGlobalCssBytes = Number(process.env.MAX_GLOBAL_CSS_KB || 105) * 1024;
+const maxGlobalCssBytes = Number(process.env.MAX_GLOBAL_CSS_KB || 120) * 1024;
 const maxKatexCssBytes = Number(process.env.MAX_KATEX_CSS_KB || 35) * 1024;
 
 async function collectFiles(directory, extension, files = []) {

@@ -112,8 +112,8 @@ function uniqueSources(values: string[]) {
 
 export function frameSourceFromUrl(value: string | null | undefined) {
 	try {
-		const url = new URL(String(value ?? '').trim());
-		return url.protocol === 'https:' && url.hostname ? url.origin : '';
+		const normalized = normalizeTrustedEmbedUrl(value);
+		return normalized ? new URL(normalized).origin : '';
 	} catch {
 		return '';
 	}
@@ -122,3 +122,4 @@ export function frameSourceFromUrl(value: string | null | undefined) {
 function normalizeFrameSources(values: string[] | undefined) {
 	return (values ?? []).filter((value) => frameSourceFromUrl(value) === value);
 }
+import { normalizeTrustedEmbedUrl } from '../projectInput.ts';

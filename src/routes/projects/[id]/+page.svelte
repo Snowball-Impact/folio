@@ -9,7 +9,7 @@
 	import PowerBIReport from '$lib/components/PowerBIReport.svelte';
 	import { formatCount, formatDate } from '$lib/format';
 	import ProjectRichContent from '$lib/components/ProjectRichContent.svelte';
-	import { deleteProject, normalizePowerBIEmbedUrl, recordProjectView } from '$lib/projects';
+	import { deleteProject, normalizePowerBIEmbedUrl, normalizeTrustedEmbedUrl, recordProjectView } from '$lib/projects';
 	import { PROJECT_REPORT_REASONS, submitProjectReport, type ProjectReportReason } from '$lib/projectReports';
 	import type { PowerBIEmbedConfig } from '$lib/types';
 
@@ -40,9 +40,10 @@
 		].filter((section): section is [string, string] => Boolean(section[1]))
 	);
 
-	const dashboardUrl = $derived(normalizePowerBIEmbedUrl(project.power_bi_url));
+	const externalDashboardUrl = $derived(normalizePowerBIEmbedUrl(project.power_bi_url));
+	const dashboardUrl = $derived(normalizeTrustedEmbedUrl(project.power_bi_url));
 	const resourceActions = $derived([
-		{ label: '대시보드 열기 ↗', url: dashboardUrl },
+		{ label: '대시보드 열기 ↗', url: externalDashboardUrl },
 		{ label: '보고서 보기 ↗', url: project.report_url },
 		{ label: 'GitHub 보기 ↗', url: project.github_url }
 	]);
@@ -51,7 +52,7 @@
 		project.status === 'published' && project.project_type === 'powerbi'
 	);
 	const hasDashboardUrl = $derived(Boolean(dashboardUrl));
-	const hasExternalResource = $derived(Boolean(project.report_url || project.github_url));
+	const hasExternalResource = $derived(Boolean(externalDashboardUrl || project.report_url || project.github_url));
 	const canRenderDashboardFrame = $derived(hasDashboardUrl);
 	const hasVisualOutput = $derived(true);
 	const isTableauOutput = $derived(
@@ -323,7 +324,15 @@
 		{:else if embedLoading && !dashboardUrl}
 			<div class="embed-empty embed-loading-state">Power BI 임베드 토큰을 확인하는 중입니다.</div>
 		{:else if canRenderDashboardFrame && dashboardUrl}
-			<iframe class="dashboard-frame" title={`${project.title} 대표 결과물`} src={dashboardUrl}></iframe>
+			<iframe
+				class="dashboard-frame"
+				title={`${project.title} 대표 결과물`}
+				src={dashboardUrl}
+				sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+				referrerpolicy="no-referrer"
+				allow="fullscreen"
+				allowfullscreen
+			></iframe>
 			{#if !isThumbnailCapture}
 				<p class="visual-caption">화면이 표시되지 않으면 원본 대시보드를 새 탭에서 확인하세요.</p>
 			{/if}

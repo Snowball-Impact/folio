@@ -41,7 +41,7 @@ selected_project as (
     from public.projects p
     where p.id = p_project_id
       and p.is_public = true
-      and coalesce(p.status, 'published') <> 'deleted'
+      and p.status = 'published'
     limit 1
 ),
 like_counts as (

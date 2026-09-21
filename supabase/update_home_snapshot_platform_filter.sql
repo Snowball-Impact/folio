@@ -92,9 +92,9 @@ as $$
 with
 safe_args as (
     select
-        greatest(coalesce(p_limit, 6), 0) as rail_limit,
-        greatest(coalesce(p_tag_limit, 10), 0) as tag_limit,
-        greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0) as like_sample_limit,
+        least(greatest(coalesce(p_limit, 6), 0), 24) as rail_limit,
+        least(greatest(coalesce(p_tag_limit, 10), 0), 40) as tag_limit,
+        least(greatest(coalesce(p_like_sample_limit, 120), coalesce(p_limit, 6), 0), 240) as like_sample_limit,
         nullif(lower(trim(coalesce(p_platform_key, ''))), '') as platform_key
 ),
 visible_projects as (

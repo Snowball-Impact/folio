@@ -6,6 +6,15 @@ const PROJECT_TAG_MAX_COUNT = 5;
 
 type SubmitPlatformKey = PlatformKey | 'other';
 
+const TRUSTED_EMBED_HOSTS = new Set([
+	'app.powerbi.com',
+	'app.fabric.microsoft.com',
+	'public.tableau.com',
+	'lookerstudio.google.com',
+	'datastudio.google.com',
+	'share.streamlit.io'
+]);
+
 export function validateProjectInput(input: ProjectSubmitInput) {
 	if (!input.title.trim()) {
 		return '프로젝트명을 입력하세요.';
@@ -19,8 +28,8 @@ export function validateProjectInput(input: ProjectSubmitInput) {
 	if (!input.problem.trim() && !input.dataset.trim() && !input.process.trim() && !input.insights.trim()) {
 		return '프로젝트 본문을 한 섹션 이상 입력하세요.';
 	}
-	if (input.power_bi_url.trim() && !normalizePowerBIEmbedUrl(input.power_bi_url)) {
-		return 'Embed Code를 확인하세요. iframe 코드 또는 https URL을 입력해야 합니다.';
+	if (input.power_bi_url.trim() && !normalizeTrustedEmbedUrl(input.power_bi_url)) {
+		return 'Embed Code는 지원되는 Power BI, Tableau, Looker Studio 또는 Streamlit HTTPS 주소만 사용할 수 있습니다.';
 	}
 	if (input.report_url.trim() && !normalizeOptionalUrl(input.report_url)) {
 		return 'Web App URL은 http:// 또는 https://로 시작해야 합니다.';
@@ -35,7 +44,7 @@ export function validateProjectInput(input: ProjectSubmitInput) {
 }
 
 export function buildProjectPayload(input: ProjectSubmitInput) {
-	const powerBiUrl = input.delete_pbix ? null : normalizePowerBIEmbedUrl(input.power_bi_url);
+	const powerBiUrl = input.delete_pbix ? null : normalizeTrustedEmbedUrl(input.power_bi_url);
 	const thumbnailUrl = input.delete_thumbnail || input.thumbnail_mode !== 'manual_url' ? null : normalizeOptionalUrl(input.thumbnail_url);
 	const thumbnailMode = input.delete_thumbnail || input.thumbnail_mode === 'upload' ? 'auto_cover' : input.thumbnail_mode;
 	return {
@@ -90,6 +99,24 @@ export function normalizePowerBIEmbedUrl(value: string | null | undefined) {
 		rawValue = match?.[1]?.trim() || rawValue;
 	}
 	return normalizeOptionalUrl(rawValue);
+}
+
+export function normalizeTrustedEmbedUrl(value: string | null | undefined) {
+	const normalized = normalizePowerBIEmbedUrl(value);
+	if (!normalized) {
+		return null;
+	}
+	try {
+		const url = new URL(normalized);
+		return url.protocol === 'https:' && isTrustedEmbedHost(url.hostname) ? url.toString() : null;
+	} catch {
+		return null;
+	}
+}
+
+export function isTrustedEmbedHost(hostname: string) {
+	const normalized = hostname.trim().toLowerCase();
+	return TRUSTED_EMBED_HOSTS.has(normalized) || normalized.endsWith('.streamlit.app');
 }
 
 function tagsWithPlatform(tags: string, platformKey: SubmitPlatformKey) {
