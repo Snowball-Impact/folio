@@ -195,19 +195,26 @@
 		deleteDialogOpen = false;
 		await goto('/my');
 	}
+
+	const shareImageUrl = $derived(
+		project.thumbnail_url
+			? (project.thumbnail_url.startsWith('http') ? project.thumbnail_url : `https://folio.it.kr${project.thumbnail_url}`)
+			: 'https://folio.it.kr/og.png'
+	);
 </script>
 
 <svelte:head>
 	<title>{project.title} | FOLIO</title>
 	<meta name="description" content={project.one_liner ?? project.title} />
 	<meta property="og:type" content="article" />
+	<meta property="og:site_name" content="FOLIO" />
 	<meta property="og:title" content={`${project.title} | FOLIO`} />
 	<meta property="og:description" content={project.one_liner ?? project.title} />
-	<meta property="og:image" content={project.thumbnail_url || '/og.png'} />
+	<meta property="og:image" content={shareImageUrl} />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content={`${project.title} | FOLIO`} />
 	<meta name="twitter:description" content={project.one_liner ?? project.title} />
-	<meta name="twitter:image" content={project.thumbnail_url || '/og.png'} />
+	<meta name="twitter:image" content={shareImageUrl} />
 </svelte:head>
 
 {#if !isThumbnailCapture}
