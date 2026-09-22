@@ -20,6 +20,15 @@
 - **배포 채널**: Cloudflare Pages. Root directory는 비우거나 repository root로 두고, build command는 `npm run build`, output은 `.svelte-kit/cloudflare`이다.
 - **레거시**: Streamlit 원본은 로컬 백업 zip(`archive/streamlit_app_20260909.zip`)과 `docs/streamlit/` historical record로만 보관한다.
 
+### 현재 핸드오프 상태 (2026-09-21 보안·운영 검증)
+
+- `main`과 `origin/main`은 `6c291bc` (`fix(security): strengthen HSTS preload compliance and strip x-sveltekit-page`)에서 일치하며 작업 트리는 깨끗하다.
+- 보안 보완 커밋들이 반영됐다. 주요 내용은 SMTP DATA dot-stuffing, 공개 snapshot RPC cap과 내부 함수 권한 격리, 프로젝트 삭제 API의 Storage 정리, trusted embed/CSP 제한, HSTS preload, `x-sveltekit-page` 제거다.
+- `supabase/harden_public_security_boundaries.sql`을 운영 Supabase에 적용하고 다음을 SQL Editor에서 확인했다: 내부 RPC는 `postgres`/`service_role`만 실행 가능, 공개 wrapper만 `anon`/`authenticated`에 실행 가능, 직접 삭제 정책 제거, 삭제 상태 update 차단, `projects_power_bi_url_allowed_check` 생성.
+- 운영 Supabase 읽기 전용 smoke가 통과했다: `home_project_snapshot`, `project_detail_snapshot`, `powerbi_reports` 계약.
+- 임베드 무결성 점검 명령은 `npm.cmd run check:embeds`이며 운영 점검 절차는 `docs/ops/PRODUCTION_MONITORING.md`에 기록한다.
+- 심층 Codex Security 스캔의 최종 리포트는 이 핸드오프 시점에 확인하지 못했다. 따라서 배포 후 운영 검증과 별개로, 심층 스캔 결과가 도착하면 coverage와 잔여 finding을 다시 확인한다.
+
 ### 현재 핸드오프 상태 (2026-09-09)
 
 다음 대화에서는 아래 상태에서 이어가면 된다.

@@ -120,6 +120,7 @@ npm.cmd run deploy:cloudflare
 새 작업 컨텍스트에서는 먼저 [docs/README.md](docs/README.md)를 읽고, 작업 대상에 맞는 문서를 선택합니다.
 
 - 현재 프로젝트 상태: [docs/common/PROJECT_CONTEXT.md](docs/common/PROJECT_CONTEXT.md)
+- 포트폴리오 자료: [docs/common/PORTFOLIO_CASE_STUDY.md](docs/common/PORTFOLIO_CASE_STUDY.md)
 - 아키텍처: [docs/common/ARCHITECTURE.md](docs/common/ARCHITECTURE.md)
 - 개발 원칙: [docs/common/ENGINEERING_PLAYBOOK.md](docs/common/ENGINEERING_PLAYBOOK.md)
 - Svelte 개발 환경: [docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md](docs/svelte/SVELTE_DEVELOPMENT_ENVIRONMENT.md)

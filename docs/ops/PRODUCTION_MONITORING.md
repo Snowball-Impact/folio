@@ -2,6 +2,13 @@
 
 목표: Cloudflare Pages에 배포된 루트 SvelteKit 앱의 가용성, 에러, 성능을 확인하고 문제 발생 시 빠르게 이전 정상 배포로 되돌린다.
 
+## 최근 운영 검증 기록 (2026-09-21)
+
+- 공개 production 경로 `/`, `/powerbi`, `/references/powerbi`, `/policy/privacy`: 모두 HTTP 200.
+- 응답 보안 헤더: HSTS `max-age=31536000; includeSubDomains; preload`, CSP 존재, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin` 확인.
+- `npm.cmd run check:embeds -- --base-url https://folio.it.kr --platform powerbi --limit 5 --concurrency 2`: 최근 Power BI 5개 PASS, FAIL 0, FALLBACK 0, WARN 0.
+- 운영 Supabase 읽기 전용 smoke: `home_project_snapshot`, `project_detail_snapshot`, `powerbi_reports` 계약 통과.
+
 ## 모니터링 표면
 
 | 영역 | 1차 도구 | 확인 항목 |
