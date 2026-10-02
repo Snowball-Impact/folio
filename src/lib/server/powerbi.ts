@@ -16,6 +16,27 @@ type PowerBIReportRecord = {
 	embed_url: string | null;
 };
 
+type PowerBIReportSnapshot = PowerBIReportRecord & {
+	workspace_id: string;
+	web_url: string | null;
+	import_id: string | null;
+	import_status: string | null;
+	error_code: string | null;
+	error_message: string | null;
+};
+
+type PowerBIProjectSnapshot = {
+	project_type: string;
+	status: string;
+	embed_status: string;
+	power_bi_url: string | null;
+};
+
+type PowerBIReplacementSnapshot = {
+	project: PowerBIProjectSnapshot;
+	report: PowerBIReportSnapshot | null;
+};
+
 type TokenPayload = {
 	token?: string;
 	expiration?: string;
@@ -53,6 +74,7 @@ type PowerBIImportResult = {
 	reportId: string | null;
 	datasetId: string | null;
 	embedUrl: string | null;
+	cleanupPending?: boolean;
 };
 
 type PowerBIErrorCode =
@@ -112,6 +134,7 @@ export async function publishPbixForProject(
 		throw new PowerBIServiceError('Supabase 서버 환경 변수가 설정되지 않았습니다.', 503, 'PBI_SUPABASE_CONFIG_MISSING');
 	}
 
+	const replacementSnapshot = await getPowerBIReplacementSnapshot(projectId);
 	const accessToken = await fetchPowerBIAccessToken();
 	const importPayload = await postPbixImport(accessToken, file, datasetDisplayName(projectId, originalFilename));
 	const importId = importPayload.id?.trim();
@@ -126,7 +149,12 @@ export async function publishPbixForProject(
 		const message = IMPORT_FAILED_STATES.has(importStatus)
 			? 'Power BI 게시에 실패했습니다. PBIX 파일과 Workspace 권한을 확인하세요.'
 			: 'Power BI 게시가 아직 완료되지 않았습니다. 잠시 후 다시 확인하세요.';
-		if (IMPORT_FAILED_STATES.has(importStatus)) {
+		if (replacementSnapshot.report) {
+			await restorePowerBIReplacementSnapshot(projectId, replacementSnapshot);
+			if (IMPORT_FAILED_STATES.has(importStatus)) {
+				await cleanupPowerBIArtifacts(accessToken, importedArtifactIds(importState));
+			}
+		} else if (IMPORT_FAILED_STATES.has(importStatus)) {
 			await markProjectPowerBIFailed(projectId, importId, importStatus, message);
 		} else {
 			await markProjectPowerBIProcessing(projectId, importId, importStatus || 'processing', message);
@@ -141,38 +169,145 @@ export async function publishPbixForProject(
 		);
 	}
 
-	const report = firstReportFromImport(importState);
-	const reportId = report.id?.trim();
-	if (!reportId) {
-		throw new PowerBIServiceError('Power BI Report ID를 확인할 수 없습니다.', 502, 'PBI_REPORT_ID_MISSING');
+	const importedIds = importedArtifactIds(importState);
+	let reportId = importedIds.reportId;
+	let datasetId = importedIds.datasetId;
+	let embedUrl: string | null = null;
+	try {
+		if (!reportId) {
+			throw new PowerBIServiceError('Power BI Report ID를 확인할 수 없습니다.', 502, 'PBI_REPORT_ID_MISSING');
+		}
+		const report = firstReportFromImport(importState);
+		const reportMetadata = await getReportMetadata(accessToken, reportId);
+		datasetId = reportMetadata.datasetId || datasetId;
+		embedUrl = reportMetadata.embedUrl || report.embedUrl || null;
+		await upsertPowerBIReport(projectId, {
+			workspace_id: env.POWERBI_WORKSPACE_ID,
+			report_id: reportId,
+			dataset_id: datasetId,
+			embed_url: embedUrl,
+			web_url: reportMetadata.webUrl || report.webUrl || null,
+			import_id: importId,
+			import_status: importStatus,
+			error_code: null,
+			error_message: null
+		});
+		await markProjectPowerBIPublished(projectId, embedUrl);
+	} catch (error) {
+		const rollbackResults = await Promise.allSettled([
+			restorePowerBIReplacementSnapshot(projectId, replacementSnapshot),
+			cleanupPowerBIArtifacts(accessToken, { reportId, datasetId })
+		]);
+		if (rollbackResults.some((result) => result.status === 'rejected' || result.value === false)) {
+			console.error('Power BI replacement rollback requires operator review.');
+		}
+		throw error;
 	}
 
-	const reportMetadata = await getReportMetadata(accessToken, reportId);
-	const datasetId = reportMetadata.datasetId || report.datasetId || null;
-	const embedUrl = reportMetadata.embedUrl || report.embedUrl || null;
-	await upsertPowerBIReport(projectId, {
-		workspace_id: env.POWERBI_WORKSPACE_ID,
-		report_id: reportId,
-		dataset_id: datasetId,
-		embed_url: embedUrl,
-		web_url: reportMetadata.webUrl || report.webUrl || null,
-		import_id: importId,
-		import_status: importStatus,
-		error_code: null,
-		error_message: null
-	});
-	await markProjectPowerBIPublished(projectId, embedUrl);
+	const cleanupPending = replacementSnapshot.report
+		? !(await cleanupPowerBIArtifacts(accessToken, {
+				reportId: replacementSnapshot.report.report_id,
+				datasetId: replacementSnapshot.report.dataset_id
+			}, { reportId, datasetId }))
+		: false;
+	if (cleanupPending) {
+		console.warn('Previous Power BI artifacts require operator cleanup.');
+	}
 
 	return {
 		ok: true,
-		message: 'Power BI 보고서가 게시되었습니다.',
+		message: cleanupPending
+			? 'Power BI 보고서가 게시되었습니다. 이전 게시본 정리는 자동으로 다시 확인해야 합니다.'
+			: 'Power BI 보고서가 게시되었습니다.',
 		projectId,
 		importId,
 		importStatus,
 		reportId,
 		datasetId,
-		embedUrl
+		embedUrl,
+		cleanupPending
 	};
+}
+
+async function getPowerBIReplacementSnapshot(projectId: string): Promise<PowerBIReplacementSnapshot> {
+	const serviceClient = getSupabaseServerClient();
+	if (!serviceClient) {
+		throw new PowerBIServiceError('Supabase 서버 환경 변수가 설정되지 않았습니다.', 503, 'PBI_SUPABASE_CONFIG_MISSING');
+	}
+	const [{ data: project, error: projectError }, { data: report, error: reportError }] = await Promise.all([
+		serviceClient
+			.from('projects')
+			.select('project_type,status,embed_status,power_bi_url')
+			.eq('id', projectId)
+			.single(),
+		serviceClient
+			.from('powerbi_reports')
+			.select('workspace_id,report_id,dataset_id,embed_url,web_url,import_id,import_status,error_code,error_message')
+			.eq('project_id', projectId)
+			.maybeSingle()
+	]);
+	if (projectError || !project) {
+		throw new PowerBIServiceError('프로젝트 Power BI 상태를 확인하지 못했습니다.', 502, 'PBI_PROJECT_STATE_SAVE_FAILED');
+	}
+	if (reportError) {
+		throw new PowerBIServiceError('Power BI Report 메타데이터 조회에 실패했습니다.', 502, 'PBI_REPORT_METADATA_FAILED');
+	}
+	return {
+		project: project as PowerBIProjectSnapshot,
+		report: (report as PowerBIReportSnapshot | null) ?? null
+	};
+}
+
+async function restorePowerBIReplacementSnapshot(projectId: string, snapshot: PowerBIReplacementSnapshot) {
+	const serviceClient = getSupabaseServerClient();
+	if (!serviceClient) {
+		throw new PowerBIServiceError('Supabase 서버 환경 변수가 설정되지 않았습니다.', 503, 'PBI_SUPABASE_CONFIG_MISSING');
+	}
+	const reportOperation = snapshot.report
+		? serviceClient.from('powerbi_reports').upsert({ project_id: projectId, ...snapshot.report }, { onConflict: 'project_id' })
+		: serviceClient.from('powerbi_reports').delete().eq('project_id', projectId);
+	const [{ error: projectError }, { error: reportError }] = await Promise.all([
+		serviceClient.from('projects').update(snapshot.project).eq('id', projectId),
+		reportOperation
+	]);
+	if (projectError || reportError) {
+		throw new PowerBIServiceError('이전 Power BI 연결 상태를 복구하지 못했습니다.', 502, 'PBI_PROJECT_STATE_SAVE_FAILED');
+	}
+}
+
+function importedArtifactIds(payload: PowerBIImportPayload) {
+	const report = firstReportFromImport(payload);
+	return {
+		reportId: report.id?.trim() || null,
+		datasetId: report.datasetId?.trim() || payload.datasets?.[0]?.id?.trim() || null
+	};
+}
+
+async function cleanupPowerBIArtifacts(
+	accessToken: string,
+	target: { reportId: string | null; datasetId: string | null },
+	keep: { reportId: string | null; datasetId: string | null } = { reportId: null, datasetId: null }
+) {
+	let ok = true;
+	if (target.reportId && target.reportId !== keep.reportId) {
+		ok = (await deletePowerBIArtifact(accessToken, 'reports', target.reportId)) && ok;
+	}
+	if (target.datasetId && target.datasetId !== keep.datasetId) {
+		ok = (await deletePowerBIArtifact(accessToken, 'datasets', target.datasetId)) && ok;
+	}
+	return ok;
+}
+
+async function deletePowerBIArtifact(accessToken: string, kind: 'reports' | 'datasets', id: string) {
+	try {
+		const response = await fetch(powerBIUrl(`groups/${encodeURIComponent(workspaceId())}/${kind}/${encodeURIComponent(id)}`), {
+			method: 'DELETE',
+			headers: { Authorization: `Bearer ${accessToken}` }
+		});
+		return response.ok || response.status === 404;
+	} catch {
+		return false;
+	}
 }
 
 export async function getPowerBIEmbedConfig(projectId: string): Promise<PowerBIEmbedConfig | null> {
