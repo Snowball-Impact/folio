@@ -57,3 +57,19 @@ GA4 관리 화면에서 다음 이벤트 파라미터를 이벤트 범위 맞춤
 - Return: 신규 유입 cohort의 7일·28일 재방문율
 
 좋아요와 댓글은 현재 핵심 측정 공백을 닫은 뒤 2차로 `like`, `comment_create` 이벤트를 추가한다.
+
+## 2026-10-02 운영 배포 검증
+
+- GitHub `main`: `e2279c6` 푸시 완료
+- Cloudflare Pages 배포: `https://da7d7a76.folio-5l4.pages.dev`
+- 운영 도메인 `folio.it.kr`, `www.folio.it.kr`: HTTP 200
+- 실제 운영 Chromium 검증:
+  - 프로젝트 상세 `view_item` 확인
+  - 공유 링크 복사 `share` 확인
+  - 새 세션의 공유 링크 진입 `project_share_open` 확인
+  - 테스트 계정 로그인 성공 `login` 확인
+- GA4 Data API 즉시 재조회: 신규 이벤트 행은 아직 없음. 표준 보고 처리 지연을 고려해 다음 날 재확인한다.
+
+운영 점검은 `node scripts/verify-ga4-product-events.mjs https://folio.it.kr`로 반복할 수 있다. 로컬 `.env`에 테스트 계정이 있으면 `login`까지 검사하고, 없으면 공개 이벤트만 검사한다. 이 스크립트는 프로젝트 등록이나 PBIX 교체를 수행하지 않는다.
+
+배포 과정에서 `wrangler.jsonc`의 프로젝트명이 실제 Pages 프로젝트와 다른 `folio-svelte`로 설정돼 기본 배포 명령이 실패하는 문제를 발견했다. 실제 프로젝트명 `folio`로 수정해 이후 `npm run deploy:cloudflare`가 올바른 대상을 사용하도록 했다.
