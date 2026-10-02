@@ -290,7 +290,7 @@ alter table public.projects
 add constraint projects_power_bi_url_allowed_check
 check (
     power_bi_url is null
-    or power_bi_url ~* '^https://(app\\.powerbi\\.com|app\\.fabric\\.microsoft\\.com|public\\.tableau\\.com|lookerstudio\\.google\\.com|datastudio\\.google\\.com|share\\.streamlit\\.io|[a-z0-9-]+\\.streamlit\\.app)(/|:|$)'
+    or power_bi_url ~* '^https://(app[.]powerbi[.]com|app[.]fabric[.]microsoft[.]com|public[.]tableau[.]com|lookerstudio[.]google[.]com|datastudio[.]google[.]com|share[.]streamlit[.]io|[a-z0-9-]+[.]streamlit[.]app|[a-z0-9-]+[.]github[.]io)(:[0-9]+)?([/?#]|$)'
 );
 
 do $$
