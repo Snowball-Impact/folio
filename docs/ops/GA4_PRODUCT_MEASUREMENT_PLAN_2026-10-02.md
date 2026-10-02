@@ -79,3 +79,5 @@ GA4 관리 화면에서 다음 이벤트 파라미터를 이벤트 범위 맞춤
 운영 점검은 `node scripts/verify-ga4-product-events.mjs https://folio.it.kr`로 반복할 수 있다. 로컬 `.env`에 테스트 계정이 있으면 `login`까지 검사하고, 없으면 공개 이벤트만 검사한다. 이 스크립트는 프로젝트 등록이나 PBIX 교체를 수행하지 않는다.
 
 배포 과정에서 `wrangler.jsonc`의 프로젝트명이 실제 Pages 프로젝트와 다른 `folio-svelte`로 설정돼 기본 배포 명령이 실패하는 문제를 발견했다. 실제 프로젝트명 `folio`로 수정해 이후 `npm run deploy:cloudflare`가 올바른 대상을 사용하도록 했다.
+
+관련 프로젝트 탐색 개선은 커밋 `681c0d2`, 배포 `https://e07b137b.folio-5l4.pages.dev`로 운영 반영했다. 운영 상세페이지에서 추천 카드 렌더링과 `related_project_click`의 `project_id`, `target_project_id`, `platform` 파라미터를 확인했다.

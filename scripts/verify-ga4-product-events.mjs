@@ -20,6 +20,10 @@ try {
 	await waitForAnalyticsEvent(firstPage, 'view_item');
 	await firstPage.getByRole('button', { name: '공유 링크 복사' }).click();
 	await waitForAnalyticsEvent(firstPage, 'share');
+	const relatedCard = firstPage.locator('.project-rail-section .project-card').first();
+	await relatedCard.waitFor();
+	await relatedCard.click({ modifiers: ['Control'] });
+	await waitForAnalyticsEvent(firstPage, 'related_project_click');
 	const detailEvents = await analyticsEvents(firstPage);
 
 	const sharedUrl = new URL(projectUrl);
@@ -35,6 +39,7 @@ try {
 
 	assertEvent(detailEvents, 'view_item');
 	assertEvent(detailEvents, 'share');
+	assertEvent(detailEvents, 'related_project_click');
 	assertEvent(sharedEvents, 'view_item');
 	assertEvent(sharedEvents, 'project_share_open');
 
