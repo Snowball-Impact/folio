@@ -25,6 +25,7 @@ const HOME_FILTER_FETCH_LIMIT = 500;
 const HOME_RAIL_PROJECT_LIMIT = 6;
 const HOME_TAG_LIMIT = 10;
 const REFERENCE_FETCH_LIMIT = 500;
+const RELATED_PROJECT_CANDIDATE_LIMIT = 24;
 const REFERENCE_PLATFORM_RULES: Record<PlatformKey, { aliases: string[]; urlMarkers: string[] }> = {
 	powerbi: {
 		aliases: ['powerbi', 'power bi', 'pbi'],
@@ -295,6 +296,42 @@ export async function recordProjectView(projectId: string) {
 	}
 	const payload = (await response.json().catch(() => ({}))) as { counted?: boolean };
 	return payload.counted === true;
+}
+
+export async function loadRelatedProjects(project: ProjectCard, limit = 4) {
+	const supabase = getSupabaseClient();
+	if (!supabase || !project.is_public || project.status !== 'published') {
+		return [];
+	}
+
+	const { data, error } = await supabase
+		.from('projects')
+		.select(projectListColumns)
+		.eq('is_public', true)
+		.eq('status', 'published')
+		.neq('id', project.id)
+		.order('created_at', { ascending: false })
+		.limit(RELATED_PROJECT_CANDIDATE_LIMIT);
+	if (error) {
+		return [];
+	}
+
+	const projects = await attachPublicProjectMetadata((Array.isArray(data) ? data : []).map(normalizeProject));
+	const sourceTags = new Set(project.tags.map((tag) => normalizeHomeTag(tag)).filter(Boolean));
+	return projects
+		.map((candidate) => ({ candidate, score: relatedProjectScore(project, candidate, sourceTags) }))
+		.sort((first, second) => second.score - first.score || compareDateDesc(first.candidate, second.candidate))
+		.slice(0, Math.max(0, limit))
+		.map(({ candidate }) => candidate);
+}
+
+function relatedProjectScore(project: ProjectCard, candidate: ProjectCard, sourceTags: Set<string>) {
+	const sharedTags = candidate.tags.reduce(
+		(count, tag) => count + (sourceTags.has(normalizeHomeTag(tag)) ? 1 : 0),
+		0
+	);
+	const samePlatform = referencePlatformForProject(project) === referencePlatformForProject(candidate);
+	return sharedTags * 100 + (samePlatform ? 25 : 0) + Math.min(candidate.view_count, 20);
 }
 
 export async function createProject(input: ProjectSubmitInput) {

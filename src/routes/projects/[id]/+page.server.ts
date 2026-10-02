@@ -1,5 +1,5 @@
 import { error } from '@sveltejs/kit';
-import { loadProjectDetail } from '$lib/projects';
+import { loadProjectDetail, loadRelatedProjects } from '$lib/projects';
 import { frameSourceFromUrl } from '$lib/server/security-headers';
 
 export async function load({ params, locals }) {
@@ -9,5 +9,8 @@ export async function load({ params, locals }) {
 	}
 	const frameSource = frameSourceFromUrl(result.project.power_bi_url);
 	locals.frameSources = frameSource ? [frameSource] : [];
-	return result;
+	return {
+		...result,
+		related_projects: await loadRelatedProjects(result.project)
+	};
 }

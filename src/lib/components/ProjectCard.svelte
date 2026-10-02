@@ -3,10 +3,11 @@
 	import { projectCoverVariant } from '$lib/cover';
 	import type { ProjectCard } from '$lib/types';
 
-	let { project, compact = false, preview = false } = $props<{
+	let { project, compact = false, preview = false, onOpen } = $props<{
 		project: ProjectCard;
 		compact?: boolean;
 		preview?: boolean;
+		onOpen?: (project: ProjectCard) => void;
 	}>();
 
 	const visibleTags = $derived(project.tags.slice(0, 4));
@@ -91,7 +92,7 @@
 		{@render CardContent()}
 	</div>
 {:else}
-	<a class="project-card" class:has-thumbnail={hasThumbnail} class:compact href={`/projects/${project.id}`} data-sveltekit-reload aria-label={`${project.title} 상세 보기`}>
+	<a class="project-card" class:has-thumbnail={hasThumbnail} class:compact href={`/projects/${project.id}`} data-sveltekit-reload aria-label={`${project.title} 상세 보기`} onclick={() => onOpen?.(project)}>
 		{@render CardContent()}
 	</a>
 {/if}

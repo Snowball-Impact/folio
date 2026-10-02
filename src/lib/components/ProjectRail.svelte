@@ -7,12 +7,14 @@
 		title,
 		description,
 		projects,
-		emptyMessage = '표시할 프로젝트가 아직 없습니다.'
+		emptyMessage = '표시할 프로젝트가 아직 없습니다.',
+		onProjectOpen
 	} = $props<{
 		title: string;
 		description: string;
 		projects: ProjectCardType[];
 		emptyMessage?: string;
+		onProjectOpen?: (project: ProjectCardType) => void;
 	}>();
 
 	let railElement = $state<HTMLDivElement | null>(null);
@@ -165,7 +167,7 @@
 			<div class="project-rail-spacer" aria-hidden="true"></div>
 			<div class="rail" bind:this={railElement} onscroll={updateScrollbar}>
 				{#each projects as project}
-					<ProjectCard {project} />
+					<ProjectCard {project} onOpen={onProjectOpen} />
 				{/each}
 			</div>
 		</div>

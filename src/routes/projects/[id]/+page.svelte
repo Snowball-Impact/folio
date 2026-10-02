@@ -7,15 +7,17 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import ProjectComments from '$lib/components/ProjectComments.svelte';
 	import ProjectLikeButton from '$lib/components/ProjectLikeButton.svelte';
+	import ProjectRail from '$lib/components/ProjectRail.svelte';
 	import PowerBIReport from '$lib/components/PowerBIReport.svelte';
 	import { formatCount, formatDate } from '$lib/format';
 	import ProjectRichContent from '$lib/components/ProjectRichContent.svelte';
 	import { deleteProject, normalizePowerBIEmbedUrl, normalizeTrustedEmbedUrl, recordProjectView } from '$lib/projects';
 	import { PROJECT_REPORT_REASONS, submitProjectReport, type ProjectReportReason } from '$lib/projectReports';
-	import type { PowerBIEmbedConfig } from '$lib/types';
+	import type { PowerBIEmbedConfig, ProjectCard as ProjectCardType } from '$lib/types';
 
 	let { data } = $props();
 	const project = $derived(data.project);
+	const relatedProjects = $derived(data.related_projects ?? []);
 	let embedConfig = $state<PowerBIEmbedConfig | null>(null);
 	let embedError = $state('');
 	let embedLoading = $state(false);
@@ -152,6 +154,14 @@
 		trackGoogleAnalyticsEvent('project_share_open', {
 			project_id: project.id,
 			platform: project.platform_key ?? project.project_type
+		});
+	}
+
+	function trackRelatedProjectOpen(relatedProject: ProjectCardType) {
+		trackGoogleAnalyticsEvent('related_project_click', {
+			project_id: project.id,
+			target_project_id: relatedProject.id,
+			platform: relatedProject.platform_key ?? relatedProject.project_type
 		});
 	}
 
@@ -432,6 +442,15 @@
 		projectTitle={project.title}
 		initialCommentCount={project.comment_count}
 	/>
+
+	{#if relatedProjects.length > 0}
+		<ProjectRail
+			title="이 프로젝트와 함께 볼 만한 프로젝트"
+			description="관련 프로젝트"
+			projects={relatedProjects}
+			onProjectOpen={trackRelatedProjectOpen}
+		/>
+	{/if}
 
 	<div class="detail-back-action-row">
 		<a class="button-link" href={backHref}>← {backLabel}</a>
