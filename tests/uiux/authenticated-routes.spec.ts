@@ -9,6 +9,7 @@ const detailProjectId = testEnv('PLAYWRIGHT_PROJECT_ID');
 const mutationProjectId = testEnv('PLAYWRIGHT_MUTATION_PROJECT_ID');
 const pbixSafeProjectId = testEnv('PLAYWRIGHT_PBIX_SAFE_PROJECT_ID');
 const pbixLiveProjectId = testEnv('PLAYWRIGHT_PBIX_LIVE_PROJECT_ID');
+const pbixFixturePath = resolve(process.cwd(), 'artifacts', 'test.pbix', 'Solo_sample.pbix');
 
 const authenticatedRoutes = [
 	{ name: 'my', route: '/my', readySelector: '.profile-overview, .profile-edit-card, .portfolio-section' },
@@ -655,7 +656,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.locator('input[type="radio"][value="powerbi"]').check();
 		const pbixInput = page.locator('input[type="file"][accept=".pbix"]');
 		await expect(pbixInput).toBeVisible();
-		await pbixInput.setInputFiles(resolve(process.cwd(), 'artifacts', 'test.pbix'));
+		await pbixInput.setInputFiles(pbixFixturePath);
 		expect(await pbixInput.evaluate((input: HTMLInputElement) => input.files?.length ?? 0)).toBe(1);
 
 		await page.locator('summary', { hasText: '본문 미리보기' }).click();
@@ -961,7 +962,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await deletePbix.check();
 		const pbixInput = page.locator('input[type="file"][accept=".pbix"]');
 		await expect(pbixInput).toBeVisible();
-		await pbixInput.setInputFiles(resolve(process.cwd(), 'artifacts', 'test.pbix'));
+		await pbixInput.setInputFiles(pbixFixturePath);
 
 		let updatePayload: Record<string, unknown> | null = null;
 		await page.route('**/rest/v1/projects**', async (route) => {
@@ -1027,7 +1028,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		}
 
 		const projectId = editHref.split('/').at(-2) ?? '';
-		const pbixPath = resolve(process.cwd(), 'artifacts', 'test.pbix');
+		const pbixPath = pbixFixturePath;
 		await page.locator('.platform-panel .delete-option-row input[type="checkbox"]').check();
 		const pbixInput = page.locator('input[type="file"][accept=".pbix"]');
 		await expect(pbixInput).toBeVisible();
@@ -1051,7 +1052,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 			}
 			const body = route.request().postDataBuffer();
 			publishRequestBytes = body?.byteLength ?? 0;
-			publishRequestHasFilename = route.request().postData()?.includes('filename="test.pbix"') ?? false;
+			publishRequestHasFilename = route.request().postData()?.includes('filename="Solo_sample.pbix"') ?? false;
 			await route.fulfill({
 				status: 200,
 				contentType: 'application/json',
@@ -1100,7 +1101,7 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 
 		const pbixInput = page.locator('input[type="file"][accept=".pbix"]');
 		await expect(pbixInput).toBeVisible();
-		await pbixInput.setInputFiles(resolve(process.cwd(), 'artifacts', 'test.pbix'));
+		await pbixInput.setInputFiles(pbixFixturePath);
 
 		await page.getByRole('button', { name: '수정 완료', exact: true }).click();
 		await expect(page).toHaveURL(new RegExp(`/projects/${escapeRegExp(pbixLiveProjectId!)}$`), { timeout: 120_000 });
