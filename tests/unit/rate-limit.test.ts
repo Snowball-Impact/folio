@@ -51,3 +51,18 @@ test('permits requests only when every bucket accepts them', async () => {
 	};
 	assert.deepEqual(await enforceRateLimit(client, new Headers(), policy), { ok: true });
 });
+
+test('isolates rate-limit buckets by validated resource scope', async () => {
+	const keys: string[] = [];
+	const client = {
+		async rpc(_functionName: string, parameters: Record<string, unknown>) {
+			keys.push(String(parameters.p_rate_key));
+			return { data: true, error: null };
+		}
+	};
+	const headers = new Headers({ 'cf-connecting-ip': '203.0.113.10' });
+	await enforceRateLimit(client, headers, { ...policy, userId: null, scope: 'project-a' });
+	await enforceRateLimit(client, headers, { ...policy, userId: null, scope: 'project-b' });
+	assert.equal(keys.length, 2);
+	assert.notEqual(keys[0], keys[1]);
+});

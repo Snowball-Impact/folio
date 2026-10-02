@@ -86,6 +86,20 @@ test('signup exposes resend confirmation fallback', async ({ page }) => {
 	await expect(page.locator('.resend-confirmation-form .auth-message.error')).toContainText('재발송할 이메일을 올바르게 입력하세요.');
 });
 
+test('reset-password renders the update form for a recovery token hash', async ({ page }) => {
+	await page.goto('/reset-password?token_hash=test-token&type=recovery', { waitUntil: 'networkidle' });
+	await expect(page.getByLabel('새 비밀번호', { exact: true })).toBeVisible();
+	await expect(page.getByRole('button', { name: '비밀번호 변경' })).toBeEnabled();
+});
+
+test('reset-password explains an expired callback and allows a new request', async ({ page }) => {
+	await page.goto('/reset-password?error=access_denied&error_code=otp_expired&error_description=expired', {
+		waitUntil: 'networkidle'
+	});
+	await expect(page.locator('.auth-message.error')).toContainText('만료');
+	await expect(page.getByRole('button', { name: '재설정 메일 받기' })).toBeEnabled();
+});
+
 test('public detail fixture renders anonymous state', async ({ page }, testInfo) => {
 	test.skip(!publicDetailProjectId, 'PLAYWRIGHT_PUBLIC_DETAIL_PROJECT_ID 또는 PLAYWRIGHT_PROJECT_ID가 필요합니다.');
 	const response = await page.goto(`/projects/${publicDetailProjectId}`, { waitUntil: 'domcontentloaded' });

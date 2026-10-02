@@ -1,5 +1,6 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient } from '$lib/supabase';
+import { authRetryAfterSeconds, friendlyAuthError } from '$lib/authSupport';
 
 export type AuthProfile = {
 	id: string;
@@ -12,6 +13,7 @@ export type AuthProfile = {
 export type AuthResult = {
 	ok: boolean;
 	message: string;
+	retryAfterSeconds?: number;
 };
 
 export function normalizeEmail(email: string) {
@@ -154,7 +156,7 @@ export async function requestPasswordReset(email: string): Promise<AuthResult> {
 		redirectTo: `${window.location.origin}/reset-password`
 	});
 	if (error) {
-		return { ok: false, message: friendlyAuthError('비밀번호 재설정', error.message) };
+		return { ok: false, message: friendlyAuthError('비밀번호 재설정', error.message), retryAfterSeconds: authRetryAfterSeconds(error.message) };
 	}
 	return { ok: true, message: '비밀번호 재설정 메일 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.' };
 }
@@ -178,7 +180,7 @@ export async function resendSignupConfirmation(email: string): Promise<AuthResul
 		}
 	});
 	if (error) {
-		return { ok: false, message: friendlyAuthError('인증 메일 재발송', error.message) };
+		return { ok: false, message: friendlyAuthError('인증 메일 재발송', error.message), retryAfterSeconds: authRetryAfterSeconds(error.message) };
 	}
 	return { ok: true, message: '인증 메일 재발송 요청을 처리했습니다. 메일함과 스팸함을 확인하세요.' };
 }
@@ -229,7 +231,11 @@ export async function completePasswordReset(input: {
 	if (error) {
 		return { ok: false, message: friendlyAuthError('비밀번호 변경', error.message) };
 	}
-	await supabase.auth.signOut();
+	const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+	if (signOutError) {
+		console.warn('Password changed, but the local recovery session could not be cleared');
+		return { ok: true, message: '비밀번호가 변경되었습니다. 보안을 위해 브라우저를 닫은 뒤 새 비밀번호로 로그인하세요.' };
+	}
 	return { ok: true, message: '비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.' };
 }
 
@@ -303,33 +309,4 @@ async function applySignupPolicyConsents(session: Session | null) {
 function signupPolicyConsentIds(user: User | undefined) {
 	const value = user?.user_metadata?.consented_policy_version_ids;
 	return [...new Set(Array.isArray(value) ? value.map((item) => String(item ?? '').trim()).filter(Boolean) : [])];
-}
-
-function friendlyAuthError(action: string, message: string) {
-	const lower = message.toLowerCase();
-	if (lower.includes('invalid login credentials')) {
-		return '이메일 또는 비밀번호를 확인하세요.';
-	}
-	if (lower.includes('email not confirmed')) {
-		return '이메일 인증 후 로그인하세요.';
-	}
-	if (lower.includes('already registered') || lower.includes('already exists')) {
-		return '이미 가입된 이메일입니다. 로그인 화면에서 로그인하세요.';
-	}
-	if (lower.includes('rate limit') || lower.includes('over_email_send_rate_limit')) {
-		return '인증 메일 발송 요청이 잠시 제한되었습니다. 잠시 후 다시 시도하세요.';
-	}
-	if (lower.includes('redirect') && (lower.includes('not allowed') || lower.includes('invalid') || lower.includes('uri'))) {
-		return 'Supabase Redirect URLs에 현재 앱 주소가 허용되어 있지 않습니다.';
-	}
-	if (lower.includes('otp') || lower.includes('token') || lower.includes('expired')) {
-		return '비밀번호 재설정 링크가 만료되었거나 이미 사용되었습니다. 다시 요청하세요.';
-	}
-	if (lower.includes('same password') || lower.includes('different from the old password')) {
-		return '기존 비밀번호와 다른 새 비밀번호를 입력하세요.';
-	}
-	if (lower.includes('password') && (lower.includes('weak') || lower.includes('short') || lower.includes('length'))) {
-		return '비밀번호 보안 조건을 만족하지 못했습니다. 더 긴 비밀번호를 입력하세요.';
-	}
-	return `${action} 중 오류가 발생했습니다. 잠시 후 다시 시도하세요.`;
 }

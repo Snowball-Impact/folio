@@ -2,14 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { completePasswordReset, requestPasswordReset } from '$lib/auth';
-
-	type RecoveryParams = {
-		code: string;
-		tokenHash: string;
-		accessToken: string;
-		refreshToken: string;
-		hasRecovery: boolean;
-	};
+	import { parseRecoveryParams, type RecoveryParams } from '$lib/authSupport';
 
 	let email = $state(page.url.searchParams.get('email') ?? '');
 	let password = $state('');
@@ -19,7 +12,8 @@
 		tokenHash: '',
 		accessToken: '',
 		refreshToken: '',
-		hasRecovery: false
+		hasRecovery: false,
+		errorMessage: ''
 	});
 	let message = $state('');
 	let status = $state<'idle' | 'success' | 'error'>('idle');
@@ -27,7 +21,12 @@
 
 	$effect(() => {
 		if (typeof window !== 'undefined') {
-			recovery = readRecoveryParams();
+			const parsedRecovery = parseRecoveryParams(window.location.search, window.location.hash);
+			recovery = parsedRecovery;
+			if (parsedRecovery.errorMessage) {
+				status = 'error';
+				message = parsedRecovery.errorMessage;
+			}
 		}
 	});
 
@@ -61,24 +60,6 @@
 		}
 	}
 
-	function readRecoveryParams(): RecoveryParams {
-		const query = new URLSearchParams(window.location.search);
-		const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-		const recoveryType = query.get('type') || hash.get('type') || '';
-		const tokenHash = query.get('token_hash') || query.get('token') || hash.get('token_hash') || hash.get('token') || '';
-		const code = query.get('code') || hash.get('code') || '';
-		const accessToken = query.get('access_token') || hash.get('access_token') || '';
-		const refreshToken = query.get('refresh_token') || hash.get('refresh_token') || '';
-		const validTokenHash = !recoveryType || recoveryType === 'recovery' ? tokenHash : '';
-
-		return {
-			code,
-			tokenHash: validTokenHash,
-			accessToken,
-			refreshToken,
-			hasRecovery: Boolean(code || validTokenHash || (accessToken && refreshToken))
-		};
-	}
 </script>
 
 <svelte:head>

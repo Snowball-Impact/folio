@@ -759,10 +759,12 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		expect(editState.scrollWidth - editState.clientWidth).toBeLessThanOrEqual(3);
 		const editFormatSelect = page.locator('.rich-editor-format-select');
 		await expect(editFormatSelect).toBeVisible();
-		await expect(editFormatSelect.locator('option')).toHaveText(['Normal', 'H2', 'H3']);
+		await expect(editFormatSelect.locator('option')).toHaveText(['Normal', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
 		await page.locator('.rich-editor .tiptap h2').first().click();
 		await expect(editFormatSelect).toHaveValue('heading2');
-		await expect(page.locator('.rich-editor-size-select')).toHaveCount(0);
+		const editSizeSelect = page.locator('.rich-editor-size-select');
+		await expect(editSizeSelect).toBeVisible();
+		await expect(editSizeSelect.locator('option')).toHaveText(['Normal', 'Small', 'Large', 'Huge']);
 		await page.locator('.rich-editor-format-select').selectOption('heading3');
 		await expect(page.locator('.rich-editor .tiptap h3').first()).toBeVisible();
 		await page.locator('.rich-editor-format-select').selectOption('heading2');

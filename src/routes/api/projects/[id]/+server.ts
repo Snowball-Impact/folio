@@ -27,18 +27,6 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		return json({ error: '삭제할 프로젝트를 찾을 수 없습니다.' }, { status: 404 });
 	}
 
-	try {
-		await removeProjectStoragePrefix(auth, env.BODY_IMAGE_STORAGE_BUCKET || DEFAULT_BODY_IMAGE_BUCKET, projectId);
-		await removeProjectStoragePrefix(auth, env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_THUMBNAIL_BUCKET, projectId);
-	} catch {
-		return json({ error: '프로젝트 파일을 정리하지 못했습니다. 잠시 후 다시 시도하세요.' }, { status: 502 });
-	}
-
-	const { error: reportError } = await auth.serviceClient.from('powerbi_reports').delete().eq('project_id', projectId);
-	if (reportError) {
-		return json({ error: 'Power BI 게시본 연결을 정리하지 못했습니다. 잠시 후 다시 시도하세요.' }, { status: 502 });
-	}
-
 	const { error: updateError } = await auth.serviceClient
 		.from('projects')
 		.update({
@@ -55,7 +43,25 @@ export const DELETE: RequestHandler = async ({ params, request }) => {
 		return json({ error: '프로젝트 삭제에 실패했습니다. 잠시 후 다시 시도하세요.' }, { status: 502 });
 	}
 
-	return json({ ok: true, message: '프로젝트와 연결된 파일을 삭제했습니다.' });
+	const cleanupErrors: string[] = [];
+	try {
+		await removeProjectStoragePrefix(auth, env.BODY_IMAGE_STORAGE_BUCKET || DEFAULT_BODY_IMAGE_BUCKET, projectId);
+		await removeProjectStoragePrefix(auth, env.THUMBNAIL_STORAGE_BUCKET || DEFAULT_THUMBNAIL_BUCKET, projectId);
+	} catch {
+		cleanupErrors.push('storage');
+	}
+
+	const { error: reportError } = await auth.serviceClient.from('powerbi_reports').delete().eq('project_id', projectId);
+	if (reportError) cleanupErrors.push('powerbi-report');
+	if (cleanupErrors.length > 0) {
+		console.warn('Project soft-deleted with pending cleanup', { projectId, cleanupErrors });
+		return json(
+			{ ok: true, cleanupPending: true, message: '프로젝트를 삭제했습니다. 일부 연결 파일은 서버에서 추가 정리됩니다.' },
+			{ status: 202 }
+		);
+	}
+
+	return json({ ok: true, cleanupPending: false, message: '프로젝트와 연결된 파일을 삭제했습니다.' });
 };
 
 async function removeProjectStoragePrefix(

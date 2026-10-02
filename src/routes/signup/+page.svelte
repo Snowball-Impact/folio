@@ -71,6 +71,9 @@
 		if (result.ok || result.message.includes('이미 가입된 이메일')) {
 			resendEmail = normalizeEmail(email);
 			showResendPanel = true;
+			if (result.ok) {
+				resendAvailableAt = Date.now() + resendCooldownSeconds * 1000;
+			}
 		}
 		submitting = false;
 	}
@@ -95,8 +98,8 @@
 		const result = await resendSignupConfirmation(targetEmail);
 		resendStatus = result.ok ? 'success' : 'error';
 		resendMessage = result.message;
-		if (result.ok) {
-			resendAvailableAt = Date.now() + resendCooldownSeconds * 1000;
+		if (result.ok || result.retryAfterSeconds) {
+			resendAvailableAt = Date.now() + (result.retryAfterSeconds || resendCooldownSeconds) * 1000;
 		}
 		resending = false;
 	}

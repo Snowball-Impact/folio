@@ -10,6 +10,7 @@ export type RateLimitPolicy = {
 	maxRequests: number;
 	windowSeconds: number;
 	userId?: string | null;
+	scope?: string | null;
 };
 
 export type RateLimitResult =
@@ -33,7 +34,8 @@ export async function enforceRateLimit(
 	}
 
 	for (const subject of rateLimitSubjects(headers, policy.userId)) {
-		const rateKey = await opaqueIdentifier(`${policy.action}:${subject}`);
+		const scope = normalizeScope(policy.scope);
+		const rateKey = await opaqueIdentifier(`${policy.action}:${scope}:${subject}`);
 		const { data, error } = await client.rpc('consume_server_rate_limit', {
 			p_rate_key: rateKey,
 			p_max_requests: policy.maxRequests,
@@ -52,6 +54,11 @@ export async function enforceRateLimit(
 	}
 
 	return { ok: true };
+}
+
+function normalizeScope(value: string | null | undefined) {
+	const scope = String(value ?? 'global').trim().toLowerCase();
+	return /^[a-z0-9_-]{1,128}$/.test(scope) ? scope : 'global';
 }
 
 export function rateLimitSubjects(headers: Headers, userId?: string | null) {

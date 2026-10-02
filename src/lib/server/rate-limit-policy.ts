@@ -53,14 +53,15 @@ const ENVIRONMENT_NAMES: Record<RateLimitAction, { requests: string; window: str
 	}
 };
 
-export function rateLimitPolicy(action: RateLimitAction, userId?: string | null): RateLimitPolicy {
+export function rateLimitPolicy(action: RateLimitAction, userId?: string | null, scope?: string | null): RateLimitPolicy {
 	const defaults = DEFAULT_POLICIES[action];
 	const names = ENVIRONMENT_NAMES[action];
 	return {
 		action,
 		maxRequests: configuredPositiveInteger(env[names.requests], defaults.maxRequests, 10_000),
 		windowSeconds: configuredPositiveInteger(env[names.window], defaults.windowSeconds, 86_400),
-		userId
+		userId,
+		scope
 	};
 }
 

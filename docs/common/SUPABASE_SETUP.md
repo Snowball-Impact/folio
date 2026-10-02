@@ -183,3 +183,26 @@ Supabase가 `#access_token=...` fragment를 붙여서 돌려주더라도 앱은 
 5. 메일함과 스팸함을 확인합니다.
 
 Supabase rate limit에 걸리면 잠시 후 다시 시도합니다.
+
+## 10. 비밀번호 재설정 메일 템플릿
+
+SvelteKit 앱은 비밀번호 재설정 요청 시 현재 origin의 `/reset-password`를 Supabase `redirectTo`로 전달합니다. Supabase Dashboard의 **Authentication > Emails > Reset password** 템플릿은 아래 링크 형식을 사용해야 합니다.
+
+```html
+<a href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery">
+  비밀번호 재설정
+</a>
+```
+
+`RedirectTo`에는 쿼리스트링이 없으므로 `token_hash` 앞 구분자는 반드시 `?`여야 합니다. `&token_hash=...`로 작성하면 브라우저가 `/reset-password&token_hash=...` 전체를 경로로 해석해 Cloudflare에서 404가 발생합니다.
+
+운영 설정 기준:
+
+```text
+Site URL: https://folio.it.kr
+Redirect URLs:
+https://folio.it.kr/**
+https://www.folio.it.kr/**
+```
+
+템플릿이나 URL 설정을 변경한 뒤에는 기존 메일이 아니라 새 재설정 메일을 발송해 확인합니다. 기존에 발송된 메일의 링크는 변경되지 않습니다.

@@ -17,6 +17,14 @@ export default defineConfig({
 		['list'],
 		['html', { outputFolder: 'artifacts/playwright/report', open: 'never' }]
 	],
+	webServer: process.env.PLAYWRIGHT_BASE_URL
+		? undefined
+		: {
+				command: 'npm.cmd run dev -- --host 127.0.0.1 --port 5174',
+				url: baseURL,
+				reuseExistingServer: true,
+				timeout: 120_000
+			},
 	use: {
 		baseURL,
 		locale: 'ko-KR',

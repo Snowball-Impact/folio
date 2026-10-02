@@ -28,6 +28,7 @@
 	let fontSize = $state<FontSizeValue>('');
 	let fontFamily = $state<FontFamilyValue>('');
 	let imageInput = $state<HTMLInputElement | null>(null);
+	let toolbarSelection: { from: number; to: number } | null = null;
 	const textColors = ['#1459c8', '#0a9485', '#9c1d34', '#6b7280'];
 	const highlightColors = ['#fff2a8', '#d9f4ef', '#eaf2ff', '#ffe4e6'];
 
@@ -243,12 +244,27 @@
 	}
 
 	function setTextColor(color: string) {
+		if (!editor) {
+			return;
+		}
+		const selection = toolbarSelection;
+		toolbarSelection = null;
 		run(() => {
-			const chain = editor?.chain().focus() as ReturnType<TiptapEditor['chain']> & {
-				setColor?: (color: string) => { run: () => boolean };
-			};
-			return chain?.setColor?.(color).run() ?? false;
+			const chain = editor?.chain().focus();
+			if (!chain) {
+				return false;
+			}
+			return (selection ? chain.setTextSelection(selection) : chain).setMark('textStyle', { color }).run();
 		});
+	}
+
+	function preserveToolbarSelection(event: MouseEvent) {
+		event.preventDefault();
+		if (!editor) {
+			return;
+		}
+		const { from, to } = editor.state.selection;
+		toolbarSelection = { from, to };
 	}
 
 	function setHighlightColor(color: string) {
@@ -381,10 +397,10 @@
 		</div>
 		<div class="rich-editor-toolbar-group" aria-label="색상">
 			{#each textColors as color}
-				<button type="button" class="rich-editor-swatch" aria-label={`글자 색상 ${color}`} title={`글자 색상 ${color}`} style={`--swatch-color: ${color}`} onclick={() => setTextColor(color)}></button>
+				<button type="button" class="rich-editor-swatch" aria-label={`글자 색상 ${color}`} title={`글자 색상 ${color}`} style={`--swatch-color: ${color}`} onmousedown={preserveToolbarSelection} onclick={() => setTextColor(color)}></button>
 			{/each}
 			{#each highlightColors as color}
-				<button type="button" class="rich-editor-swatch highlight" aria-label={`배경색 ${color}`} title={`배경색 ${color}`} style={`--swatch-color: ${color}`} onclick={() => setHighlightColor(color)}></button>
+				<button type="button" class="rich-editor-swatch highlight" aria-label={`배경색 ${color}`} title={`배경색 ${color}`} style={`--swatch-color: ${color}`} onmousedown={(event) => event.preventDefault()} onclick={() => setHighlightColor(color)}></button>
 			{/each}
 			<button type="button" aria-label="색상 지우기" title="색상 지우기" onclick={clearTextStyle}><RichEditorIcon name="clear" /></button>
 		</div>

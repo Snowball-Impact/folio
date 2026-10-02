@@ -11,7 +11,7 @@ export async function GET({ params, request }) {
 		return json({ error: '프로젝트 ID가 올바르지 않습니다.' }, { status: 400 });
 	}
 
-	const rateLimit = await enforceRateLimit(getSupabaseServerClient(), request.headers, rateLimitPolicy('powerbi-embed'));
+	const rateLimit = await enforceRateLimit(getSupabaseServerClient(), request.headers, rateLimitPolicy('powerbi-embed', null, projectId));
 	if (!rateLimit.ok) {
 		return json(
 			{ error: rateLimit.reason === 'limited' ? 'Power BI 보고서 요청이 너무 많습니다. 잠시 후 다시 시도하세요.' : '요청 제한 설정을 확인하지 못했습니다.' },
