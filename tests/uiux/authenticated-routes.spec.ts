@@ -1341,9 +1341,9 @@ test.describe('authenticated FOLIO UIUX routes @auth', () => {
 		await page.getByRole('button', { name: '공유 링크 복사' }).click();
 		await expect(page.getByRole('button', { name: '공유 링크 복사' })).toContainText('복사 완료');
 		const fallbackShareUrl = await page.evaluate(() => document.documentElement.dataset.folioCopiedShare ?? '');
-		const fallbackShareParams = new URL(fallbackShareUrl).searchParams;
-		await expect(fallbackShareParams.get('page')).toBe('Home');
-		await expect(fallbackShareParams.get('project_id')).toBe(targetProjectId);
+		const fallbackShareTarget = new URL(fallbackShareUrl);
+		const fallbackShareParams = fallbackShareTarget.searchParams;
+		await expect(fallbackShareTarget.pathname).toBe(`/projects/${targetProjectId}`);
 		await expect(fallbackShareParams.get('utm_campaign')).toBe('project_share');
 		await expect(detailMetrics.viewportScrollY).toBe(0);
 		// The original Streamlit shell keeps a 16px top inset at scrollY=0

@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { signInWithEmail } from '$lib/auth';
+	import { trackGoogleAnalyticsEvent } from '$lib/googleAnalytics';
 	import { safeInternalNextPath } from '$lib/navigation';
 
 	let email = $state('');
@@ -22,6 +23,7 @@
 		message = result.message;
 		submitting = false;
 		if (result.ok) {
+			trackGoogleAnalyticsEvent('login', { method: 'email' });
 			await goto(nextPath);
 		}
 	}

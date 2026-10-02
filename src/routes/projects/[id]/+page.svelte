@@ -3,6 +3,7 @@
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 	import { currentSession } from '$lib/auth';
+	import { trackGoogleAnalyticsEvent } from '$lib/googleAnalytics';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import ProjectComments from '$lib/components/ProjectComments.svelte';
 	import ProjectLikeButton from '$lib/components/ProjectLikeButton.svelte';
@@ -76,6 +77,12 @@
 	onMount(async () => {
 		if (!isThumbnailCapture) {
 			void recordProjectView(project.id);
+			trackGoogleAnalyticsEvent('view_item', {
+				project_id: project.id,
+				platform: project.platform_key ?? project.project_type,
+				content_type: 'project'
+			});
+			trackSharedProjectOpen();
 		}
 
 		const session = await currentSession();
@@ -106,14 +113,17 @@
 	}
 
 	async function shareProject() {
-		const target = new URL(window.location.origin + '/');
-		target.searchParams.set('page', 'Home');
-		target.searchParams.set('project_id', project.id);
+		const target = new URL(`/projects/${project.id}`, window.location.origin);
 		target.searchParams.set('utm_source', 'folio');
 		target.searchParams.set('utm_medium', 'share');
 		target.searchParams.set('utm_campaign', 'project_share');
 		try {
 			await copyText(target.toString());
+			trackGoogleAnalyticsEvent('share', {
+				method: 'copy_link',
+				content_type: 'project',
+				item_id: project.id
+			});
 			shareLabel = '복사 완료';
 		} catch {
 			shareLabel = '복사 실패';
@@ -121,6 +131,28 @@
 		setTimeout(() => {
 			shareLabel = '링크 복사';
 		}, 1600);
+	}
+
+	function trackSharedProjectOpen() {
+		const source = page.url.searchParams.get('utm_source');
+		const medium = page.url.searchParams.get('utm_medium');
+		const campaign = page.url.searchParams.get('utm_campaign');
+		if (source !== 'folio' || medium !== 'share' || campaign !== 'project_share') {
+			return;
+		}
+		const storageKey = `folio-ga:project-share-open:${project.id}`;
+		try {
+			if (sessionStorage.getItem(storageKey)) {
+				return;
+			}
+			sessionStorage.setItem(storageKey, '1');
+		} catch {
+			// Analytics must never block the project page when storage is unavailable.
+		}
+		trackGoogleAnalyticsEvent('project_share_open', {
+			project_id: project.id,
+			platform: project.platform_key ?? project.project_type
+		});
 	}
 
 	async function copyText(value: string) {

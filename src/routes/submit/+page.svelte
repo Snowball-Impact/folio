@@ -6,6 +6,7 @@
 	import ProjectFormOverview from '$lib/components/ProjectFormOverview.svelte';
 	import OperationProgress, { type OperationStep } from '$lib/components/OperationProgress.svelte';
 	import { currentSession } from '$lib/auth';
+	import { trackGoogleAnalyticsEvent } from '$lib/googleAnalytics';
 	import type { ProjectSubmitInput } from '$lib/types';
 	import { runProjectSaveWorkflow } from '$lib/projectSaveWorkflow';
 	import {
@@ -152,6 +153,17 @@
 		submitting = false;
 		message = result.message;
 		pendingProjectRedirect = `/projects/${result.projectId}`;
+		trackGoogleAnalyticsEvent('project_submit', {
+			project_id: result.projectId,
+			platform: input.platform,
+			has_pbix: Boolean(pbixFile)
+		});
+		if (pbixFile) {
+			trackGoogleAnalyticsEvent('pbix_import_success', {
+				project_id: result.projectId,
+				operation: 'create'
+			});
+		}
 		clearDraft({ keepMessage: true });
 	}
 

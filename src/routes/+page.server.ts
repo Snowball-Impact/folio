@@ -26,10 +26,10 @@ function redirectLegacyStreamlitUrl(url: URL) {
 
 	if (projectId) {
 		const fromReference = page === 'reference';
-		const target = fromReference
+		const pathname = fromReference
 			? `/projects/${encodeURIComponent(projectId)}?from=references&platform=${referencePlatform}`
 			: `/projects/${encodeURIComponent(projectId)}`;
-		throw redirect(301, target);
+		throw redirect(301, appendTrackingParameters(pathname, url));
 	}
 
 	if (editProjectId && (page === 'my page' || page === 'my portfolio' || page === 'profile')) {
@@ -61,6 +61,17 @@ function redirectLegacyStreamlitUrl(url: URL) {
 		case 'policy':
 			throw redirect(301, `/policy/${policyType}`);
 	}
+}
+
+function appendTrackingParameters(pathname: string, source: URL) {
+	const target = new URL(pathname, source.origin);
+	for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']) {
+		const value = source.searchParams.get(key)?.trim();
+		if (value) {
+			target.searchParams.set(key, value.slice(0, 100));
+		}
+	}
+	return `${target.pathname}${target.search}`;
 }
 
 function normalizePage(value: string | null) {

@@ -7,6 +7,7 @@
 	import ProjectFormOverview from '$lib/components/ProjectFormOverview.svelte';
 	import OperationProgress, { type OperationStep } from '$lib/components/OperationProgress.svelte';
 	import { currentSession } from '$lib/auth';
+	import { trackGoogleAnalyticsEvent } from '$lib/googleAnalytics';
 	import { projectPbixExists } from '$lib/powerbi-publish';
 	import { loadMyProject } from '$lib/projects';
 	import type { ProjectSubmitInput } from '$lib/types';
@@ -155,6 +156,12 @@
 		submitting = false;
 		message = result.message;
 		pendingProjectRedirect = `/projects/${result.projectId}`;
+		if (pbixFile) {
+			trackGoogleAnalyticsEvent('pbix_import_success', {
+				project_id: result.projectId,
+				operation: 'replace'
+			});
+		}
 		if (pendingProjectRedirect) {
 			window.location.assign(pendingProjectRedirect);
 		}
