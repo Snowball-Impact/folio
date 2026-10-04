@@ -93,3 +93,46 @@ GA4 `folio` 속성(`544503054`)에 다음 이벤트 범위 맞춤 측정기준�
 - PBIX 포함 여부 → `has_pbix`
 
 GA4 이벤트 최근 활동에서 `login`, `view_item`의 실제 수신도 확인했다. `project_submit`은 아직 최근 활동에 나타나지 않아 주요 이벤트로 지정할 수 없는 상태다. 첫 성공 이벤트가 처리된 뒤 이벤트 관리 화면에서 `project_submit`의 주요 이벤트 상태를 켠다.
+
+## TODO
+
+### P0 — Creation 이벤트 운영 검증
+
+- [ ] 테스트 계정으로 일반 프로젝트를 등록해 `project_submit` 실수신 확인
+- [ ] 테스트 프로젝트 삭제 전 사용자 확인 후 프로젝트·관련 리소스 정리
+- [ ] GA4 최근 활동에 `project_submit`이 나타나면 주요 이벤트로 지정
+- [ ] 정상 `Solo_sample.pbix`로 `pbix_import_success` 실수신 확인
+- [ ] PBIX 테스트 후 생성된 Power BI Report·Dataset과 테스트 프로젝트 정리
+- [ ] `pbix_import_success`를 주요 이벤트로 지정할지 데이터 확인 후 결정
+
+완료 조건: GA4 이벤트 목록에서 `project_submit`과 `pbix_import_success`의 운영 수신을 확인하고, 테스트 생성물이 남지 않는다.
+
+### P1 — Creation 퍼널 확장
+
+- [ ] `project_submit_start` 추가
+- [ ] `project_submit_validation_error` 추가
+- [ ] `pbix_import_start` 추가
+- [ ] `pbix_import_failed` 추가
+- [ ] 등록 시작 → 입력 오류 → 프로젝트 저장 → PBIX 게시 성공 퍼널 정의
+
+완료 조건: 프로젝트 등록 및 PBIX 게시의 단계별 사용자 수와 이탈률을 GA4에서 조회할 수 있다.
+
+### P1 — Interaction 측정 확장
+
+- [ ] 좋아요 성공 `like` 추가
+- [ ] 댓글 등록 성공 `comment_create` 추가
+- [ ] 외부 대시보드·보고서·GitHub 열기 `project_resource_open` 추가
+- [ ] 홈 또는 상세의 전체 프로젝트 탐색 `browse_projects_click` 추가
+
+완료 조건: 광고 방문자의 콘텐츠 소비 이후 상호작용 여부를 이벤트별로 구분할 수 있다.
+
+### P2 — 다음 광고 실험 평가
+
+- [ ] `view_item → related_project_click` 전환율 확인
+- [ ] `view_item → login` 전환율 확인
+- [ ] `login → project_submit` 전환율 확인
+- [ ] `share → project_share_open` 전환율 확인
+- [ ] 광고 신규 사용자 7일·28일 재방문 cohort 확인
+- [ ] 관련 프로젝트 추천 위치·문구·노출 개수 개선 여부 결정
+
+완료 조건: Acquisition뿐 아니라 Experience·Create·Interact·Return을 동일 기간과 유입 채널 기준으로 평가한다.
