@@ -81,3 +81,15 @@ GA4 관리 화면에서 다음 이벤트 파라미터를 이벤트 범위 맞춤
 배포 과정에서 `wrangler.jsonc`의 프로젝트명이 실제 Pages 프로젝트와 다른 `folio-svelte`로 설정돼 기본 배포 명령이 실패하는 문제를 발견했다. 실제 프로젝트명 `folio`로 수정해 이후 `npm run deploy:cloudflare`가 올바른 대상을 사용하도록 했다.
 
 관련 프로젝트 탐색 개선은 커밋 `681c0d2`, 배포 `https://e07b137b.folio-5l4.pages.dev`로 운영 반영했다. 운영 상세페이지에서 추천 카드 렌더링과 `related_project_click`의 `project_id`, `target_project_id`, `platform` 파라미터를 확인했다.
+
+## 2026-10-04 GA4 관리 설정
+
+GA4 `folio` 속성(`544503054`)에 다음 이벤트 범위 맞춤 측정기준을 등록하고 목록에서 저장 상태를 확인했다.
+
+- 프로젝트 ID → `project_id`
+- 대상 프로젝트 ID → `target_project_id`
+- 플랫폼 → `platform`
+- 작업 유형 → `operation`
+- PBIX 포함 여부 → `has_pbix`
+
+GA4 이벤트 최근 활동에서 `login`, `view_item`의 실제 수신도 확인했다. `project_submit`은 아직 최근 활동에 나타나지 않아 주요 이벤트로 지정할 수 없는 상태다. 첫 성공 이벤트가 처리된 뒤 이벤트 관리 화면에서 `project_submit`의 주요 이벤트 상태를 켠다.
